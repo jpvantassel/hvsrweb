@@ -7,6 +7,7 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
+import dash_bootstrap_components as dbc
 
 import dash_table
 import pandas as pd
@@ -22,7 +23,408 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+# Bootstrap Layout:
+# TIME DOMAIN SETTINGS TAB
+tab1_content = dbc.Card(
+    dbc.CardBody(
+        [
+            html.H5("Settings"),
+            # Window Length
+            html.P([
+                html.Span(
+                    "Window length (in seconds):",
+                    id="windowlength-tooltip-target",
+                    style={"textDecoration": "underline", "cursor": "pointer"},
+                ),
+            ]),
+            dbc.Tooltip(
+                "In general low frequency peaks require longer window lengths. "
+                "See the SESAME guidelines for specific window length recommendations.",
+                target="windowlength-tooltip-target",
+            ),
+            dbc.Input(id="windowlength-input", type="number", value=30, min=0, max=600, step=1),
+            html.P(""),
+            html.Hr(),
+
+            # Butterworth Filter
+            html.P([
+                html.Span(
+                    "Apply Butterworth Filter?",
+                    id="butterworth-tooltip-target",
+                    style={"textDecoration": "underline", "cursor": "pointer"},
+                ),
+            ]),
+            dbc.Tooltip(
+                "Boolean to control whether Butterworth filter is applied. "
+                "Geopsy does not apply a bandpass filter.",
+                target="butterworth-tooltip-target",
+            ),
+            dbc.Select(
+                id="butterworth-input",
+                options=[
+                    {"label": "True", "value": "True"},
+                    {"label": "False", "value": "False"},
+                    # {"label": "Disabled option", "value": "3", "disabled": True},
+                ], value="True"),
+            html.P(""), # used for styling purposes only
+
+            # fLow for bandpass filter
+            html.P([
+                html.Span(
+                    "Low-cut frequency for bandpass filter:",
+                    id="flow-tooltip-target",
+                    style={"textDecoration": "underline", "cursor": "pointer"},
+                ),
+            ]),
+            dbc.Tooltip(
+                "Do we even really need "
+                "a tooltip for this one?",
+                target="flow-tooltip-target",
+            ),
+            dbc.Input(id="flow-input", type="number", value=0.1, min=0, max=600, step=1),
+            html.P(""), # used for styling purposes only
+
+            # fHigh for bandpass filter
+            html.P([
+                html.Span(
+                    "High-cut frequency for bandpass filter:",
+                    id="fhigh-tooltip-target",
+                    style={"textDecoration": "underline", "cursor": "pointer"},
+                ),
+            ]),
+            dbc.Tooltip(
+                "Do we even really need "
+                "a tooltip for this one?",
+                target="fhigh-tooltip-target",
+            ),
+            dbc.Input(id="fhigh-input", type="number", value=30, min=0, max=600, step=1),
+            html.P(""), # used for styling purposes only
+
+            # fOrder for bandpass filter
+            html.P([
+                html.Span(
+                    "Filter order:",
+                    id="forder-tooltip-target",
+                    style={"textDecoration": "underline", "cursor": "pointer"},
+                ),
+            ]),
+            dbc.Tooltip(
+                "Do we even really need "
+                "a tooltip for this one?",
+                target="forder-tooltip-target",
+            ),
+            dbc.Input(id="forder-input", type="number", value=5, min=0, max=600, step=1),
+            html.P(""), # used for styling purposes only
+            html.Hr(),# used for styling purposes only
+
+            # Width of cosine taper
+            html.P([
+                html.Span(
+                    "Width of cosine taper (0.0 - 1.0):",
+                    id="width-tooltip-target",
+                    style={"textDecoration": "underline", "cursor": "pointer"},
+                ),
+            ]),
+            dbc.Tooltip(
+                "Geopsy default of 0.05 is equal to 0.1. "
+                "0.1 is recommended.",
+                target="width-tooltip-target",
+            ),
+            dbc.Input(id="width-input", type="number", value=0.1, min=0.1, max=1.0, step=0.1),
+
+            # dbc.Button("Click here", color="success")]
+
+    ]),
+    className="mt-3",
+)
+
+# FREQUENCY DOMAIN SETTINGS TAB
+tab2_content = dbc.Card(
+    dbc.CardBody(
+        [
+            html.H5("Settings"),
+            # Bandwidth
+            html.P([
+                html.Span(
+                    "Bandwith:",
+                    id="bandwidth-tooltip-target",
+                    style={"textDecoration": "underline", "cursor": "pointer"},
+                ),
+            ]),
+            dbc.Tooltip(
+                "Konno and Ohmachi smoothing constant. "
+                "40 is recommended.",
+                target="bandwidth-tooltip-target",
+            ),
+            dbc.Input(id="bandwidth-input", type="number", value=40, min=0, max=600, step=1),
+            html.P(""),
+            html.Hr(),
+
+            # Minumum frequency
+            html.P([
+                html.Span(
+                    "Minimum frequency after resampling:",
+                    id="minf-tooltip-target",
+                    style={"textDecoration": "underline", "cursor": "pointer"},
+                ),
+            ]),
+            dbc.Tooltip(
+                "Do we even really need "
+                "a tooltip for this one?",
+                target="minf-tooltip-target",
+            ),
+            dbc.Input(id="minf-input", type="number", value=0.1, min=0, max=600, step=1),
+            html.P(""),
+
+            # Maximum frequency
+            html.P([
+                html.Span(
+                    "Maximum frequency after resampling:",
+                    id="maxf-tooltip-target",
+                    style={"textDecoration": "underline", "cursor": "pointer"},
+                ),
+            ]),
+            dbc.Tooltip(
+                "Do we even really need "
+                "a tooltip for this one?",
+                target="maxf-tooltip-target",
+            ),
+            dbc.Input(id="maxf-input", type="number", value=20, min=0, max=600, step=1),
+            html.P(""),
+
+            # Number of frequencies
+            html.P([
+                html.Span(
+                    "Number of frequencies after resampling:",
+                    id="nf-tooltip-target",
+                    style={"textDecoration": "underline", "cursor": "pointer"},
+                ),
+            ]),
+            dbc.Tooltip(
+                "Do we even really need "
+                "a tooltip for this one?",
+                target="nf-tooltip-target",
+            ),
+            dbc.Input(id="nf-input", type="number", value=2048, min=0, max=600, step=1),
+            html.P(""),
+
+            # Resampling type
+            html.P([
+                html.Span(
+                    "Type of resampling:",
+                    id="res_type-tooltip-target",
+                    style={"textDecoration": "underline", "cursor": "pointer"},
+                ),
+            ]),
+            dbc.Tooltip(
+                "Boolean to control whether Butterworth filter is applied. "
+                "Geopsy does not apply a bandpass filter.",
+                target="res_type-tooltip-target",
+            ),
+            dbc.Select(
+                id="res_type-input",
+                options=[
+                    {"label": "log", "value": "log"},
+                    {"label": "linear", "value": "linear"},
+                ], value="log",
+            ),
+            # dbc.Button("Click here", color="success")]
+    ]),
+    className="mt-3",
+)
+
+# H/V SETTINGS TAB
+tab3_content = dbc.Card(
+    dbc.CardBody(
+        [
+            html.H5("Settings"),
+
+            # Method for combining
+            html.P([
+                html.Span(
+                    "Method for combining horizontal components:",
+                    id="method-tooltip-target",
+                    style={"textDecoration": "underline", "cursor": "pointer"},
+                ),
+            ]),
+            dbc.Tooltip(
+                "Method for combining horizontal components. Geopsy default is 'squared-average'. "
+                "'Geometric-mean' is recommended.",
+                target="method-tooltip-target",
+            ),
+            dbc.Select(
+                id="method-input",
+                options=[
+                    {"label": "squared-average", "value": "squared-average"},
+                    {"label": "geometric-mean", "value": "geometric-mean"},
+                ], value="geometric-mean",
+            ),
+            html.P(" "),
+            html.Hr(),
+
+            # Frequency domain rejection
+            html.P([
+                html.Span(
+                    "Apply frequency domain rejection?",
+                    id="rejection_bool-tooltip-target",
+                    style={"textDecoration": "underline", "cursor": "pointer"},
+                ),
+            ]),
+            dbc.Tooltip(
+                "Boolean to control whether frequency domain rejection proposed "
+                "by Cox et al. (in review) is applied. Geopsy does not offer this functionality.",
+                target="rejection_bool-tooltip-target",
+            ),
+            dbc.Select(
+                id="rejection_bool-input",
+                options=[
+                    {"label": "True", "value": "True"},
+                    {"label": "False", "value": "False"},
+                    # {"label": "Disabled option", "value": "3", "disabled": True},
+                ], value="True"),
+            html.P(""),
+
+            # Standard deviations to consider
+            html.P([
+                html.Span(
+                    "Number of standard deviations to consider:",
+                    id="n-tooltip-target",
+                    style={"textDecoration": "underline", "cursor": "pointer"},
+                ),
+            ]),
+            dbc.Tooltip(
+                "Number of standard deviations to consider during rejection. "
+                "Smaller values will reject more windows. 2 is recommended. ",
+                target="n-tooltip-target",
+            ),
+            dbc.Input(id="n-input", type="number", value=2, min=0, max=600, step=1),
+            html.P(""),
+
+            # Max iterations
+            html.P([
+                html.Span(
+                    "Number of iterations to perform during rejection:",
+                    id="n_iteration-tooltip-target",
+                    style={"textDecoration": "underline", "cursor": "pointer"},
+                ),
+            ]),
+            dbc.Tooltip(
+                "Number of iterations to perform during rejection. "
+                "50 is recommended.",
+                target="n_iteration-tooltip-target",
+            ),
+            dbc.Input(id="n_iteration-input", type="number", value=50, min=0, max=600, step=1),
+            html.P(""),
+            html.Hr(),
+
+            # Distribution of f0
+            html.P([
+                html.Span(
+                    "Distribution of f0:",
+                    id="distribution_f0-tooltip-target",
+                    style={"textDecoration": "underline", "cursor": "pointer"},
+                ),
+            ]),
+            dbc.Tooltip(
+                "Geopsy default 'normal'. 'log-normal' is recommended.",
+                target="distribution_f0-tooltip-target",
+            ),
+            dbc.Select(
+                id="distribution_f0-input",
+                options=[
+                    {"label": "log-normal", "value": "log-normal"},
+                    {"label": "normal", "value": "normal"},
+                    # {"label": "Disabled option", "value": "3", "disabled": True},
+                ], value='log-normal'),
+            html.P(""),
+
+            # Distribution of mean curve
+            html.P([
+                html.Span(
+                    "Distribution of mean curve:",
+                    id="distribution_mc-tooltip-target",
+                    style={"textDecoration": "underline", "cursor": "pointer"},
+                ),
+            ]),
+            dbc.Tooltip(
+                "Geopsy default 'log-normal'. 'log-normal' is recommended.",
+                target="distribution_mc-tooltip-target",
+            ),
+            dbc.Select(
+                id="distribution_mc-input",
+                options=[
+                    {"label": "log-normal", "value": "log-normal"},
+                    {"label": "normal", "value": "normal"},
+                    # {"label": "Disabled option", "value": "3", "disabled": True},
+                ], value="log-normal"),
+    ]),
+    className="mt-3",
+)
+
+body = dbc.Container([
+        # Row1
+        dbc.Row([
+                # Column1
+                dbc.Col(
+                    [
+                        # html.H2("Settings"),
+                        dbc.Tabs([
+                            dbc.Tab(tab1_content, label="Time Domain"),
+                            dbc.Tab(tab2_content, label="Frequency Domain"),
+                            dbc.Tab(tab3_content, label="  H/V  ")
+                        ]),
+                        # dbc.Button("View details", color="secondary"),
+                        html.P(id="total-time"),
+                        dbc.Button("Save Figure", color="secondary", id="save_figure-button"),
+                        html.P(id="figure_status"),
+                    ],
+                    md=5,
+                ),
+                # Column2
+                dbc.Col([
+                    # Row2_1
+                    dbc.Row([
+                        # Column2_1
+                        dbc.Col([
+                                # html.H2("Graph"),
+                                dcc.Upload(
+                                    id="upload-miniseed-data",
+                                    children=html.Div(
+                                        ["Drag and drop or click to select a file to upload."]
+                                    ),
+                                    style={
+                                        #"width": "100%",
+                                        "height": "50px",
+                                        "lineHeight": "45px",
+                                        "textAlign": "center",
+                                        "cursor": "pointer",
+                                        #"margin": "10px",
+                                        "background-color": "white",
+                                        "color": "black",
+                                        "border": "1px solid #dedede",
+                                        "border-radius": "8px",
+                                    },
+                                    # Allow multiple files to be uploaded
+                                    multiple=True,
+                                ),
+                            ],
+                            md=10, #instead of 6
+                        ),
+                        # Column2_2
+                        dbc.Col([
+                                dbc.Button("Calculate", id="calculate-button", outline=True, color="success", className="mr-1", size="lg"),
+                            ], md=2, ),
+                    ]),
+                    # Row2_2
+                    dbc.Row([
+                            html.Div(id="timerecord-plot")
+
+                    ])
+                ], md=7)
+            ]),
+    ],
+    className="mt-4",
+)
 
 # NEED TO CHANGE THE BELOW LINES WHEN DEPLOYED ON HEROKU
 UPLOAD_DIRECTORY = "/project/app_uploaded_files"
@@ -32,7 +434,7 @@ if not os.path.exists(UPLOAD_DIRECTORY):
 # Normally, Dash creates its own Flask server internally. By creating our own,
 # we can create a route for downloading files directly:
 server = Flask(__name__)
-app = dash.Dash(server=server, external_stylesheets=external_stylesheets)
+app = dash.Dash(server=server, external_stylesheets=[dbc.themes.BOOTSTRAP])
 @server.route("/download/<path:path>")
 def download(path):
     """Serve a file from the upload directory."""
@@ -43,142 +445,9 @@ app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 server = app.server
 '''
 
-# STYLING
-colors = {
-    "graphBackground": "#F5F5F5",
-    "background": "#ffffff",
-    "text": "#000000"
-}
 app.layout = html.Div(
     [
-        html.H1("HVSR Calculation"),
-        html.H2("Upload a file"),
-        dcc.Upload(
-            id="upload-data",
-            children=html.Div(
-                ["Drag and drop or click to select a file to upload."]
-            ),
-            style={
-                "width": "100%",
-                "height": "60px",
-                "lineHeight": "60px",
-                "borderWidth": "1px",
-                "borderStyle": "dashed",
-                "borderRadius": "5px",
-                "textAlign": "center",
-                "margin": "10px",
-            },
-            # Allow multiple files to be uploaded
-            multiple=True,
-        ),
-        #html.H2("File List (click to download)"),
-        #html.Ul(id="file-list"),
-
-        # Time Domain Settings
-        html.Div([
-            html.P('Window length in seconds. In general low frequency peaks require longer window lengths. See the SESAME guidelines for specific window length recommendations.'),
-            dcc.Input(id='windowlength', value=60, type='number'),
-
-            html.P('Boolean to control whether Butterworth filter is applied. Geopsy does not apply a bandpass filter.'),
-            dcc.Dropdown(
-                id='filter_bool',
-                options=[
-                    {'label': 'True', 'value': 'True'},
-                    {'label': 'False', 'value': 'False'}
-                    ],
-                value="False"
-            ),
-            html.P('Low-cut frequency for bandpass filter.'),
-            dcc.Input(id='flow', value=0.1, type='number'),
-            html.P('High-cut frequency for bandpass filter.'),
-            dcc.Input(id='fhigh', value=45, type='number'),
-            html.P('Filter order.'),
-            dcc.Input(id='forder', value=5, type='number'),
-
-            html.P('Width of cosine taper {0. - 1.}. Geopsy default of 0.05 is equal to 0.1 -> 0.1 is recommended.'),
-            dcc.Input(id="width", value=0.1, type="number"),
-        ],
-        style={'width': '100%', 'display': 'inline-block'}),
-
-        # Frequency Domain Settings
-        html.Div([
-            html.P('Konno and Ohmachi smoothing constant. 40 is recommended.'),
-            dcc.Input(id='bandwidth', value=40, type='number'),
-
-            html.P('Minimum frequency after resampling.'),
-            dcc.Input(id='minf', value=0.3, type='number'),
-            html.P('Maximum frequency after resampling.'),
-            dcc.Input(id='maxf', value=40, type='number'),
-            html.P('Number of frequencies after resampling.'),
-            dcc.Input(id='nf', value=2048, type='number'),
-            html.P('Type of resampling.'),
-            dcc.Dropdown(
-                id='res_type',
-                options=[
-                    {'label': 'log', 'value': 'log'},
-                    {'label': 'linear', 'value': 'linear'}
-                    ],
-                value='log'
-            ),
-        ],
-        style={'width': '100%', 'display': 'inline-block'}),
-
-        # H/V Settings
-        html.Div([
-            html.P('Method for combining horizontal components. Geopsy default is "squared-average". "Geometric-mean" is recommended.'),
-            dcc.Dropdown(
-                id='method',
-                options=[
-                    {'label': 'squared-average', 'value': 'squared-average'},
-                    {'label': 'geometric-mean', 'value': 'geometric-mean'}
-                    ],
-                value='geometric-mean'
-            ),
-
-            html.P('Boolean to control whether frequency domain rejection proposed by Cox et al. (in review) is applied. Geopsy does not offer this functionality.'),
-            dcc.Dropdown(
-                id='rejection_bool',
-                options=[
-                    {'label': 'True', 'value': 'True'},
-                    {'label': 'False', 'value': 'False'}
-                    ],
-                value='True'
-            ),
-            html.P('Number of standard deviations to consider during rejection. Smaller values will reject more windows -> 2 is recommended.'),
-            dcc.Input(id='n', value=2, type='number'),
-            html.P('Maximum number of iterations to perform for rejection -> 50 is recommended'),
-            dcc.Input(id='n_iteration', value=50, type='number'),
-
-            html.P('Distribution of f0 {"log-normal", "normal"}. Geopsy default "normal" -> "log-normal" is recommended.'),
-            dcc.Dropdown(
-                id='distribution_f0',
-                options=[
-                    {'label': 'log-normal', 'value': 'log-normal'},
-                    {'label': 'normal', 'value': 'normal'}
-                    ],
-                value='log-normal'
-            ),
-            html.P('Distribution of mean curve {"log-normal", "normal"}. Geopsy default "log-normal" -> "log-normal" is recommended.'),
-            dcc.Dropdown(
-                id='distribution_mc',
-                options=[
-                    {'label': 'log-normal', 'value': 'log-normal'},
-                    {'label': 'normal', 'value': 'normal'}
-                    ],
-                value='log-normal'
-            ),
-        ],
-        style={'width': '100%', 'display': 'inline-block'}),
-
-        html.Table([
-            html.Tr([html.Td(['Window length (s):']), html.Td(id='calc_window_length')]),
-            html.Tr([html.Td(['No. of Windows :']), html.Td(id='calc_n_windows')]),
-            html.Tr([html.Td(['No. of Rejected Windows :']), html.Td(id='calc_n_rejected_windows')]),
-        ]),
-
-        dcc.Graph(id='Mygraph'),
-
-        html.Div(id='output-data-upload')
+        body,
     ],
     style={"max-width": "1000px"},
 )
@@ -193,110 +462,148 @@ def parse_data(filename):
         ])
     return sensor
 
+def generate_table(hv, distribution_f0):
+    table_header = [html.Thead(html.Tr([html.Th("Parameter"), html.Th("Distribution"), html.Th("Mean"), html.Th("Median"), html.Th("Standard Deviation")]))]
+    if distribution_f0 == "log-normal":
+        row1 = html.Tr([html.Td("f0"), html.Td("Log-normal"), html.Td("-"), html.Td(str(hv.mean_f0_frq(distribution_f0))[:4]+" Hz"), html.Td(str(hv.std_f0_frq(distribution_f0))[:4])])
+        row2 = html.Tr([html.Td("T0"), html.Td("Log-normal"), html.Td("-"), html.Td(str(1/hv.mean_f0_frq(distribution_f0))[:4]+" s"), html.Td(str(-1*hv.std_f0_frq(distribution_f0))[:5])])
+    else:
+        row1 = html.Tr([html.Td("f0"), html.Td("Normal"), html.Td(str(self.std_f0_frq(distribution_f0))[:4]), html.Td("-"), html.Td(str(hv.std_f0_frq(distribution_f0))[:4])])
+        row2 = html.Tr([html.Td("T0"), html.Td("Normal"), html.Td("-"), html.Td("-"), html.Td("-")])
+
+    table_body = [html.Tbody([row1, row2])]
+
+    table = dbc.Table(table_header + table_body, bordered=True)
+    return table
+
 @app.callback(
-    [Output('Mygraph', 'figure'),
-     Output('calc_window_length', 'children'),
-     Output('calc_n_windows', 'children'),
-     Output('calc_n_rejected_windows', 'children')],
-    [Input('upload-data', 'contents'), #UNHASHED THIS ONE
-     Input('upload-data', 'filename'),
-     Input('filter_bool', 'value'),
-     Input('flow', 'value'),
-     Input('fhigh', 'value'),
-     Input('forder', 'value'),
-     Input('minf', 'value'),
-     Input('maxf', 'value'),
-     Input('nf', 'value'),
-     Input('res_type', 'value'),
-     Input('windowlength', 'value'),
-     Input('width', 'value'),
-     Input('bandwidth', 'value'),
-     Input('method', 'value'),
-     Input('rejection_bool', 'value'),
-     Input('distribution_mc', 'value'),
-     Input('distribution_f0', 'value'),
-     Input('n', 'value'),
-     Input('n_iteration', 'value')])
-def update_graph(contents, filename, filter_bool, flow, fhigh, forder, minf, maxf, nf, res_type,
-    windowlength, width, bandwidth, method, rejection_bool, distribution_mc, distribution_f0, n, n_iteration):
-    plotly_fig = {
-        'layout': go.Layout(
-            plot_bgcolor=colors["graphBackground"],
-            paper_bgcolor=colors["graphBackground"])
-    }
-    n_windows = 0
-    n_rejected_windows = 0
+    [Output('timerecord-plot', 'children'),
+    Output('calculate-button', 'color'),
+    Output('total-time', 'children')],
+    [Input('upload-miniseed-data', 'contents'),
+     Input('upload-miniseed-data', 'filename'),
+     Input('butterworth-input', 'value'),
+     Input('flow-input', 'value'),
+     Input('fhigh-input', 'value'),
+     Input('forder-input', 'value'),
+     Input('minf-input', 'value'),
+     Input('maxf-input', 'value'),
+     Input('nf-input', 'value'),
+     Input('res_type-input', 'value'),
+     Input('windowlength-input', 'value'),
+     Input('width-input', 'value'),
+     Input('bandwidth-input', 'value'),
+     Input('method-input', 'value'),
+     Input('distribution_mc-input', 'value'),
+     Input('rejection_bool-input', 'value'),
+     Input('n-input', 'value'),
+     Input('distribution_f0-input', 'value'),
+     Input('n_iteration-input', 'value')]
+)
+def update_timerecord_plot(contents, filename, filter_bool, flow, fhigh, forder, minf, maxf, nf, res_type,
+    windowlength, width, bandwidth, method, distribution_mc, rejection_bool, n, distribution_f0, n_iteration):
+    start = time.time()
+    plotly_fig = {'data':[]}
 
     if filename:
         contents = contents[0]
         filename = filename[0]
 
-        # Perform calculation and create figure
-        start = time.time()
         sensor = parse_data(filename)
-        bp_filter = {"flag":True if filter_bool == 'True' else False,
-                    "flow":flow,
-                    "fhigh":fhigh,
-                    "order":forder}
-        resampling = {"minf":minf,
-                    "maxf":maxf,
-                    "nf":nf,
-                    "res_type":res_type}
+        bp_filter = {"flag":filter_bool, "flow":flow, "fhigh":fhigh, "order":forder}
+        resampling = {"minf":minf, "maxf":maxf, "nf":nf, "res_type":res_type}
         hv = sensor.hv(windowlength, bp_filter, width, bandwidth, resampling, method)
-        end = time.time()
 
-        fig = plt.figure(figsize=(6,6))
+        fig = plt.figure(figsize=(6,6), dpi=150)
         gs = fig.add_gridspec(nrows=6,ncols=6)
 
         ax0 = fig.add_subplot(gs[0:2, 0:3])
         ax1 = fig.add_subplot(gs[2:4, 0:3])
         ax2 = fig.add_subplot(gs[4:6, 0:3])
 
-        if rejection_bool == 'True':
+        if rejection_bool:
             ax3 = fig.add_subplot(gs[0:3, 3:6])
             ax4 = fig.add_subplot(gs[3:6, 3:6])
         else:
             ax3 = fig.add_subplot(gs[1:4, 3:6])
             ax4 = False
 
+        individual_width = 0.3
+        median_width = 1.3
         for ax, title in zip([ax3, ax4], ["Before Rejection", "After Rejection"]):
             if title=="After Rejection":
                 for amp in hv.amp[hv.rejected_window_indices]:
-                    ax.plot(hv.frq, amp, color='#00ffff', linewidth=1.0, zorder=2)
-                ax.plot(hv.frq, amp, color='#00ffff', linewidth=1.0, label="Rejected")
+                    ax.plot(hv.frq, amp, color='#00ffff', linewidth=individual_width, zorder=2)
+                ax.plot(hv.frq, amp, color='#00ffff', linewidth=individual_width, label="Rejected")
             for amp in hv.amp[hv.valid_window_indices]:
-                ax.plot(hv.frq, amp, color='#cccccc', linewidth=1)
-            label = "Accepted" if title=="Before Rejection" else ""
-            ax.plot(hv.frq, amp, color='#cccccc', label=label, linewidth=1)
-            label = "" if title=="Before Rejection" and rejection_bool else "Mean Curve"
-            ax.plot(hv.frq, hv.mean_curve(distribution_mc), color='k', label=label, linewidth=1.5)
-            label = "" if title=="Before Rejection" and rejection_bool else "Mean ± 1 STD"
-            ax.plot(hv.frq, hv.nstd_curve(-1, distribution_mc), color='k', linestyle='--', label=label, linewidth=1.5)
-            ax.plot(hv.frq, hv.nstd_curve(+1, distribution_mc), color='k', linestyle='--', linewidth=1.5)
-            label = "" if title=="Before Rejection" and rejection_bool else "f0,window"
-            ax.plot(hv.peak_frq, hv.peak_amp,
-                    marker='o', markersize=5, markerfacecolor='white', markeredgewidth=1.0, markeredgecolor='k', linestyle="", label=label)
-            label = "" if title=="Before Rejection" and rejection_bool else "f0,mc"
-            ax.plot(hv.mc_peak_frq(distribution_mc), hv.mc_peak_amp(distribution_mc),
-                    marker='D', markersize=5, markerfacecolor='#66ff33', markeredgewidth=1.5, markeredgecolor='k',
-                    linestyle="", label=label)
-            label = "LMf0 ± 1 STD" if distribution_f0=="log-normal" else "Mean f0 ± 1 STD"
+                ax.plot(hv.frq, amp, color='#888888', linewidth=individual_width)
+
+            ax.plot(hv.frq, amp, color='#888888', linewidth=individual_width,
+                    label = "Accepted" if title=="Before Rejection" else "")
+
+            ax.plot(hv.frq, hv.mean_curve(distribution_mc), color='k', linewidth=median_width,
+                    label="" if title=="Before Rejection" and rejection_bool else "Mean Curve")
+
+            # Window Peaks
+            ax.plot(hv.peak_frq, hv.peak_amp, linestyle="", zorder=2,
+                    marker='o', markersize=2.5, markerfacecolor="#ffffff", markeredgewidth=0.5, markeredgecolor='k',
+                    label="" if title=="Before Rejection" and rejection_bool else r"$f_{0,i}$")
+
+            # Mean Curve
+            ax.plot(hv.frq, hv.nstd_curve(-1, distribution_mc),
+                    color='k', linestyle='--', linewidth=median_width, zorder=3,
+                    label = "" if title=="Before Rejection" and rejection_bool else "Mean ± 1 STD")
+            ax.plot(hv.frq, hv.nstd_curve(+1, distribution_mc),
+                    color='k', linestyle='--', linewidth=median_width, zorder=3)
+
+            # Peak Mean Curve
+            ax.plot(hv.mc_peak_frq(distribution_mc), hv.mc_peak_amp(distribution_mc), linestyle="", zorder=4,
+                    marker='D', markersize=5, markerfacecolor='#66ff33', markeredgewidth=1, markeredgecolor='k',
+                    label = "" if title=="Before Rejection" and rejection_bool else r"$f_{0,mc}$")
+
+            label = r"$LM_{f0}$"+" ± 1 STD" if distribution_f0=="log-normal" else "Mean f0 ± 1 STD"
             ymin, ymax = ax.get_ylim()
-            ax.plot([hv.mean_f0_frq(distribution_f0)]*2, [ymin, ymax],
-                    linestyle="-.", color="#000000", zorder=1, label="" if title=="Before Rejection" and rejection_bool else label )
+            ax.plot([hv.mean_f0_frq(distribution_f0)]*2, [ymin, ymax], linestyle="-.", color="#000000")
             ax.fill([hv.nstd_f0_frq(-1, distribution_f0)]*2 + [hv.nstd_f0_frq(+1, distribution_f0)]*2, [ymin, ymax, ymax, ymin],
-                    color = "#808080")
+                    color = "#ff8080",
+                   label="" if title=="Before Rejection" and rejection_bool else label)
+
             ax.set_ylim((ymin, ymax))
             ax.set_xscale('log')
             ax.set_xlabel("Frequency (Hz)")
-            ax.set_ylabel("H/V Ampltidue (#)")
+            ax.set_ylabel("HVSR Ampltidue")
+            n_spaces = 19
             if rejection_bool:
                 if title=="Before Rejection":
-                    c_iter = hv.reject_windows(n, max_iterations=n_iteration, distribution_f0=distribution_f0, distribution_mc=distribution_mc)
-                    print(f"Number of Iterations to Convergence: {c_iter} of {n_iteration} allowed.\n")
+                    #print()
+                    #print(f"*{'*'*n_spaces} Statistics Before Rejection {'*'*n_spaces}")
+                    #hv.print_stats(distribution_f0)
+                    table_before = generate_table(hv, distribution_f0)
+
+                    print()
+                    c_iter = hv.reject_windows(n, max_iterations=n_iteration,
+                                               distribution_f0=distribution_f0, distribution_mc=distribution_mc)
+                    #print(f"Window length :  {str(windowlength)}s")
+                    #print(f"No. of windows : {sensor.ns.n_windows}")
+                    #print(f"Number of iterations to convergence: {c_iter} of {n_iteration} allowed.")
                 elif title=="After Rejection":
-                    fig.legend(ncol=4, loc='lower center', bbox_to_anchor=(0.5, 0))
+                    #fig.legend(ncol=4, loc='lower center', bbox_to_anchor=(0.51, 0))
+                    #print(f"No. of rejected windows : {len(hv.rejected_window_indices)}")
+
+                    #print()
+                    #print(f"*{'*'*n_spaces} Statistics After Rejection {'*'*n_spaces}*")
+                    #hv.print_stats(distribution_f0)
+                    table_after = generate_table(hv, distribution_f0)
+                    print()
             else:
+                n_spaces += 9
+                print()
+                print(f"Window length :  {str(windowlength)}s")
+                print(f"No. of windows : {sensor.ns.n_windows}")
+                print()
+                print(f"*{'*'*n_spaces} Statistics{'*'*n_spaces}")
+                hv.print_stats(distribution_f0)
+                print()
                 fig.legend(loc="upper center", bbox_to_anchor=(0.75, 0.3))
                 break
             ax.set_title(title)
@@ -305,7 +612,7 @@ def update_graph(contents, filename, filter_bool, flow, fhigh, forder, minf, max
         for ax, timerecord, name in zip([ax0,ax1,ax2], [sensor.ns, sensor.ew, sensor.vt], ["NS", "EW", "VT"]):
             ctime = timerecord.time
             amp = timerecord.amp/norm_factor
-            ax.plot(ctime.T, amp.T, linewidth=0.3, color='#cccccc')
+            ax.plot(ctime.T, amp.T, linewidth=0.2, color='#888888')
             ax.set_title(f"Time Records ({name})")
             ax.set_yticks([-1, -0.5, 0, 0.5, 1])
             ax.set_xlim(0, windowlength*timerecord.n_windows)
@@ -313,22 +620,30 @@ def update_graph(contents, filename, filter_bool, flow, fhigh, forder, minf, max
             ax.set_xlabel('Time (s)')
             ax.set_ylabel('Normalized Amplitude')
             for window_index in hv.rejected_window_indices:
-                ax.plot(ctime[window_index], amp[window_index], linewidth=0.3, color="cyan")
+                ax.plot(ctime[window_index], amp[window_index], linewidth=0.2, color="cyan")
 
-        fig.tight_layout(h_pad=0.5, w_pad=0.5, rect=(0,0.07,1,1))
-
+        save_figure = fig
+        save_figure.tight_layout(h_pad=1, w_pad=2, rect=(0,0.07,1,1))
         figure_name_out = "example_hvsr_figure.png"
-        fig.savefig(figure_name_out, dpi=300, bbox_inches='tight')
-        file_name_out = "example_output.hv"
-        hv.to_file_like_geopsy(file_name_out, distribution_f0, distribution_mc)
-
+        save_figure.savefig(figure_name_out, dpi=300, bbox_inches='tight')
         plotly_fig = mpl_to_plotly(fig)
-        n_windows = sensor.ns.n_windows
-        n_rejected_windows = len(hv.rejected_window_indices)
-        # SOURCE: https://community.plot.ly/t/is-it-possible-to-use-custom-plotly-offline-iplot-mpl-code-in-dash/6897
-    return plotly_fig, windowlength, n_windows, n_rejected_windows
+
+        # Rejection Statistics Table
+        row1 = html.Tr([html.Td("Window length"), html.Td(str(windowlength)+"s")])
+        row2 = html.Tr([html.Td("No. of windows"), html.Td(str(sensor.ns.n_windows))])
+        row3 = html.Tr([html.Td("No. of iterations to convergence"), html.Td(str(c_iter)+" of "+str(n_iteration)+" allowed.")])
+        row4 = html.Tr([html.Td("No. of rejected windows"), html.Td(str(len(hv.rejected_window_indices)))])
+        table_body = [html.Tbody([row1, row2, row3, row4])]
+
+        end = time.time()
+        time_elapsed = str(end-start)[0:4]
+        return (dcc.Graph(figure=plotly_fig), html.P("Before Rejection:"), table_before, dbc.Table(table_body, bordered=True), html.P("After Rejection:"), table_after), "success", html.P("Total time elapsed (s): "+time_elapsed)
+    return (""), "success", ("")
+
 
 '''
+# Below is information from the example at: https://docs.faculty.ai/user-guide/apps/examples/dash_file_upload_download.html
+# It may be useful for downloading information we have created later.
 @app.callback(Output('output-data-upload', 'children'),
             [
                 Input('upload-data', 'contents'),
@@ -364,7 +679,6 @@ def save_file(name, content):
     with open(os.path.join(UPLOAD_DIRECTORY, name), "wb") as fp:
         fp.write(base64.decodebytes(data))
 
-
 def uploaded_files():
     """List the files in the upload directory."""
     files = []
@@ -374,12 +688,10 @@ def uploaded_files():
             files.append(filename)
     return files
 
-
 def file_download_link(filename):
     """Create a Plotly Dash 'A' element that downloads a file from the app."""
     location = "/download/{}".format(urlquote(filename))
     return html.A(filename, href=location)
-
 
 @app.callback(
     Output("file-list", "children"),
