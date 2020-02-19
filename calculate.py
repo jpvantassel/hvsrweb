@@ -34,16 +34,18 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import time
 
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
 # Bootstrap Layout:
 # TIME DOMAIN SETTINGS TAB
 tab1_content = dbc.Card(
     dbc.CardBody(
         [
-            html.H5("Settings"),
             # Window Length
             html.P([
                 html.Span(
-                    "Window length (in seconds):",
+                    "Window length (s):",
                     id="windowlength-tooltip-target",
                     style={"textDecoration": "underline", "cursor": "pointer"},
                 ),
@@ -92,7 +94,7 @@ tab1_content = dbc.Card(
                 "a tooltip for this one?",
                 target="flow-tooltip-target",
             ),
-            dbc.Input(id="flow-input", type="number", value=0.1, min=0, max=600, step=1),
+            dbc.Input(id="flow-input", type="number", value=0.1, min=0, max=1000, step=0.01),
             html.P(""), # used for styling purposes only
 
             # fHigh for bandpass filter
@@ -131,7 +133,7 @@ tab1_content = dbc.Card(
             # Width of cosine taper
             html.P([
                 html.Span(
-                    "Width of cosine taper (0.0 - 1.0):",
+                    "Cosine taper width:",
                     id="width-tooltip-target",
                     style={"textDecoration": "underline", "cursor": "pointer"},
                 ),
@@ -153,7 +155,6 @@ tab1_content = dbc.Card(
 tab2_content = dbc.Card(
     dbc.CardBody(
         [
-            html.H5("Settings"),
             # Bandwidth
             html.P([
                 html.Span(
@@ -172,9 +173,10 @@ tab2_content = dbc.Card(
             html.Hr(),
 
             # Minumum frequency
+            html.P("After Resampling:"),
             html.P([
                 html.Span(
-                    "Minimum frequency after resampling:",
+                    "Min frequency:",
                     id="minf-tooltip-target",
                     style={"textDecoration": "underline", "cursor": "pointer"},
                 ),
@@ -184,13 +186,13 @@ tab2_content = dbc.Card(
                 "a tooltip for this one?",
                 target="minf-tooltip-target",
             ),
-            dbc.Input(id="minf-input", type="number", value=0.1, min=0, max=600, step=1),
+            dbc.Input(id="minf-input", type="number", value=0.1, min=0, max=1000, step=0.01),
             html.P(""),
 
             # Maximum frequency
             html.P([
                 html.Span(
-                    "Maximum frequency after resampling:",
+                    "Max frequency:",
                     id="maxf-tooltip-target",
                     style={"textDecoration": "underline", "cursor": "pointer"},
                 ),
@@ -206,7 +208,7 @@ tab2_content = dbc.Card(
             # Number of frequencies
             html.P([
                 html.Span(
-                    "Number of frequencies after resampling:",
+                    "Number of frequencies:",
                     id="nf-tooltip-target",
                     style={"textDecoration": "underline", "cursor": "pointer"},
                 ),
@@ -216,13 +218,13 @@ tab2_content = dbc.Card(
                 "a tooltip for this one?",
                 target="nf-tooltip-target",
             ),
-            dbc.Input(id="nf-input", type="number", value=2048, min=0, max=600, step=1),
+            dbc.Input(id="nf-input", type="number", value=2048, min=0, max=10000, step=1),
             html.P(""),
 
             # Resampling type
             html.P([
                 html.Span(
-                    "Type of resampling:",
+                    "Resampling type:",
                     id="res_type-tooltip-target",
                     style={"textDecoration": "underline", "cursor": "pointer"},
                 ),
@@ -248,8 +250,6 @@ tab2_content = dbc.Card(
 tab3_content = dbc.Card(
     dbc.CardBody(
         [
-            html.H5("Settings"),
-
             # Method for combining
             html.P([
                 html.Span(
@@ -298,7 +298,7 @@ tab3_content = dbc.Card(
             # Standard deviations to consider
             html.P([
                 html.Span(
-                    "Number of standard deviations to consider:",
+                    "Standard deviations:",
                     id="n-tooltip-target",
                     style={"textDecoration": "underline", "cursor": "pointer"},
                 ),
@@ -314,7 +314,7 @@ tab3_content = dbc.Card(
             # Max iterations
             html.P([
                 html.Span(
-                    "Number of iterations to perform during rejection:",
+                    "Iterations during rejection:",
                     id="n_iteration-tooltip-target",
                     style={"textDecoration": "underline", "cursor": "pointer"},
                 ),
@@ -378,7 +378,7 @@ body = dbc.Container([
                 # Column1
                 dbc.Col(
                     [
-                        # html.H2("Settings"),
+                        html.H4("Settings"),
                         dbc.Tabs([
                             dbc.Tab(tab1_content, label="Time Domain"),
                             dbc.Tab(tab2_content, label="Frequency Domain"),
@@ -483,6 +483,7 @@ def parse_data(filename):
         #     'There was an error processing this file.'
         # ])
     
+
 def generate_table(hv, distribution_f0):
     table_header = [html.Thead(html.Tr([html.Th("Parameter"), html.Th("Distribution"), html.Th("Mean"), html.Th("Median"), html.Th("Standard Deviation")]))]
     if distribution_f0 == "log-normal":
@@ -599,35 +600,23 @@ def update_timerecord_plot(n_clicks, filename, filter_bool, flow, fhigh, forder,
             # n_spaces = 19
             if rejection_bool:
                 if title=="Before Rejection":
-                    #print()
-                    #print(f"*{'*'*n_spaces} Statistics Before Rejection {'*'*n_spaces}")
-                    #hv.print_stats(distribution_f0)
                     table_before = generate_table(hv, distribution_f0)
-
-                    # print()
                     c_iter = hv.reject_windows(n, max_iterations=n_iteration,
                                                distribution_f0=distribution_f0, distribution_mc=distribution_mc)
-                    #print(f"Window length :  {str(windowlength)}s")
-                    #print(f"No. of windows : {sensor.ns.n_windows}")
-                    #print(f"Number of iterations to convergence: {c_iter} of {n_iteration} allowed.")
                 elif title=="After Rejection":
-                    #fig.legend(ncol=4, loc='lower center', bbox_to_anchor=(0.51, 0))
-                    #print(f"No. of rejected windows : {len(hv.rejected_window_indices)}")
-
-                    #print()
-                    #print(f"*{'*'*n_spaces} Statistics After Rejection {'*'*n_spaces}*")
-                    #hv.print_stats(distribution_f0)
+                    fig.legend(ncol=4, loc='lower center', bbox_to_anchor=(0.51, 0))
                     table_after = generate_table(hv, distribution_f0)
-                    # print()
             else:
-                # n_spaces += 9
-                # print()
-                # print(f"Window length :  {str(windowlength)}s")
-                # print(f"No. of windows : {sensor.ns.n_windows}")
-                # print()
-                # print(f"*{'*'*n_spaces} Statistics{'*'*n_spaces}")
+                n_spaces += 9
+                '''
+                print()
+                print(f"Window length :  {str(windowlength)}s")
+                print(f"No. of windows : {sensor.ns.n_windows}")
+                print()
+                print(f"*{'*'*n_spaces} Statistics{'*'*n_spaces}")
                 hv.print_stats(distribution_f0)
-                # print()
+                print()
+                '''
                 fig.legend(loc="upper center", bbox_to_anchor=(0.75, 0.3))
                 break
             ax.set_title(title)
