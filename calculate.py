@@ -14,12 +14,23 @@ import pandas as pd
 import datetime
 import io
 import plotly.graph_objs as go
+from dash.exceptions import PreventUpdate
+# import plotly.matplotlylib.renderer.PlotlyRenderer as PlotlyRenderer
+# import plotly.matplotlylib.mplexporter as mplexporter
+
+from plotly.matplotlylib import mplexporter, PlotlyRenderer
 
 from plotly.tools import mpl_to_plotly
+import plotly
+
+# print(dir(plotly))
+
 
 # HVSRPY IMPORTS
 import hvsrpy
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import time
 
@@ -388,7 +399,7 @@ body = dbc.Container([
                         dbc.Col([
                                 # html.H2("Graph"),
                                 dcc.Upload(
-                                    id="upload-miniseed-data",
+                                    id="upload-bar",
                                     children=html.Div(
                                         ["Drag and drop or click to select a file to upload."]
                                     ),
@@ -405,7 +416,8 @@ body = dbc.Container([
                                         "border-radius": "8px",
                                     },
                                     # Allow multiple files to be uploaded
-                                    multiple=True,
+                                    # TODO (jpv): Changing from True to False will change back to True at some point.
+                                    multiple=False, 
                                 ),
                             ],
                             md=10, #instead of 6
@@ -417,8 +429,8 @@ body = dbc.Container([
                     ]),
                     # Row2_2
                     dbc.Row([
-                            html.Div(id="timerecord-plot")
-
+                            # html.Div(dcc.Graph(id="hvsr-graph"))
+                            html.Div(id="figure-div")
                     ])
                 ], md=7)
             ]),
@@ -426,7 +438,7 @@ body = dbc.Container([
     className="mt-4",
 )
 
-# NEED TO CHANGE THE BELOW LINES WHEN DEPLOYED ON HEROKU
+# TODO (jpv): Need to change the below lines when deplyed on Heroku. 
 UPLOAD_DIRECTORY = "/project/app_uploaded_files"
 if not os.path.exists(UPLOAD_DIRECTORY):
     os.makedirs(UPLOAD_DIRECTORY)
@@ -448,20 +460,29 @@ server = app.server
 app.layout = html.Div(
     [
         body,
+        html.Div(id="filename-reference") #, style={'display':'none'}
     ],
     style={"max-width": "1000px"},
 )
 
+
+@app.callback(
+    [Output('filename-reference', 'children')],
+    [Input('upload-bar', 'filename')])
+def store_filename(filename):
+    return [filename]
+
 def parse_data(filename):
     try:
-        sensor = hvsrpy.Sensor3c.from_mseed(filename)
+        return hvsrpy.Sensor3c.from_mseed(filename)
+    # TODO (jpv): Fix logic. Does not make sense to return exception to caller.
     except Exception as e:
-        print(e)
-        return html.Div([
-            'There was an error processing this file.'
-        ])
-    return sensor
-
+        raise PreventUpdate
+        # print(e)
+        # return html.Div([
+        #     'There was an error processing this file.'
+        # ])
+    
 def generate_table(hv, distribution_f0):
     table_header = [html.Thead(html.Tr([html.Th("Parameter"), html.Th("Distribution"), html.Th("Mean"), html.Th("Median"), html.Th("Standard Deviation")]))]
     if distribution_f0 == "log-normal":
@@ -470,44 +491,46 @@ def generate_table(hv, distribution_f0):
     else:
         row1 = html.Tr([html.Td("f0"), html.Td("Normal"), html.Td(str(self.std_f0_frq(distribution_f0))[:4]), html.Td("-"), html.Td(str(hv.std_f0_frq(distribution_f0))[:4])])
         row2 = html.Tr([html.Td("T0"), html.Td("Normal"), html.Td("-"), html.Td("-"), html.Td("-")])
-
     table_body = [html.Tbody([row1, row2])]
-
     table = dbc.Table(table_header + table_body, bordered=True)
     return table
 
 @app.callback(
-    [Output('timerecord-plot', 'children'),
-    Output('calculate-button', 'color'),
-    Output('total-time', 'children')],
-    [Input('upload-miniseed-data', 'contents'),
-     Input('upload-miniseed-data', 'filename'),
-     Input('butterworth-input', 'value'),
-     Input('flow-input', 'value'),
-     Input('fhigh-input', 'value'),
-     Input('forder-input', 'value'),
-     Input('minf-input', 'value'),
-     Input('maxf-input', 'value'),
-     Input('nf-input', 'value'),
-     Input('res_type-input', 'value'),
-     Input('windowlength-input', 'value'),
-     Input('width-input', 'value'),
-     Input('bandwidth-input', 'value'),
-     Input('method-input', 'value'),
-     Input('distribution_mc-input', 'value'),
-     Input('rejection_bool-input', 'value'),
-     Input('n-input', 'value'),
-     Input('distribution_f0-input', 'value'),
-     Input('n_iteration-input', 'value')]
+    Output('figure-div', 'children'),
+    # Output('hvsr-graph', 'figure'),
+    #  Output('calculate-button', 'color'),
+    #  Output('total-time', 'children')],
+    [Input('calculate-button', 'n_clicks')],
+    [State('filename-reference', 'children'),
+     State('butterworth-input', 'value'),
+     State('flow-input', 'value'),
+     State('fhigh-input', 'value'),
+     State('forder-input', 'value'),
+     State('minf-input', 'value'),
+     State('maxf-input', 'value'),
+     State('nf-input', 'value'),
+     State('res_type-input', 'value'),
+     State('windowlength-input', 'value'),
+     State('width-input', 'value'),
+     State('bandwidth-input', 'value'),
+     State('method-input', 'value'),
+     State('distribution_mc-input', 'value'),
+     State('rejection_bool-input', 'value'),
+     State('n-input', 'value'),
+     State('distribution_f0-input', 'value'),
+     State('n_iteration-input', 'value')]
 )
-def update_timerecord_plot(contents, filename, filter_bool, flow, fhigh, forder, minf, maxf, nf, res_type,
+def update_timerecord_plot(n_clicks, filename, filter_bool, flow, fhigh, forder, minf, maxf, nf, res_type,
     windowlength, width, bandwidth, method, distribution_mc, rejection_bool, n, distribution_f0, n_iteration):
     start = time.time()
-    plotly_fig = {'data':[]}
+
+
 
     if filename:
-        contents = contents[0]
-        filename = filename[0]
+        print(filename)
+
+        # TODO (jpv): Check that filename is iterable/sliceable
+        # filename = filename
 
         sensor = parse_data(filename)
         bp_filter = {"flag":filter_bool, "flow":flow, "fhigh":fhigh, "order":forder}
@@ -515,7 +538,7 @@ def update_timerecord_plot(contents, filename, filter_bool, flow, fhigh, forder,
         hv = sensor.hv(windowlength, bp_filter, width, bandwidth, resampling, method)
 
         fig = plt.figure(figsize=(6,6), dpi=150)
-        gs = fig.add_gridspec(nrows=6,ncols=6)
+        gs = fig.add_gridspec(nrows=6, ncols=6)
 
         ax0 = fig.add_subplot(gs[0:2, 0:3])
         ax1 = fig.add_subplot(gs[2:4, 0:3])
@@ -530,6 +553,7 @@ def update_timerecord_plot(contents, filename, filter_bool, flow, fhigh, forder,
 
         individual_width = 0.3
         median_width = 1.3
+
         for ax, title in zip([ax3, ax4], ["Before Rejection", "After Rejection"]):
             if title=="After Rejection":
                 for amp in hv.amp[hv.rejected_window_indices]:
@@ -572,7 +596,7 @@ def update_timerecord_plot(contents, filename, filter_bool, flow, fhigh, forder,
             ax.set_xscale('log')
             ax.set_xlabel("Frequency (Hz)")
             ax.set_ylabel("HVSR Ampltidue")
-            n_spaces = 19
+            # n_spaces = 19
             if rejection_bool:
                 if title=="Before Rejection":
                     #print()
@@ -580,7 +604,7 @@ def update_timerecord_plot(contents, filename, filter_bool, flow, fhigh, forder,
                     #hv.print_stats(distribution_f0)
                     table_before = generate_table(hv, distribution_f0)
 
-                    print()
+                    # print()
                     c_iter = hv.reject_windows(n, max_iterations=n_iteration,
                                                distribution_f0=distribution_f0, distribution_mc=distribution_mc)
                     #print(f"Window length :  {str(windowlength)}s")
@@ -594,16 +618,16 @@ def update_timerecord_plot(contents, filename, filter_bool, flow, fhigh, forder,
                     #print(f"*{'*'*n_spaces} Statistics After Rejection {'*'*n_spaces}*")
                     #hv.print_stats(distribution_f0)
                     table_after = generate_table(hv, distribution_f0)
-                    print()
+                    # print()
             else:
-                n_spaces += 9
-                print()
-                print(f"Window length :  {str(windowlength)}s")
-                print(f"No. of windows : {sensor.ns.n_windows}")
-                print()
-                print(f"*{'*'*n_spaces} Statistics{'*'*n_spaces}")
+                # n_spaces += 9
+                # print()
+                # print(f"Window length :  {str(windowlength)}s")
+                # print(f"No. of windows : {sensor.ns.n_windows}")
+                # print()
+                # print(f"*{'*'*n_spaces} Statistics{'*'*n_spaces}")
                 hv.print_stats(distribution_f0)
-                print()
+                # print()
                 fig.legend(loc="upper center", bbox_to_anchor=(0.75, 0.3))
                 break
             ax.set_title(title)
@@ -621,24 +645,47 @@ def update_timerecord_plot(contents, filename, filter_bool, flow, fhigh, forder,
             ax.set_ylabel('Normalized Amplitude')
             for window_index in hv.rejected_window_indices:
                 ax.plot(ctime[window_index], amp[window_index], linewidth=0.2, color="cyan")
-
-        save_figure = fig
-        save_figure.tight_layout(h_pad=1, w_pad=2, rect=(0,0.07,1,1))
-        figure_name_out = "example_hvsr_figure.png"
-        save_figure.savefig(figure_name_out, dpi=300, bbox_inches='tight')
+        
+        # TODO (jpv): Reintroduce save figure after async thread issue.
+        # save_figure = fig
+        # save_figure.tight_layout(h_pad=1, w_pad=2, rect=(0,0.07,1,1))
+        # figure_name_out = "example_hvsr_figure.png"
+        # save_figure.savefig(figure_name_out, dpi=300, bbox_inches='tight')
+        # renderer = PlotlyRenderer()
+        # exporter = mplexporter.Exporter(renderer)
+        # exporter.run(fig)
+        # renderer.layout 
+        # renderer.data
         plotly_fig = mpl_to_plotly(fig)
 
+        # TODO (jpv): Reintroduce statistics table after async thread issue.
         # Rejection Statistics Table
-        row1 = html.Tr([html.Td("Window length"), html.Td(str(windowlength)+"s")])
-        row2 = html.Tr([html.Td("No. of windows"), html.Td(str(sensor.ns.n_windows))])
-        row3 = html.Tr([html.Td("No. of iterations to convergence"), html.Td(str(c_iter)+" of "+str(n_iteration)+" allowed.")])
-        row4 = html.Tr([html.Td("No. of rejected windows"), html.Td(str(len(hv.rejected_window_indices)))])
-        table_body = [html.Tbody([row1, row2, row3, row4])]
+        # row1 = html.Tr([html.Td("Window length"), html.Td(str(windowlength)+"s")])
+        # row2 = html.Tr([html.Td("No. of windows"), html.Td(str(sensor.ns.n_windows))])
+        # row3 = html.Tr([html.Td("No. of iterations to convergence"), html.Td(str(c_iter)+" of "+str(n_iteration)+" allowed.")])
+        # row4 = html.Tr([html.Td("No. of rejected windows"), html.Td(str(len(hv.rejected_window_indices)))])
+        # table_body = [html.Tbody([row1, row2, row3, row4])]
 
         end = time.time()
         time_elapsed = str(end-start)[0:4]
-        return (dcc.Graph(figure=plotly_fig), html.P("Before Rejection:"), table_before, dbc.Table(table_body, bordered=True), html.P("After Rejection:"), table_after), "success", html.P("Total time elapsed (s): "+time_elapsed)
-    return (""), "success", ("")
+        # return (dcc.Graph(figure=plotly_fig), html.P("Before Rejection:"), table_before, dbc.Table(table_body, bordered=True), html.P("After Rejection:"), table_after), "success", html.P("Total time elapsed (s): "+time_elapsed)
+        # print(plotly_fig.data)
+        # print("\n"*5)
+
+        # print(plotly_fig.layout)
+        # print("\n"*5)
+
+        # print(plotly_fig.data)
+        # raise RuntimeError
+
+        # return {"data":plotly_fig.data, "layout":plotly_fig.layout}
+
+        return dcc.Graph(figure=plotly_fig)
+    else:
+        raise PreventUpdate
+
+    # return ([])
+    # return (""), "success", ("")
 
 
 '''
