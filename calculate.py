@@ -47,7 +47,7 @@ tab1_content = dbc.Card(
                 html.Span(
                     "Window length (s):",
                     id="windowlength-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "pointer"},
+                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
                 ),
             ]),
             dbc.Tooltip(
@@ -57,14 +57,14 @@ tab1_content = dbc.Card(
             ),
             dbc.Input(id="windowlength-input", type="number", value=30, min=0, max=600, step=1),
             html.P(""),
-            html.Hr(),
+            html.Hr(style={"border-top": "1px solid #bababa"}),
 
             # Butterworth Filter
             html.P([
                 html.Span(
                     "Apply Butterworth Filter?",
                     id="butterworth-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "pointer"},
+                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
                 ),
             ]),
             dbc.Tooltip(
@@ -86,7 +86,7 @@ tab1_content = dbc.Card(
                 html.Span(
                     "Low-cut frequency for bandpass filter:",
                     id="flow-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "pointer"},
+                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
                 ),
             ]),
             dbc.Tooltip(
@@ -102,7 +102,7 @@ tab1_content = dbc.Card(
                 html.Span(
                     "High-cut frequency for bandpass filter:",
                     id="fhigh-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "pointer"},
+                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
                 ),
             ]),
             dbc.Tooltip(
@@ -118,7 +118,7 @@ tab1_content = dbc.Card(
                 html.Span(
                     "Filter order:",
                     id="forder-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "pointer"},
+                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
                 ),
             ]),
             dbc.Tooltip(
@@ -128,14 +128,14 @@ tab1_content = dbc.Card(
             ),
             dbc.Input(id="forder-input", type="number", value=5, min=0, max=600, step=1),
             html.P(""), # used for styling purposes only
-            html.Hr(),# used for styling purposes only
+            html.Hr(style={"border-top": "0.5px solid #bababa"}),# used for styling purposes only
 
             # Width of cosine taper
             html.P([
                 html.Span(
                     "Cosine taper width:",
                     id="width-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "pointer"},
+                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
                 ),
             ]),
             dbc.Tooltip(
@@ -160,7 +160,7 @@ tab2_content = dbc.Card(
                 html.Span(
                     "Bandwith:",
                     id="bandwidth-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "pointer"},
+                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
                 ),
             ]),
             dbc.Tooltip(
@@ -170,7 +170,7 @@ tab2_content = dbc.Card(
             ),
             dbc.Input(id="bandwidth-input", type="number", value=40, min=0, max=600, step=1),
             html.P(""),
-            html.Hr(),
+            html.Hr(style={"border-top": "1px solid #bababa"}),
 
             # Minumum frequency
             html.P("After Resampling:"),
@@ -178,7 +178,7 @@ tab2_content = dbc.Card(
                 html.Span(
                     "Min frequency:",
                     id="minf-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "pointer"},
+                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
                 ),
             ]),
             dbc.Tooltip(
@@ -194,7 +194,7 @@ tab2_content = dbc.Card(
                 html.Span(
                     "Max frequency:",
                     id="maxf-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "pointer"},
+                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
                 ),
             ]),
             dbc.Tooltip(
@@ -210,7 +210,7 @@ tab2_content = dbc.Card(
                 html.Span(
                     "Number of frequencies:",
                     id="nf-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "pointer"},
+                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
                 ),
             ]),
             dbc.Tooltip(
@@ -226,7 +226,7 @@ tab2_content = dbc.Card(
                 html.Span(
                     "Resampling type:",
                     id="res_type-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "pointer"},
+                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
                 ),
             ]),
             dbc.Tooltip(
@@ -255,7 +255,7 @@ tab3_content = dbc.Card(
                 html.Span(
                     "Method for combining horizontal components:",
                     id="method-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "pointer"},
+                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
                 ),
             ]),
             dbc.Tooltip(
@@ -271,14 +271,14 @@ tab3_content = dbc.Card(
                 ], value="geometric-mean",
             ),
             html.P(" "),
-            html.Hr(),
+            html.Hr(style={"border-top": "1px solid #bababa"}),
 
             # Frequency domain rejection
             html.P([
                 html.Span(
                     "Apply frequency domain rejection?",
                     id="rejection_bool-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "pointer"},
+                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
                 ),
             ]),
             dbc.Tooltip(
@@ -300,7 +300,7 @@ tab3_content = dbc.Card(
                 html.Span(
                     "Standard deviations:",
                     id="n-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "pointer"},
+                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
                 ),
             ]),
             dbc.Tooltip(
@@ -316,7 +316,7 @@ tab3_content = dbc.Card(
                 html.Span(
                     "Iterations during rejection:",
                     id="n_iteration-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "pointer"},
+                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
                 ),
             ]),
             dbc.Tooltip(
@@ -326,14 +326,14 @@ tab3_content = dbc.Card(
             ),
             dbc.Input(id="n_iteration-input", type="number", value=50, min=0, max=600, step=1),
             html.P(""),
-            html.Hr(),
+            html.Hr(style={"border-top": "0.5px solid #bababa"}),
 
             # Distribution of f0
             html.P([
                 html.Span(
                     "Distribution of f0:",
                     id="distribution_f0-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "pointer"},
+                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
                 ),
             ]),
             dbc.Tooltip(
@@ -354,7 +354,7 @@ tab3_content = dbc.Card(
                 html.Span(
                     "Distribution of mean curve:",
                     id="distribution_mc-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "pointer"},
+                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
                 ),
             ]),
             dbc.Tooltip(
@@ -375,7 +375,42 @@ tab3_content = dbc.Card(
 body = dbc.Container([
         # Row1
         dbc.Row([
-                # Column1
+            # Column1_1
+            dbc.Col([
+                    # html.H2("Graph"),
+                    dcc.Upload(
+                        id="upload-bar",
+                        children=html.Div(
+                            ["Drag and drop or click to select a file to upload."]
+                        ),
+                        style={
+                            #"width": "100%",
+                            "height": "50px",
+                            "lineHeight": "45px",
+                            "textAlign": "center",
+                            "cursor": "pointer",
+                            #"margin": "10px",
+                            "background-color": "white",
+                            "color": "black",
+                            "border": "1px solid #dedede",
+                            "border-radius": "8px",
+
+                        },
+                        # Allow multiple files to be uploaded
+                        # TODO (jpv): Changing from True to False will change back to True at some point.
+                        multiple=False,
+                    ),
+                ],
+                md=10, #instead of 6
+            style={"padding-bottom": "20px",}),
+            # Column2_2
+            dbc.Col([
+                    dbc.Button("Calculate", id="calculate-button", outline=True, color="success", className="mr-1", size="lg"),
+                ], md=2, ),
+        ]),
+        # Row2
+        dbc.Row([
+                # Column2_1
                 dbc.Col(
                     [
                         html.H4("Settings"),
@@ -391,43 +426,9 @@ body = dbc.Container([
                     ],
                     md=5,
                 ),
-                # Column2
+                # Column2_2
                 dbc.Col([
-                    # Row2_1
-                    dbc.Row([
-                        # Column2_1
-                        dbc.Col([
-                                # html.H2("Graph"),
-                                dcc.Upload(
-                                    id="upload-bar",
-                                    children=html.Div(
-                                        ["Drag and drop or click to select a file to upload."]
-                                    ),
-                                    style={
-                                        #"width": "100%",
-                                        "height": "50px",
-                                        "lineHeight": "45px",
-                                        "textAlign": "center",
-                                        "cursor": "pointer",
-                                        #"margin": "10px",
-                                        "background-color": "white",
-                                        "color": "black",
-                                        "border": "1px solid #dedede",
-                                        "border-radius": "8px",
-                                    },
-                                    # Allow multiple files to be uploaded
-                                    # TODO (jpv): Changing from True to False will change back to True at some point.
-                                    multiple=False, 
-                                ),
-                            ],
-                            md=10, #instead of 6
-                        ),
-                        # Column2_2
-                        dbc.Col([
-                                dbc.Button("Calculate", id="calculate-button", outline=True, color="success", className="mr-1", size="lg"),
-                            ], md=2, ),
-                    ]),
-                    # Row2_2
+                    # Row2_2_1
                     dbc.Row([
                             # html.Div(dcc.Graph(id="hvsr-graph"))
                             html.Div(id="figure-div")
@@ -438,7 +439,7 @@ body = dbc.Container([
     className="mt-4",
 )
 
-# TODO (jpv): Need to change the below lines when deplyed on Heroku. 
+# TODO (jpv): Need to change the below lines when deplyed on Heroku.
 UPLOAD_DIRECTORY = "/project/app_uploaded_files"
 if not os.path.exists(UPLOAD_DIRECTORY):
     os.makedirs(UPLOAD_DIRECTORY)
@@ -482,7 +483,7 @@ def parse_data(filename):
         # return html.Div([
         #     'There was an error processing this file.'
         # ])
-    
+
 
 def generate_table(hv, distribution_f0):
     table_header = [html.Thead(html.Tr([html.Th("Parameter"), html.Th("Distribution"), html.Th("Mean"), html.Th("Median"), html.Th("Standard Deviation")]))]
@@ -634,7 +635,7 @@ def update_timerecord_plot(n_clicks, filename, filter_bool, flow, fhigh, forder,
             ax.set_ylabel('Normalized Amplitude')
             for window_index in hv.rejected_window_indices:
                 ax.plot(ctime[window_index], amp[window_index], linewidth=0.2, color="cyan")
-        
+
         # TODO (jpv): Reintroduce save figure after async thread issue.
         # save_figure = fig
         # save_figure.tight_layout(h_pad=1, w_pad=2, rect=(0,0.07,1,1))
@@ -643,7 +644,7 @@ def update_timerecord_plot(n_clicks, filename, filter_bool, flow, fhigh, forder,
         # renderer = PlotlyRenderer()
         # exporter = mplexporter.Exporter(renderer)
         # exporter.run(fig)
-        # renderer.layout 
+        # renderer.layout
         # renderer.data
         plotly_fig = mpl_to_plotly(fig)
 
@@ -699,7 +700,7 @@ def update_table(contents, filename):
                 data=df.to_dict('rows'),
                 columns=[{'name': i, 'id': i} for i in df.columns]
             ),
-            html.Hr(),
+            html.Hr(style={"border-top": "1px solid #bababa"}),
             html.Div('Raw Content'),
             html.Pre(contents[0:200] + '...', style={
                 'whiteSpace': 'pre-wrap',
