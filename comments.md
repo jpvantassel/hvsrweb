@@ -22,3 +22,14 @@ use for shorter names, and make some changes we discuss what you come up
 with on the next revision.
 
 I think that is it for now, great job!
+
+## Comments 2/24/2020
+- Update table results table to match those shown in current Jupyter notebook.
+- Make the drag and drop fill the entire page width
+- Label the section where the file name is printed to be `Uploaded File: <filename>`
+- Place the three results tables next to each other in the same row with a title over each rather
+than just text. We can call them Window Information, Statistics Before Rejection, and Statistics After
+Rejection.
+- Fix the upload data function so we can upload any file, rather than just the example file.
+- Write results to json and store in hidden div.
+- Implement save figure and save file.
