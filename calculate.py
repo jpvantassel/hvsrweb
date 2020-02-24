@@ -57,7 +57,7 @@ tab1_content = dbc.Card(
                 "See the SESAME guidelines for specific window length recommendations.",
                 target="windowlength-tooltip-target",
             ),
-            dbc.Input(id="windowlength-input", type="number", value=30, min=0, max=600, step=1),
+            dbc.Input(id="windowlength-input", type="number", value=60, min=0, max=600, step=1),
             html.P(""),
             html.Hr(style={"border-top": "1px solid #bababa"}),
 
@@ -80,7 +80,7 @@ tab1_content = dbc.Card(
                     {"label": "True", "value": "True"},
                     {"label": "False", "value": "False"},
                     # {"label": "Disabled option", "value": "3", "disabled": True},
-                ], value="True"),
+                ], value="False"),
             html.P(""), # used for styling purposes only
 
             # fLow for bandpass filter
@@ -188,7 +188,7 @@ tab2_content = dbc.Card(
                 "a tooltip for this one?",
                 target="minf-tooltip-target",
             ),
-            dbc.Input(id="minf-input", type="number", value=0.1, min=0, max=1000, step=0.01),
+            dbc.Input(id="minf-input", type="number", value=0.2, min=0, max=1000, step=0.01),
             html.P(""),
 
             # Maximum frequency
@@ -220,7 +220,7 @@ tab2_content = dbc.Card(
                 "a tooltip for this one?",
                 target="nf-tooltip-target",
             ),
-            dbc.Input(id="nf-input", type="number", value=2048, min=0, max=10000, step=1),
+            dbc.Input(id="nf-input", type="number", value=512, min=2, max=10000, step=1),
             html.P(""),
 
             # Resampling type
