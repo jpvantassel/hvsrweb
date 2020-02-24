@@ -1,6 +1,8 @@
 import base64
+from io import BytesIO
 import os
 from urllib.parse import quote as urlquote
+import json
 
 from flask import Flask, send_from_directory
 import dash
@@ -401,13 +403,19 @@ body = dbc.Container([
                         multiple=False,
                     ),
                 ],
-                md=10, #instead of 6
+                md=9,
             style={"padding-bottom": "20px",}),
             # Column2_2
             dbc.Col([
                     dbc.Button("Calculate", id="calculate-button", outline=True, color="success", className="mr-1", size="lg"),
                 ], md=2, ),
+            dbc.Col([
+                    html.Div(id="spinner")
+                    #dbc.Spinner(color="success", className="mt-2 pl-0"),
+                ], md=1, ),
         ]),
+        # Row1.5
+        dbc.Row([html.Div(id="filename-reference")], className="mt-1 ml-4 mb-1"),
         # Row2
         dbc.Row([
                 # Column2_1
@@ -420,9 +428,14 @@ body = dbc.Container([
                             dbc.Tab(tab3_content, label="  H/V  ")
                         ]),
                         # dbc.Button("View details", color="secondary"),
-                        html.P(id="total-time"),
-                        dbc.Button("Save Figure", color="secondary", id="save_figure-button"),
-                        html.P(id="figure_status"),
+                        # html.P(id="total-time"),
+                        # dbc.Button("Save Figure", color="primary", id="save_figure-button", className="mr-2"),
+                        # dbc.Button("Save .hv", color="dark", id="save_hv-button"),
+                        # html.Div(id="intermediate-value"),
+                        # html.P(id="figure_status"),
+                        dbc.Row([
+                            html.Div(id="stat-table"),
+                        ], className="mt-2 ml-2"),
                     ],
                     md=5,
                 ),
@@ -430,14 +443,14 @@ body = dbc.Container([
                 dbc.Col([
                     # Row2_2_1
                     dbc.Row([
-                            # html.Div(dcc.Graph(id="hvsr-graph"))
-                            html.Div(id="figure-div")
-                    ])
+                        html.Div([html.Img(id = 'cur_plot', src = '')], id='plot_div')#id="figure-div")
+                    ]),
                 ], md=7)
             ]),
-    ],
-    className="mt-4",
-)
+        dbc.Row([
+            html.Div(id='rejection-tables')#id="figure-div")
+        ], className="mt-2 ml-2"),
+    ], className="mt-4", fluid=True)
 
 # TODO (jpv): Need to change the below lines when deplyed on Heroku.
 UPLOAD_DIRECTORY = "/project/app_uploaded_files"
@@ -461,9 +474,8 @@ server = app.server
 app.layout = html.Div(
     [
         body,
-        html.Div(id="filename-reference") #, style={'display':'none'}
     ],
-    style={"max-width": "1000px"},
+    style={"max-width": "1200px"},
 )
 
 
@@ -472,7 +484,31 @@ app.layout = html.Div(
     [Input('upload-bar', 'filename')])
 def store_filename(filename):
     return [filename]
+'''
+@app.callback(
+    Output('spinner', 'children'),
+    [Input('calculate-button', 'n_clicks')])
+def update_spinner(n_clicks):
+    if n_clicks == None:
+        return html.P("")
+    else:
+        return dbc.Spinner(color="success")
 
+@app.callback(
+    Output('hidden-div', 'children'),
+    [Input('save_hv-button', 'n_clicks'),
+    Input('cur_plot', 'src')])
+def save_figure(n_clicks, src):
+    if n_clicks == None:
+        return html.P("")
+    else:
+
+        out_img = BytesIO()
+        in_fig.savefig(out_img, format='png', **save_args)
+        if close_all:
+            in_fig.clf()
+        return html.P("")
+ '''
 def parse_data(filename):
     try:
         return hvsrpy.Sensor3c.from_mseed(filename)
@@ -483,7 +519,21 @@ def parse_data(filename):
         # return html.Div([
         #     'There was an error processing this file.'
         # ])
-
+def fig_to_uri(in_fig, close_all=True, **save_args):
+    # type: (plt.Figure) -> str
+    """
+    Save a figure as a URI
+    :param in_fig:
+    :return:
+    """
+    out_img = BytesIO()
+    in_fig.savefig(out_img, format='png', **save_args)
+    if close_all:
+        in_fig.clf()
+        plt.close('all')
+    out_img.seek(0)  # rewind file
+    encoded = base64.b64encode(out_img.read()).decode("ascii").replace("\n", "")
+    return "data:image/png;base64,{}".format(encoded)
 
 def generate_table(hv, distribution_f0):
     table_header = [html.Thead(html.Tr([html.Th("Parameter"), html.Th("Distribution"), html.Th("Mean"), html.Th("Median"), html.Th("Standard Deviation")]))]
@@ -498,8 +548,9 @@ def generate_table(hv, distribution_f0):
     return table
 
 @app.callback(
-    Output('figure-div', 'children'),
-    # Output('hvsr-graph', 'figure'),
+    [Output('cur_plot', 'src'),
+    Output('stat-table', 'children'),
+    Output('rejection-tables', 'children')],
     #  Output('calculate-button', 'color'),
     #  Output('total-time', 'children')],
     [Input('calculate-button', 'n_clicks')],
@@ -525,8 +576,6 @@ def generate_table(hv, distribution_f0):
 def update_timerecord_plot(n_clicks, filename, filter_bool, flow, fhigh, forder, minf, maxf, nf, res_type,
     windowlength, width, bandwidth, method, distribution_mc, rejection_bool, n, distribution_f0, n_iteration):
     start = time.time()
-
-
 
     if filename:
         print(filename)
@@ -637,24 +686,24 @@ def update_timerecord_plot(n_clicks, filename, filter_bool, flow, fhigh, forder,
                 ax.plot(ctime[window_index], amp[window_index], linewidth=0.2, color="cyan")
 
         # TODO (jpv): Reintroduce save figure after async thread issue.
-        # save_figure = fig
-        # save_figure.tight_layout(h_pad=1, w_pad=2, rect=(0,0.07,1,1))
-        # figure_name_out = "example_hvsr_figure.png"
+        save_figure = fig
+        save_figure.tight_layout(h_pad=1, w_pad=2, rect=(0,0.07,1,1))
+        # figure_name_out = "test.png" #"example_hvsr_figure.png"
         # save_figure.savefig(figure_name_out, dpi=300, bbox_inches='tight')
         # renderer = PlotlyRenderer()
         # exporter = mplexporter.Exporter(renderer)
         # exporter.run(fig)
         # renderer.layout
         # renderer.data
-        plotly_fig = mpl_to_plotly(fig)
+        # plotly_fig = mpl_to_plotly(fig)
 
         # TODO (jpv): Reintroduce statistics table after async thread issue.
         # Rejection Statistics Table
-        # row1 = html.Tr([html.Td("Window length"), html.Td(str(windowlength)+"s")])
-        # row2 = html.Tr([html.Td("No. of windows"), html.Td(str(sensor.ns.n_windows))])
-        # row3 = html.Tr([html.Td("No. of iterations to convergence"), html.Td(str(c_iter)+" of "+str(n_iteration)+" allowed.")])
-        # row4 = html.Tr([html.Td("No. of rejected windows"), html.Td(str(len(hv.rejected_window_indices)))])
-        # table_body = [html.Tbody([row1, row2, row3, row4])]
+        row1 = html.Tr([html.Td("Window length"), html.Td(str(windowlength)+"s")])
+        row2 = html.Tr([html.Td("No. of windows"), html.Td(str(sensor.ns.n_windows))])
+        row3 = html.Tr([html.Td("No. of iterations to convergence"), html.Td(str(c_iter)+" of "+str(n_iteration)+" allowed.")])
+        row4 = html.Tr([html.Td("No. of rejected windows"), html.Td(str(len(hv.rejected_window_indices)))])
+        table_body = [html.Tbody([row1, row2, row3, row4])]
 
         end = time.time()
         time_elapsed = str(end-start)[0:4]
@@ -670,7 +719,9 @@ def update_timerecord_plot(n_clicks, filename, filter_bool, flow, fhigh, forder,
 
         # return {"data":plotly_fig.data, "layout":plotly_fig.layout}
 
-        return dcc.Graph(figure=plotly_fig)
+        # return dcc.Graph(figure=plotly_fig)
+        out_url = fig_to_uri(fig)
+        return out_url, dbc.Table(table_body, bordered=True), (html.P("Before Rejection:"), table_before, html.P("After Rejection:"), table_after)
     else:
         raise PreventUpdate
 
