@@ -59,7 +59,23 @@ tab1_content = dbc.Card(
             ),
             dbc.Input(id="windowlength-input", type="number", value=60, min=0, max=600, step=1),
             html.P(""),
-            html.Hr(style={"border-top": "1px solid #bababa"}),
+            #html.Hr(style={"border-top": "1px solid #bababa"}),
+
+            # Width of cosine taper
+            html.P([
+                html.Span(
+                    "Cosine taper width:",
+                    id="width-tooltip-target",
+                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
+                ),
+            ]),
+            dbc.Tooltip(
+                "Geopsy default of 0.05 is equal to 0.1. "
+                "0.1 is recommended.",
+                target="width-tooltip-target",
+            ),
+            dbc.Input(id="width-input", type="number", value=0.1, min=0.1, max=1.0, step=0.1),
+            html.P(""), # used for styling purposes only
 
             # Butterworth Filter
             html.P([
@@ -77,76 +93,62 @@ tab1_content = dbc.Card(
             dbc.Select(
                 id="butterworth-input",
                 options=[
-                    {"label": "True", "value": "True"},
-                    {"label": "False", "value": "False"},
+                    {"label": "Yes", "value": "True"},
+                    {"label": "No", "value": "False"},
                     # {"label": "Disabled option", "value": "3", "disabled": True},
                 ], value="False"),
             html.P(""), # used for styling purposes only
 
-            # fLow for bandpass filter
-            html.P([
-                html.Span(
-                    "Low-cut frequency for bandpass filter:",
-                    id="flow-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
+            dbc.Container([
+                # fLow for bandpass filter
+                html.P([
+                    html.Span(
+                        "Low-cut frequency for bandpass filter:",
+                        id="flow-tooltip-target",
+                        style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
+                    ),
+                ]),
+                dbc.Tooltip(
+                    "Do we even really need "
+                    "a tooltip for this one?",
+                    target="flow-tooltip-target",
                 ),
-            ]),
-            dbc.Tooltip(
-                "Do we even really need "
-                "a tooltip for this one?",
-                target="flow-tooltip-target",
-            ),
-            dbc.Input(id="flow-input", type="number", value=0.1, min=0, max=1000, step=0.01),
-            html.P(""), # used for styling purposes only
+                dbc.Input(id="flow-input", type="number", value=0.1, min=0, max=1000, step=0.01),
+                html.P(""), # used for styling purposes only
 
-            # fHigh for bandpass filter
-            html.P([
-                html.Span(
-                    "High-cut frequency for bandpass filter:",
-                    id="fhigh-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
+                # fHigh for bandpass filter
+                html.P([
+                    html.Span(
+                        "High-cut frequency for bandpass filter:",
+                        id="fhigh-tooltip-target",
+                        style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
+                    ),
+                ]),
+                dbc.Tooltip(
+                    "Do we even really need "
+                    "a tooltip for this one?",
+                    target="fhigh-tooltip-target",
                 ),
-            ]),
-            dbc.Tooltip(
-                "Do we even really need "
-                "a tooltip for this one?",
-                target="fhigh-tooltip-target",
-            ),
-            dbc.Input(id="fhigh-input", type="number", value=30, min=0, max=600, step=1),
-            html.P(""), # used for styling purposes only
+                dbc.Input(id="fhigh-input", type="number", value=30, min=0, max=600, step=1),
+                html.P(""), # used for styling purposes only
 
-            # fOrder for bandpass filter
-            html.P([
-                html.Span(
-                    "Filter order:",
-                    id="forder-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
+                # fOrder for bandpass filter
+                html.P([
+                    html.Span(
+                        "Filter order:",
+                        id="forder-tooltip-target",
+                        style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
+                    ),
+                ]),
+                dbc.Tooltip(
+                    "Do we even really need "
+                    "a tooltip for this one?",
+                    target="forder-tooltip-target",
                 ),
-            ]),
-            dbc.Tooltip(
-                "Do we even really need "
-                "a tooltip for this one?",
-                target="forder-tooltip-target",
-            ),
-            dbc.Input(id="forder-input", type="number", value=5, min=0, max=600, step=1),
-            html.P(""), # used for styling purposes only
-            html.Hr(style={"border-top": "0.5px solid #bababa"}),# used for styling purposes only
-
-            # Width of cosine taper
-            html.P([
-                html.Span(
-                    "Cosine taper width:",
-                    id="width-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
-                ),
-            ]),
-            dbc.Tooltip(
-                "Geopsy default of 0.05 is equal to 0.1. "
-                "0.1 is recommended.",
-                target="width-tooltip-target",
-            ),
-            dbc.Input(id="width-input", type="number", value=0.1, min=0.1, max=1.0, step=0.1),
-
+                dbc.Input(id="forder-input", type="number", value=5, min=0, max=600, step=1),
+                html.P(""), # used for styling purposes only
+                html.Hr(style={"border-top": "0.5px solid #bababa"}),# used for styling purposes only
+                ], className="ml-2 mr-0", id="bandpass-options"),
             # dbc.Button("Click here", color="success")]
 
     ]),
@@ -160,7 +162,7 @@ tab2_content = dbc.Card(
             # Bandwidth
             html.P([
                 html.Span(
-                    "Bandwith:",
+                    "Konno and Ohmachi Smoothing Constant (b):",
                     id="bandwidth-tooltip-target",
                     style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
                 ),
@@ -174,75 +176,76 @@ tab2_content = dbc.Card(
             html.P(""),
             html.Hr(style={"border-top": "1px solid #bababa"}),
 
-            # Minumum frequency
-            html.P("After Resampling:"),
-            html.P([
-                html.Span(
-                    "Min frequency:",
-                    id="minf-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
-                ),
-            ]),
-            dbc.Tooltip(
-                "Do we even really need "
-                "a tooltip for this one?",
-                target="minf-tooltip-target",
-            ),
-            dbc.Input(id="minf-input", type="number", value=0.2, min=0, max=1000, step=0.01),
-            html.P(""),
+            html.P("Resampling:"),
+            dbc.Container([
+                # Minumum frequency
+                html.P([
+                    html.Span(
+                        "Min frequency:",
+                        id="minf-tooltip-target",
+                        style={"cursor": "context-menu", "padding":"5px"},
+                    ),
+                ]),
+                #dbc.Tooltip(
+                    #"Do we even really need "
+                    #"a tooltip for this one?",
+                    #target="minf-tooltip-target",
+                #),
+                dbc.Input(id="minf-input", type="number", value=0.2, min=0, max=1000, step=0.01),
+                html.P(""),
 
-            # Maximum frequency
-            html.P([
-                html.Span(
-                    "Max frequency:",
-                    id="maxf-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
-                ),
-            ]),
-            dbc.Tooltip(
-                "Do we even really need "
-                "a tooltip for this one?",
-                target="maxf-tooltip-target",
-            ),
-            dbc.Input(id="maxf-input", type="number", value=20, min=0, max=600, step=1),
-            html.P(""),
+                # Maximum frequency
+                html.P([
+                    html.Span(
+                        "Max frequency:",
+                        id="maxf-tooltip-target",
+                        style={"cursor": "context-menu", "padding":"5px"},
+                    ),
+                ]),
+                #dbc.Tooltip(
+                    #"Do we even really need "
+                    #"a tooltip for this one?",
+                    #target="maxf-tooltip-target",
+                #),
+                dbc.Input(id="maxf-input", type="number", value=20, min=0, max=600, step=1),
+                html.P(""),
 
-            # Number of frequencies
-            html.P([
-                html.Span(
-                    "Number of frequencies:",
-                    id="nf-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
-                ),
-            ]),
-            dbc.Tooltip(
-                "Do we even really need "
-                "a tooltip for this one?",
-                target="nf-tooltip-target",
-            ),
-            dbc.Input(id="nf-input", type="number", value=512, min=2, max=10000, step=1),
-            html.P(""),
+                # Number of frequencies
+                html.P([
+                    html.Span(
+                        "Number of frequencies:",
+                        id="nf-tooltip-target",
+                        style={"cursor": "context-menu", "padding":"5px"},
+                    ),
+                ]),
+                #dbc.Tooltip(
+                    #"Do we even really need "
+                    #"a tooltip for this one?",
+                    #target="nf-tooltip-target",
+                #),
+                dbc.Input(id="nf-input", type="number", value=512, min=2, max=10000, step=1),
+                html.P(""),
 
-            # Resampling type
-            html.P([
-                html.Span(
-                    "Resampling type:",
-                    id="res_type-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
+                # Resampling type
+                html.P([
+                    html.Span(
+                        "Resampling type:",
+                        id="res_type-tooltip-target",
+                        style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
+                    ),
+                ]),
+                dbc.Tooltip(
+                    "Boolean to control whether Butterworth filter is applied. "
+                    "Geopsy does not apply a bandpass filter.",
+                    target="res_type-tooltip-target",
                 ),
-            ]),
-            dbc.Tooltip(
-                "Boolean to control whether Butterworth filter is applied. "
-                "Geopsy does not apply a bandpass filter.",
-                target="res_type-tooltip-target",
-            ),
-            dbc.Select(
-                id="res_type-input",
-                options=[
-                    {"label": "log", "value": "log"},
-                    {"label": "linear", "value": "linear"},
-                ], value="log",
-            ),
+                dbc.Select(
+                    id="res_type-input",
+                    options=[
+                        {"label": "log", "value": "log"},
+                        {"label": "linear", "value": "linear"},
+                    ], value="log",
+            )], className="ml-2 mr-0"),
             # dbc.Button("Click here", color="success")]
     ]),
     className="mt-3",
@@ -273,63 +276,6 @@ tab3_content = dbc.Card(
                 ], value="geometric-mean",
             ),
             html.P(" "),
-            html.Hr(style={"border-top": "1px solid #bababa"}),
-
-            # Frequency domain rejection
-            html.P([
-                html.Span(
-                    "Apply frequency domain rejection?",
-                    id="rejection_bool-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
-                ),
-            ]),
-            dbc.Tooltip(
-                "Boolean to control whether frequency domain rejection proposed "
-                "by Cox et al. (in review) is applied. Geopsy does not offer this functionality.",
-                target="rejection_bool-tooltip-target",
-            ),
-            dbc.Select(
-                id="rejection_bool-input",
-                options=[
-                    {"label": "True", "value": "True"},
-                    {"label": "False", "value": "False"},
-                    # {"label": "Disabled option", "value": "3", "disabled": True},
-                ], value="True"),
-            html.P(""),
-
-            # Standard deviations to consider
-            html.P([
-                html.Span(
-                    "Standard deviations:",
-                    id="n-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
-                ),
-            ]),
-            dbc.Tooltip(
-                "Number of standard deviations to consider during rejection. "
-                "Smaller values will reject more windows. 2 is recommended. ",
-                target="n-tooltip-target",
-            ),
-            dbc.Input(id="n-input", type="number", value=2, min=0, max=600, step=1),
-            html.P(""),
-
-            # Max iterations
-            html.P([
-                html.Span(
-                    "Iterations during rejection:",
-                    id="n_iteration-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
-                ),
-            ]),
-            dbc.Tooltip(
-                "Number of iterations to perform during rejection. "
-                "50 is recommended.",
-                target="n_iteration-tooltip-target",
-            ),
-            dbc.Input(id="n_iteration-input", type="number", value=50, min=0, max=600, step=1),
-            html.P(""),
-            html.Hr(style={"border-top": "0.5px solid #bababa"}),
-
             # Distribution of f0
             html.P([
                 html.Span(
@@ -370,6 +316,63 @@ tab3_content = dbc.Card(
                     {"label": "normal", "value": "normal"},
                     # {"label": "Disabled option", "value": "3", "disabled": True},
                 ], value="log-normal"),
+            html.Hr(style={"border-top": "1px solid #bababa"}),
+
+            # Frequency domain rejection
+            html.P([
+                html.Span(
+                    "Apply frequency domain rejection?",
+                    id="rejection_bool-tooltip-target",
+                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
+                ),
+            ]),
+            dbc.Tooltip(
+                "Boolean to control whether frequency domain rejection proposed "
+                "by Cox et al. (in review) is applied. Geopsy does not offer this functionality.",
+                target="rejection_bool-tooltip-target",
+            ),
+            dbc.Select(
+                id="rejection_bool-input",
+                options=[
+                    {"label": "Yes", "value": "True"},
+                    {"label": "No", "value": "False"},
+                    # {"label": "Disabled option", "value": "3", "disabled": True},
+                ], value="True"),
+            html.P(""),
+
+            dbc.Container([
+                # Standard deviations to consider
+                html.P([
+                    html.Span(
+                        "Standard deviations (n):",
+                        id="n-tooltip-target",
+                        style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
+                    ),
+                ]),
+                dbc.Tooltip(
+                    "Number of standard deviations to consider during rejection. "
+                    "Smaller values will reject more windows. 2 is recommended. ",
+                    target="n-tooltip-target",
+                ),
+                dbc.Input(id="n-input", type="number", value=2, min=0, max=600, step=1),
+                html.P(""),
+
+                # Max iterations
+                html.P([
+                    html.Span(
+                        "Maximum iterations allowed:",
+                        id="n_iteration-tooltip-target",
+                        style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
+                    ),
+                ]),
+                dbc.Tooltip(
+                    "Number of iterations to perform during rejection. "
+                    "50 is recommended.",
+                    target="n_iteration-tooltip-target",
+                ),
+                dbc.Input(id="n_iteration-input", type="number", value=50, min=0, max=600, step=1),
+                html.P(""),
+            ], className="ml-2 mr-0", id="rejection-options"),
     ]),
     className="mt-3",
 )
@@ -403,19 +406,18 @@ body = dbc.Container([
                         multiple=False,
                     ),
                 ],
-                md=9,
+                md=11,
             style={"padding-bottom": "20px",}),
             # Column2_2
             dbc.Col([
-                    dbc.Button("Calculate", id="calculate-button", outline=True, color="success", className="mr-1", size="lg"),
-                ], md=2, ),
-            dbc.Col([
-                    html.Div(id="spinner")
-                    #dbc.Spinner(color="success", className="mt-2 pl-0"),
+                    dbc.Button("Calculate", id="calculate-button", outline=True, color="success", size="lg"),
                 ], md=1, ),
         ]),
         # Row1.5
-        dbc.Row([html.Div(id="filename-reference")], className="mt-1 ml-4 mb-1"),
+        dbc.Row([
+            html.H4("Uploaded File:"),
+            html.Div(id="filename-reference", style={"padding":"4px"})
+        ], className="mt-1 mb-1", style={"margin-left":"0px"}),
         # Row2
         dbc.Row([
                 # Column2_1
@@ -425,7 +427,7 @@ body = dbc.Container([
                         dbc.Tabs([
                             dbc.Tab(tab1_content, label="Time Domain"),
                             dbc.Tab(tab2_content, label="Frequency Domain"),
-                            dbc.Tab(tab3_content, label="  H/V  ")
+                            dbc.Tab(tab3_content, label="H/V Options")
                         ]),
                         # dbc.Button("View details", color="secondary"),
                         # html.P(id="total-time"),
@@ -437,7 +439,7 @@ body = dbc.Container([
                             html.Div(id="stat-table"),
                         ], className="mt-2 ml-2"),
                     ],
-                    md=5,
+                    md=4,
                 ),
                 # Column2_2
                 dbc.Col([
@@ -445,12 +447,12 @@ body = dbc.Container([
                     dbc.Row([
                         html.Div([html.Img(id = 'cur_plot', src = '')], id='plot_div')#id="figure-div")
                     ]),
-                ], md=7)
+                ], md=8)
             ]),
         dbc.Row([
             html.Div(id='rejection-tables')#id="figure-div")
         ], className="mt-2 ml-2"),
-    ], className="mt-4", fluid=True)
+    ], className="mt-4 mr-0", fluid=True)
 
 # TODO (jpv): Need to change the below lines when deplyed on Heroku.
 UPLOAD_DIRECTORY = "/project/app_uploaded_files"
@@ -475,7 +477,7 @@ app.layout = html.Div(
     [
         body,
     ],
-    style={"max-width": "1200px"},
+    style={"max-width":"97%"},
 )
 
 
@@ -483,7 +485,10 @@ app.layout = html.Div(
     [Output('filename-reference', 'children')],
     [Input('upload-bar', 'filename')])
 def store_filename(filename):
-    return [filename]
+    if filename:
+        return [html.P(filename, style={"color":"#4287f5"})]
+    else:
+        return [html.P("No files have been uploaded yet.", style={"color":"gray"})]
 '''
 @app.callback(
     Output('spinner', 'children'),
@@ -508,7 +513,30 @@ def save_figure(n_clicks, src):
         if close_all:
             in_fig.clf()
         return html.P("")
- '''
+'''
+
+# Show/hide bandpass options depending on user input
+@app.callback(Output('bandpass-options', 'style'),
+             [Input('butterworth-input', 'value')])
+def set_bandpass_options_style(value):
+    # Enable butterworth options if user wants to apply the filter
+    if value == "True":
+        return {'display': 'block'}
+    # Disable butterworth options if user doesn't want to apply the filter
+    elif value == "False":
+        return {'display': 'none'}
+
+# Show/hide rejection options depending on user input
+@app.callback(Output('rejection-options', 'style'),
+             [Input('rejection_bool-input', 'value')])
+def set_rejection_options_style(value):
+    # Enable rejection options if user wants to apply the filter
+    if value == "True":
+        return {'display': 'block'}
+    # Disable rejection options if user doesn't want to apply the filter
+    elif value == "False":
+        return {'display': 'none'}
+
 def parse_data(filename):
     try:
         return hvsrpy.Sensor3c.from_mseed(filename)
