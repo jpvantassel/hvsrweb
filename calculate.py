@@ -416,8 +416,9 @@ body = dbc.Container([
         # Row1.5
         dbc.Row([
             html.H4("Uploaded File:"),
-            html.Div(id="filename-reference", style={"padding":"4px"})
-        ], className="mt-1 mb-1", style={"margin-left":"0px"}),
+            html.P(id="filename-ref")
+            #html.Div(id="filename-reference", style={"padding":"4px", "margin-left":"4px"})
+        ], className="mt-1", style={"margin-left":"0px"}),
         # Row2
         dbc.Row([
                 # Column2_1
@@ -482,13 +483,14 @@ app.layout = html.Div(
 
 
 @app.callback(
-    [Output('filename-reference', 'children')],
+    [Output('filename-ref', 'children'),
+    Output('filename-ref', 'style')],
     [Input('upload-bar', 'filename')])
 def store_filename(filename):
     if filename:
-        return [html.P(filename, style={"color":"#4287f5"})]
+        return [filename, {"color":"#34a1eb", "padding":"4px", "margin-left":"4px"}]
     else:
-        return [html.P("No files have been uploaded yet.", style={"color":"gray"})]
+        return ["No files have been uploaded yet.", {"color":"gray", "padding":"4px", "margin-left":"4px"}]
 '''
 @app.callback(
     Output('spinner', 'children'),
@@ -582,7 +584,7 @@ def generate_table(hv, distribution_f0):
     #  Output('calculate-button', 'color'),
     #  Output('total-time', 'children')],
     [Input('calculate-button', 'n_clicks')],
-    [State('filename-reference', 'children'),
+    [State('filename-ref', 'children'),
      State('butterworth-input', 'value'),
      State('flow-input', 'value'),
      State('fhigh-input', 'value'),
@@ -604,9 +606,8 @@ def generate_table(hv, distribution_f0):
 def update_timerecord_plot(n_clicks, filename, filter_bool, flow, fhigh, forder, minf, maxf, nf, res_type,
     windowlength, width, bandwidth, method, distribution_mc, rejection_bool, n, distribution_f0, n_iteration):
     start = time.time()
-
+    print(filename)
     if filename:
-        print(filename)
 
         # TODO (jpv): Check that filename is iterable/sliceable
         # filename = filename
