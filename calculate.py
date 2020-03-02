@@ -416,7 +416,7 @@ body = dbc.Container([
         # Row1.5
         dbc.Row([
             html.H4("Uploaded File:"),
-            html.P(id="filename-ref")
+            html.P(id="filename-reference")
             #html.Div(id="filename-reference", style={"padding":"4px", "margin-left":"4px"})
         ], className="mt-1", style={"margin-left":"0px"}),
         # Row2
@@ -436,9 +436,9 @@ body = dbc.Container([
                         # dbc.Button("Save .hv", color="dark", id="save_hv-button"),
                         # html.Div(id="intermediate-value"),
                         # html.P(id="figure_status"),
-                        dbc.Row([
-                            html.Div(id="stat-table"),
-                        ], className="mt-2 ml-2"),
+                        #dbc.Row([
+                        #    html.Div(id="stat-table"),
+                        #], className="mt-2 ml-2"),
                     ],
                     md=4,
                 ),
@@ -451,8 +451,17 @@ body = dbc.Container([
                 ], md=8)
             ]),
         dbc.Row([
-            html.Div(id='rejection-tables')#id="figure-div")
-        ], className="mt-2 ml-2"),
+            dbc.Col([
+                html.Div(id='window-information-table'),
+            ], md=4),
+            dbc.Col([
+                html.Div(id='before-rejection-table'),
+            ], md=4),
+            dbc.Col([
+                html.Div(id='after-rejection-table'),
+            ], md=4),
+            #html.Div(id='rejection-tables')#id="figure-div")
+        ], className="mt-5 ml-4 mb-2", id="tables"),
     ], className="mt-4 mr-0", fluid=True)
 
 # TODO (jpv): Need to change the below lines when deplyed on Heroku.
@@ -483,8 +492,8 @@ app.layout = html.Div(
 
 
 @app.callback(
-    [Output('filename-ref', 'children'),
-    Output('filename-ref', 'style')],
+    [Output('filename-reference', 'children'),
+    Output('filename-reference', 'style')],
     [Input('upload-bar', 'filename')])
 def store_filename(filename):
     if filename:
@@ -566,25 +575,43 @@ def fig_to_uri(in_fig, close_all=True, **save_args):
     return "data:image/png;base64,{}".format(encoded)
 
 def generate_table(hv, distribution_f0):
-    table_header = [html.Thead(html.Tr([html.Th("Parameter"), html.Th("Distribution"), html.Th("Mean"), html.Th("Median"), html.Th("Standard Deviation")]))]
     if distribution_f0 == "log-normal":
-        row1 = html.Tr([html.Td("f0"), html.Td("Log-normal"), html.Td("-"), html.Td(str(hv.mean_f0_frq(distribution_f0))[:4]+" Hz"), html.Td(str(hv.std_f0_frq(distribution_f0))[:4])])
-        row2 = html.Tr([html.Td("T0"), html.Td("Log-normal"), html.Td("-"), html.Td(str(1/hv.mean_f0_frq(distribution_f0))[:4]+" s"), html.Td(str(-1*hv.std_f0_frq(distribution_f0))[:5])])
-    else:
-        row1 = html.Tr([html.Td("f0"), html.Td("Normal"), html.Td(str(self.std_f0_frq(distribution_f0))[:4]), html.Td("-"), html.Td(str(hv.std_f0_frq(distribution_f0))[:4])])
-        row2 = html.Tr([html.Td("T0"), html.Td("Normal"), html.Td("-"), html.Td("-"), html.Td("-")])
+        table_header = [html.Thead(html.Tr([html.Th("Name"), html.Th("Log-Normal Median"), html.Th("Log-Normal Standard Deviation")]))]
+        row1 = html.Tr([
+            html.Td("Fundamental Site Frequency, f0"),
+            html.Td(str(hv.mean_f0_frq(distribution_f0))[:4]+" Hz"),
+            html.Td(str(hv.std_f0_frq(distribution_f0))[:4])
+        ])
+        row2 = html.Tr([
+            html.Td("Fundamental Site Period, T0"),
+            html.Td(str((1/hv.mean_f0_frq(distribution_f0)))[:4]+" s"),
+            html.Td(str(hv.std_f0_frq(distribution_f0))[:4])
+        ])
+    elif distribution_f0 == "normal":
+        table_header = [html.Thead(html.Tr([html.Th("Name"), html.Th("Mean"), html.Th("Standard Deviation")]))]
+        row1 = html.Tr([
+            html.Td("Fundamental Site Frequency, f0"),
+            html.Td(str(hv.mean_f0_frq(distribution_f0))[:4]+" Hz"),
+            html.Td(str(hv.std_f0_frq(distribution_f0))[:4])
+        ])
+        row2 = html.Tr([
+            html.Td("Fundamental Site Period, T0"),
+            html.Td("-"),
+            html.Td("-")
+        ])
+
     table_body = [html.Tbody([row1, row2])]
-    table = dbc.Table(table_header + table_body, bordered=True)
+    table = dbc.Table(table_header + table_body, bordered=True, striped=True, hover=True, dark=True)
     return table
 
 @app.callback(
     [Output('cur_plot', 'src'),
-    Output('stat-table', 'children'),
-    Output('rejection-tables', 'children')],
-    #  Output('calculate-button', 'color'),
-    #  Output('total-time', 'children')],
+    Output('window-information-table', 'children'),
+    Output('before-rejection-table', 'children'),
+    Output('after-rejection-table', 'children'),
+    Output('tables', 'style')],
     [Input('calculate-button', 'n_clicks')],
-    [State('filename-ref', 'children'),
+    [State('filename-reference', 'children'),
      State('butterworth-input', 'value'),
      State('flow-input', 'value'),
      State('fhigh-input', 'value'),
@@ -612,13 +639,8 @@ def update_timerecord_plot(n_clicks, filename, filter_bool, flow, fhigh, forder,
         # TODO (jpv): Check that filename is iterable/sliceable
         # filename = filename
 
-        sensor = parse_data(filename)
-        bp_filter = {"flag":filter_bool, "flow":flow, "fhigh":fhigh, "order":forder}
-        resampling = {"minf":minf, "maxf":maxf, "nf":nf, "res_type":res_type}
-        hv = sensor.hv(windowlength, bp_filter, width, bandwidth, resampling, method)
-
         fig = plt.figure(figsize=(6,6), dpi=150)
-        gs = fig.add_gridspec(nrows=6, ncols=6)
+        gs = fig.add_gridspec(nrows=6,ncols=6)
 
         ax0 = fig.add_subplot(gs[0:2, 0:3])
         ax1 = fig.add_subplot(gs[2:4, 0:3])
@@ -631,71 +653,89 @@ def update_timerecord_plot(n_clicks, filename, filter_bool, flow, fhigh, forder,
             ax3 = fig.add_subplot(gs[1:4, 3:6])
             ax4 = False
 
+        sensor = parse_data(filename)
+        bp_filter = {"flag":filter_bool, "flow":flow, "fhigh":fhigh, "order":forder}
+        resampling = {"minf":minf, "maxf":maxf, "nf":nf, "res_type":res_type}
+        hv = sensor.hv(windowlength, bp_filter, width, bandwidth, resampling, method)
+
         individual_width = 0.3
         median_width = 1.3
 
         for ax, title in zip([ax3, ax4], ["Before Rejection", "After Rejection"]):
+            # Rejected Windows
             if title=="After Rejection":
-                for amp in hv.amp[hv.rejected_window_indices]:
-                    ax.plot(hv.frq, amp, color='#00ffff', linewidth=individual_width, zorder=2)
-                ax.plot(hv.frq, amp, color='#00ffff', linewidth=individual_width, label="Rejected")
+                if hv.rejected_window_indices.size>0:
+                    label = "Rejected"
+                    for amp in hv.amp[hv.rejected_window_indices]:
+                        ax.plot(hv.frq, amp, color='#00ffff', linewidth=individual_width, zorder=2, label=label)
+                        label=None
+
+            # Accepted Windows
+            label="Accepted"
             for amp in hv.amp[hv.valid_window_indices]:
-                ax.plot(hv.frq, amp, color='#888888', linewidth=individual_width)
-
-            ax.plot(hv.frq, amp, color='#888888', linewidth=individual_width,
-                    label = "Accepted" if title=="Before Rejection" else "")
-
-            ax.plot(hv.frq, hv.mean_curve(distribution_mc), color='k', linewidth=median_width,
-                    label="" if title=="Before Rejection" and rejection_bool else "Mean Curve")
+                ax.plot(hv.frq, amp, color='#888888', linewidth=individual_width,
+                        label = label if title=="Before Rejection" else "")
+                label=None
 
             # Window Peaks
             ax.plot(hv.peak_frq, hv.peak_amp, linestyle="", zorder=2,
                     marker='o', markersize=2.5, markerfacecolor="#ffffff", markeredgewidth=0.5, markeredgecolor='k',
                     label="" if title=="Before Rejection" and rejection_bool else r"$f_{0,i}$")
 
-            # Mean Curve
-            ax.plot(hv.frq, hv.nstd_curve(-1, distribution_mc),
-                    color='k', linestyle='--', linewidth=median_width, zorder=3,
-                    label = "" if title=="Before Rejection" and rejection_bool else "Mean ± 1 STD")
-            ax.plot(hv.frq, hv.nstd_curve(+1, distribution_mc),
-                    color='k', linestyle='--', linewidth=median_width, zorder=3)
-
             # Peak Mean Curve
             ax.plot(hv.mc_peak_frq(distribution_mc), hv.mc_peak_amp(distribution_mc), linestyle="", zorder=4,
-                    marker='D', markersize=5, markerfacecolor='#66ff33', markeredgewidth=1, markeredgecolor='k',
+                    marker='D', markersize=4, markerfacecolor='#66ff33', markeredgewidth=1, markeredgecolor='k',
                     label = "" if title=="Before Rejection" and rejection_bool else r"$f_{0,mc}$")
+
+            # Mean Curve
+            label = r"$LM_{curve}$" if distribution_mc=="log-normal" else "Mean Curve"
+            ax.plot(hv.frq, hv.mean_curve(distribution_mc), color='k', linewidth=median_width,
+                    label="" if title=="Before Rejection" and rejection_bool else label)
+
+            # Mean +/- Curve
+            label = r"$LM_{curve}$"+" ± 1 STD" if distribution_mc=="log-normal" else "Mean ± 1 STD"
+            ax.plot(hv.frq, hv.nstd_curve(-1, distribution_mc),
+                    color='k', linestyle='--', linewidth=median_width, zorder=3,
+                    label = "" if title=="Before Rejection" and rejection_bool else label)
+            ax.plot(hv.frq, hv.nstd_curve(+1, distribution_mc),
+                    color='k', linestyle='--', linewidth=median_width, zorder=3)
 
             label = r"$LM_{f0}$"+" ± 1 STD" if distribution_f0=="log-normal" else "Mean f0 ± 1 STD"
             ymin, ymax = ax.get_ylim()
             ax.plot([hv.mean_f0_frq(distribution_f0)]*2, [ymin, ymax], linestyle="-.", color="#000000")
             ax.fill([hv.nstd_f0_frq(-1, distribution_f0)]*2 + [hv.nstd_f0_frq(+1, distribution_f0)]*2, [ymin, ymax, ymax, ymin],
                     color = "#ff8080",
-                   label="" if title=="Before Rejection" and rejection_bool else label)
+                    label="" if title=="Before Rejection" and rejection_bool else label)
 
             ax.set_ylim((ymin, ymax))
             ax.set_xscale('log')
             ax.set_xlabel("Frequency (Hz)")
             ax.set_ylabel("HVSR Ampltidue")
             # n_spaces = 19
+
             if rejection_bool:
                 if title=="Before Rejection":
-                    table_before = generate_table(hv, distribution_f0)
+                    table_before_rejection = generate_table(hv, distribution_f0)
                     c_iter = hv.reject_windows(n, max_iterations=n_iteration,
-                                               distribution_f0=distribution_f0, distribution_mc=distribution_mc)
+                                       distribution_f0=distribution_f0, distribution_mc=distribution_mc)
+                    # Create Window Information Table
+                    row1 = html.Tr([html.Td("Window length"), html.Td(str(windowlength)+"s")])
+                    row2 = html.Tr([html.Td("No. of windows"), html.Td(str(sensor.ns.n_windows))])
+                    row3 = html.Tr([html.Td("No. of iterations to convergence"), html.Td(str(c_iter)+" of "+str(n_iteration)+" allowed.")])
+
                 elif title=="After Rejection":
-                    fig.legend(ncol=4, loc='lower center', bbox_to_anchor=(0.51, 0))
-                    table_after = generate_table(hv, distribution_f0)
+                    fig.legend(ncol=4, loc='lower center', bbox_to_anchor=(0.51, 0), columnspacing=2)
+                    table_after_rejection = generate_table(hv, distribution_f0)
+                    row4 = html.Tr([html.Td("No. of rejected windows"), html.Td(str(len(hv.rejected_window_indices)))])
+                    window_information_table_body = [html.Tbody([row1, row2, row3, row4])]
             else:
-                n_spaces += 9
-                '''
-                print()
-                print(f"Window length :  {str(windowlength)}s")
-                print(f"No. of windows : {sensor.ns.n_windows}")
-                print()
-                print(f"*{'*'*n_spaces} Statistics{'*'*n_spaces}")
-                hv.print_stats(distribution_f0)
-                print()
-                '''
+                table_no_rejection = generate_table(hv, distribution_f0)
+                # Create Window Information Table
+                row1 = html.Tr([html.Td("Window length"), html.Td(str(windowlength)+"s")])
+                row2 = html.Tr([html.Td("No. of windows"), html.Td(str(sensor.ns.n_windows))])
+                row3 = html.Tr([html.Td("No. of iterations to convergence"), html.Td(str(c_iter)+" of "+str(n_iteration)+" allowed.")])
+                window_information_table_body = [html.Tbody([row1, row2, row3])]
+
                 fig.legend(loc="upper center", bbox_to_anchor=(0.75, 0.3))
                 break
             ax.set_title(title)
@@ -716,7 +756,8 @@ def update_timerecord_plot(n_clicks, filename, filter_bool, flow, fhigh, forder,
 
         # TODO (jpv): Reintroduce save figure after async thread issue.
         save_figure = fig
-        save_figure.tight_layout(h_pad=1, w_pad=2, rect=(0,0.07,1,1))
+        fig.tight_layout(h_pad=1, w_pad=2, rect=(0,0.08,1,1))
+        save_figure.tight_layout(h_pad=1, w_pad=2, rect=(0,0.08,1,1))
         # figure_name_out = "test.png" #"example_hvsr_figure.png"
         # save_figure.savefig(figure_name_out, dpi=300, bbox_inches='tight')
         # renderer = PlotlyRenderer()
@@ -726,16 +767,9 @@ def update_timerecord_plot(n_clicks, filename, filter_bool, flow, fhigh, forder,
         # renderer.data
         # plotly_fig = mpl_to_plotly(fig)
 
-        # TODO (jpv): Reintroduce statistics table after async thread issue.
-        # Rejection Statistics Table
-        row1 = html.Tr([html.Td("Window length"), html.Td(str(windowlength)+"s")])
-        row2 = html.Tr([html.Td("No. of windows"), html.Td(str(sensor.ns.n_windows))])
-        row3 = html.Tr([html.Td("No. of iterations to convergence"), html.Td(str(c_iter)+" of "+str(n_iteration)+" allowed.")])
-        row4 = html.Tr([html.Td("No. of rejected windows"), html.Td(str(len(hv.rejected_window_indices)))])
-        table_body = [html.Tbody([row1, row2, row3, row4])]
+
 
         end = time.time()
-        time_elapsed = str(end-start)[0:4]
         # return (dcc.Graph(figure=plotly_fig), html.P("Before Rejection:"), table_before, dbc.Table(table_body, bordered=True), html.P("After Rejection:"), table_after), "success", html.P("Total time elapsed (s): "+time_elapsed)
         # print(plotly_fig.data)
         # print("\n"*5)
@@ -750,7 +784,10 @@ def update_timerecord_plot(n_clicks, filename, filter_bool, flow, fhigh, forder,
 
         # return dcc.Graph(figure=plotly_fig)
         out_url = fig_to_uri(fig)
-        return out_url, dbc.Table(table_body, bordered=True), (html.P("Before Rejection:"), table_before, html.P("After Rejection:"), table_after)
+        if rejection_bool:
+            return out_url, (html.H5("Window Information:"), dbc.Table(window_information_table_body, bordered=True, striped=True, hover=True, dark=True)), (html.H5("Statistics Before Rejection:"), table_before_rejection), (html.H5("Statistics After Rejection:"), table_after_rejection), ({"border": "2px solid #73AD21", "border-radius":"20px", "padding":"15px"})
+        else:
+            return out_url, dbc.Table(window_information_table_body, bordered=True), (html.P("Statistics:"), table_no_rejection), ({"border": "2px solid #73AD21", "border-radius":"20px", "padding":"15px"})
     else:
         raise PreventUpdate
 
