@@ -39,6 +39,9 @@ import time
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
+# Style Settings
+default_style = {"cursor": "context-menu", "padding":"5px"}
+
 # Bootstrap Layout:
 # TIME DOMAIN SETTINGS TAB
 tab1_content = dbc.Card(
@@ -47,34 +50,33 @@ tab1_content = dbc.Card(
             # Window Length
             html.P([
                 html.Span(
-                    "Window length (s):",
+                    "Window Length (s):",
                     id="windowlength-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
+                    style=default_style,
                 ),
             ]),
             dbc.Tooltip(
-                "In general low frequency peaks require longer window lengths. "
-                "See the SESAME guidelines for specific window length recommendations.",
+                "Length of each time window in seconds. "
+                "For specific guidance on an appropriate window length refer to the SESAME (2004) guidelines.",
                 target="windowlength-tooltip-target",
             ),
             dbc.Input(id="windowlength-input", type="number", value=60, min=0, max=600, step=1),
             html.P(""),
-            #html.Hr(style={"border-top": "1px solid #bababa"}),
 
             # Width of cosine taper
             html.P([
                 html.Span(
-                    "Cosine taper width:",
+                    "Width of Cosine Taper:",
                     id="width-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
+                    style=default_style,
                 ),
             ]),
             dbc.Tooltip(
-                "Geopsy default of 0.05 is equal to 0.1. "
+                "Fraction of each time window to be cosine tapered. "
                 "0.1 is recommended.",
                 target="width-tooltip-target",
             ),
-            dbc.Input(id="width-input", type="number", value=0.1, min=0.1, max=1.0, step=0.1),
+            dbc.Input(id="width-input", type="number", value=0.1, min=0., max=1.0, step=0.1),
             html.P(""), # used for styling purposes only
 
             # Butterworth Filter
@@ -82,11 +84,11 @@ tab1_content = dbc.Card(
                 html.Span(
                     "Apply Butterworth Filter?",
                     id="butterworth-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
+                    style=default_style,
                 ),
             ]),
             dbc.Tooltip(
-                "Boolean to control whether Butterworth filter is applied. "
+                "Select whether a Butterworth bandpass filter is applied to the time-domain singal. "
                 "Geopsy does not apply a bandpass filter.",
                 target="butterworth-tooltip-target",
             ),
@@ -95,62 +97,56 @@ tab1_content = dbc.Card(
                 options=[
                     {"label": "Yes", "value": "True"},
                     {"label": "No", "value": "False"},
-                    # {"label": "Disabled option", "value": "3", "disabled": True},
                 ], value="False"),
             html.P(""), # used for styling purposes only
 
             dbc.Container([
-                # fLow for bandpass filter
+                # Butterworth Filter: Low Frequency
                 html.P([
                     html.Span(
-                        "Low-cut frequency for bandpass filter:",
+                        "Low-cut Frequency (Hz):",
                         id="flow-tooltip-target",
-                        style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
+                        style=default_style,
                     ),
                 ]),
                 dbc.Tooltip(
-                    "Do we even really need "
-                    "a tooltip for this one?",
+                    "Frequencies below that specified are filtered.",
                     target="flow-tooltip-target",
                 ),
                 dbc.Input(id="flow-input", type="number", value=0.1, min=0, max=1000, step=0.01),
                 html.P(""), # used for styling purposes only
 
-                # fHigh for bandpass filter
+                # Butterworth Filter: High Frequency
                 html.P([
                     html.Span(
-                        "High-cut frequency for bandpass filter:",
+                        "High-cut Frequency (Hz):",
                         id="fhigh-tooltip-target",
-                        style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
+                        style=default_style,
                     ),
                 ]),
                 dbc.Tooltip(
-                    "Do we even really need "
-                    "a tooltip for this one?",
+                    "Frequencies above that specified are filtered.",
                     target="fhigh-tooltip-target",
                 ),
                 dbc.Input(id="fhigh-input", type="number", value=30, min=0, max=600, step=1),
                 html.P(""), # used for styling purposes only
 
-                # fOrder for bandpass filter
+                # Butterworth Filter: Filter Order
                 html.P([
                     html.Span(
-                        "Filter order:",
+                        "Filter Order:",
                         id="forder-tooltip-target",
-                        style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
+                        style=default_style,
                     ),
                 ]),
                 dbc.Tooltip(
-                    "Do we even really need "
-                    "a tooltip for this one?",
+                    "Order of Butterworth filter, 5 is recommended.",
                     target="forder-tooltip-target",
                 ),
                 dbc.Input(id="forder-input", type="number", value=5, min=0, max=600, step=1),
                 html.P(""), # used for styling purposes only
                 html.Hr(style={"border-top": "0.5px solid #bababa"}),# used for styling purposes only
                 ], className="ml-2 mr-0", id="bandpass-options"),
-            # dbc.Button("Click here", color="success")]
-
     ]),
     className="mt-3",
 )
@@ -162,91 +158,88 @@ tab2_content = dbc.Card(
             # Bandwidth
             html.P([
                 html.Span(
-                    "Konno and Ohmachi Smoothing Constant (b):",
+                    "Konno and Ohmachi Smoothing Coefficient:",
                     id="bandwidth-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
+                    style=default_style,
                 ),
             ]),
             dbc.Tooltip(
-                "Konno and Ohmachi smoothing constant. "
+                "Bandwidth coefficient (b) for Konno and Ohmachi (1998) smoothing, "
                 "40 is recommended.",
                 target="bandwidth-tooltip-target",
             ),
             dbc.Input(id="bandwidth-input", type="number", value=40, min=0, max=600, step=1),
             html.P(""),
-            html.Hr(style={"border-top": "1px solid #bababa"}),
+            # html.Hr(style={"border-top": "1px solid #bababa"}),
 
             html.P("Resampling:"),
             dbc.Container([
-                # Minumum frequency
+                # Resampling: Minumum Frequency
                 html.P([
                     html.Span(
-                        "Min frequency:",
+                        "Minimum Frequency:",
                         id="minf-tooltip-target",
-                        style={"cursor": "context-menu", "padding":"5px"},
+                        style=default_style,
                     ),
                 ]),
-                #dbc.Tooltip(
-                    #"Do we even really need "
-                    #"a tooltip for this one?",
-                    #target="minf-tooltip-target",
-                #),
-                dbc.Input(id="minf-input", type="number", value=0.2, min=0, max=1000, step=0.01),
+                dbc.Tooltip(
+                    "Minimum frequency considered when resampling.",
+                    target="minf-tooltip-target",
+                ),
+                dbc.Input(id="minf-input", type="number", value=0.2, min=0.2, max=10, step=0.1),
                 html.P(""),
 
-                # Maximum frequency
+                # Resampling: Maximum Frequency
                 html.P([
                     html.Span(
-                        "Max frequency:",
+                        "Maximum Frequency:",
                         id="maxf-tooltip-target",
-                        style={"cursor": "context-menu", "padding":"5px"},
+                        style=default_style,
                     ),
                 ]),
-                #dbc.Tooltip(
-                    #"Do we even really need "
-                    #"a tooltip for this one?",
-                    #target="maxf-tooltip-target",
-                #),
-                dbc.Input(id="maxf-input", type="number", value=20, min=0, max=600, step=1),
+                dbc.Tooltip(
+                    "Maximum frequency considered when resampling.",
+                    target="maxf-tooltip-target",
+                ),
+                dbc.Input(id="maxf-input", type="number", value=20, min=1, max=100, step=1),
                 html.P(""),
 
-                # Number of frequencies
+                # Resampling: Number of Frequencies
                 html.P([
                     html.Span(
-                        "Number of frequencies:",
+                        "Number of Frequency Points:",
                         id="nf-tooltip-target",
                         style={"cursor": "context-menu", "padding":"5px"},
                     ),
                 ]),
-                #dbc.Tooltip(
-                    #"Do we even really need "
-                    #"a tooltip for this one?",
-                    #target="nf-tooltip-target",
-                #),
+                dbc.Tooltip(
+                    "Number of frequency points after resampling.",
+                    target="nf-tooltip-target",
+                ),
                 dbc.Input(id="nf-input", type="number", value=512, min=2, max=10000, step=1),
                 html.P(""),
 
-                # Resampling type
+                # Resampling: Type
                 html.P([
                     html.Span(
-                        "Resampling type:",
+                        "Type:",
                         id="res_type-tooltip-target",
-                        style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
+                        style=default_style,
                     ),
                 ]),
                 dbc.Tooltip(
-                    "Boolean to control whether Butterworth filter is applied. "
-                    "Geopsy does not apply a bandpass filter.",
+                    "Distribution of frequency samples.",
                     target="res_type-tooltip-target",
                 ),
                 dbc.Select(
                     id="res_type-input",
                     options=[
-                        {"label": "log", "value": "log"},
-                        {"label": "linear", "value": "linear"},
-                    ], value="log",
-            )], className="ml-2 mr-0"),
-            # dbc.Button("Click here", color="success")]
+                        {"label": "Logarithmic", "value": "log"},
+                        {"label": "Linear", "value": "linear"},
+                    ], 
+                    value="log",
+            )], 
+            className="ml-2 mr-0"),
     ]),
     className="mt-3",
 )
@@ -258,77 +251,79 @@ tab3_content = dbc.Card(
             # Method for combining
             html.P([
                 html.Span(
-                    "Method for combining horizontal components:",
+                    "Method for Combining the Horizontal Components:",
                     id="method-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
+                    style=default_style,
                 ),
             ]),
             dbc.Tooltip(
-                "Method for combining horizontal components. Geopsy default is 'squared-average'. "
-                "'Geometric-mean' is recommended.",
+                "Geometric-Mean is recommended. "
+                "Geopsy uses the Squared-Average. ",
                 target="method-tooltip-target",
             ),
             dbc.Select(
                 id="method-input",
                 options=[
-                    {"label": "squared-average", "value": "squared-average"},
-                    {"label": "geometric-mean", "value": "geometric-mean"},
-                ], value="geometric-mean",
+                    {"label": "Squared-Average", "value": "squared-average"},
+                    {"label": "Geometric-Mean", "value": "geometric-mean"},
+                ],
+                value="geometric-mean",
             ),
             html.P(" "),
+
             # Distribution of f0
             html.P([
                 html.Span(
                     "Distribution of f0:",
                     id="distribution_f0-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
+                    style=default_style,
                 ),
             ]),
             dbc.Tooltip(
-                "Geopsy default 'normal'. 'log-normal' is recommended.",
+                "Lognormal is recommended. " 
+                "Geopsy uses Normal.",
                 target="distribution_f0-tooltip-target",
             ),
             dbc.Select(
                 id="distribution_f0-input",
                 options=[
-                    {"label": "log-normal", "value": "log-normal"},
-                    {"label": "normal", "value": "normal"},
-                    # {"label": "Disabled option", "value": "3", "disabled": True},
+                    {"label": "Lognormal", "value": "log-normal"},
+                    {"label": "Normal", "value": "normal"},
                 ], value='log-normal'),
             html.P(""),
 
-            # Distribution of mean curve
+            # Distribution of Median Curve
             html.P([
                 html.Span(
-                    "Distribution of mean curve:",
+                    "Distribution of Median Curve:",
                     id="distribution_mc-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
+                    style=default_style,
                 ),
             ]),
             dbc.Tooltip(
-                "Geopsy default 'log-normal'. 'log-normal' is recommended.",
+                "Lognormal is recommended. "
+                "Geopsy uses Lognormal",
                 target="distribution_mc-tooltip-target",
             ),
             dbc.Select(
                 id="distribution_mc-input",
                 options=[
-                    {"label": "log-normal", "value": "log-normal"},
-                    {"label": "normal", "value": "normal"},
-                    # {"label": "Disabled option", "value": "3", "disabled": True},
+                    {"label": "Lognormal", "value": "log-normal"},
+                    {"label": "Normal", "value": "normal"},
                 ], value="log-normal"),
-            html.Hr(style={"border-top": "1px solid #bababa"}),
+            html.P(""),
 
-            # Frequency domain rejection
+            # Frequency-Domain Window-Rejection Algorithm
             html.P([
                 html.Span(
-                    "Apply frequency domain rejection?",
+                    "Apply Frequency-Domain Window-Rejection?",
                     id="rejection_bool-tooltip-target",
-                    style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
+                    style=default_style,
                 ),
             ]),
             dbc.Tooltip(
-                "Boolean to control whether frequency domain rejection proposed "
-                "by Cox et al. (in review) is applied. Geopsy does not offer this functionality.",
+                "Select whether the frequency-domain window-rejection algorithm proposed "
+                "by Cox et al. (2020) is applied. Geopsy does not offer this functionality.",
                 target="rejection_bool-tooltip-target",
             ),
             dbc.Select(
@@ -336,43 +331,45 @@ tab3_content = dbc.Card(
                 options=[
                     {"label": "Yes", "value": "True"},
                     {"label": "No", "value": "False"},
-                    # {"label": "Disabled option", "value": "3", "disabled": True},
                 ], value="True"),
             html.P(""),
 
             dbc.Container([
-                # Standard deviations to consider
+                # Number of Standard Deviations
                 html.P([
                     html.Span(
-                        "Standard deviations (n):",
+                        "Number of Standard Deviations (n):",
                         id="n-tooltip-target",
-                        style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
+                        style=default_style,
                     ),
                 ]),
                 dbc.Tooltip(
                     "Number of standard deviations to consider during rejection. "
-                    "Smaller values will reject more windows. 2 is recommended. ",
+                    "Smaller values will tend to reject more windows than larger values. "
+                    "2 is recommended.",
                     target="n-tooltip-target",
                 ),
-                dbc.Input(id="n-input", type="number", value=2, min=0, max=600, step=1),
+                dbc.Input(id="n-input", type="number", value=2, min=1, max=4, step=0.5),
                 html.P(""),
 
-                # Max iterations
+                # Maximum Number of Iterations
                 html.P([
                     html.Span(
-                        "Maximum iterations allowed:",
+                        "Maximum Number of Allowed Iterations:",
                         id="n_iteration-tooltip-target",
-                        style={"textDecoration": "underline", "cursor": "context-menu", "padding":"5px"},
+                        style=default_style,
                     ),
                 ]),
                 dbc.Tooltip(
-                    "Number of iterations to perform during rejection. "
+                    "Maximum number of iterations of the rejection algorithm. "
                     "50 is recommended.",
                     target="n_iteration-tooltip-target",
                 ),
-                dbc.Input(id="n_iteration-input", type="number", value=50, min=0, max=600, step=1),
+                dbc.Input(id="n_iteration-input", type="number", value=50, min=5, max=75, step=1),
                 html.P(""),
-            ], className="ml-2 mr-0", id="rejection-options"),
+            ], 
+            className="ml-2 mr-0", 
+            id="rejection-options"),
     ]),
     className="mt-3",
 )
@@ -415,7 +412,7 @@ body = dbc.Container([
         ]),
         # Row1.5
         dbc.Row([
-            html.H4("Uploaded File:"),
+            html.H4("Current File:"),
             html.P(id="filename-reference")
             #html.Div(id="filename-reference", style={"padding":"4px", "margin-left":"4px"})
         ], className="mt-1", style={"margin-left":"0px"}),
@@ -502,7 +499,7 @@ def store_filename(contents, filename):
     if filename:
         return [filename, {"color":"#34a1eb", "padding":"4px", "margin-left":"4px"}, contents]
     else:
-        return ["No files have been uploaded yet.", {"color":"gray", "padding":"4px", "margin-left":"4px"}, "No contents."]
+        return ["No file has been uploaded.", {"color":"gray", "padding":"4px", "margin-left":"4px"}, "No contents."]
 '''
 @app.callback(
     Output('spinner', 'children'),
@@ -529,7 +526,7 @@ def save_figure(n_clicks, src):
         return html.P("")
 '''
 
-# Show/hide bandpass options depending on user input
+# Show/hide bandpass filter options depending on user input
 @app.callback(Output('bandpass-options', 'style'),
              [Input('butterworth-input', 'value')])
 def set_bandpass_options_style(value):
@@ -540,7 +537,7 @@ def set_bandpass_options_style(value):
     elif value == "False":
         return {'display': 'none'}
 
-# Show/hide rejection options depending on user input
+# Show/hide window rejection options depending on user input
 @app.callback(Output('rejection-options', 'style'),
              [Input('rejection_bool-input', 'value')])
 def set_rejection_options_style(value):
@@ -726,7 +723,6 @@ def update_timerecord_plot(n_clicks, filename, contents, filter_bool, flow, fhig
             ax.set_xscale('log')
             ax.set_xlabel("Frequency (Hz)")
             ax.set_ylabel("HVSR Ampltidue")
-            # n_spaces = 19
 
             if rejection_bool:
                 if title=="Before Rejection":
