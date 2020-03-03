@@ -1,5 +1,6 @@
 import base64
 from io import BytesIO
+from io import StringIO
 import os
 from urllib.parse import quote as urlquote
 import json
@@ -430,9 +431,11 @@ body = dbc.Container([
                         # dbc.Button("View details", color="secondary"),
                         html.P(""),
                         dbc.Button("Save Figure", color="primary", id="save_figure-button", className="mr-2"),
+                        dbc.Button("Save .hv", color="dark", id="save_hv-button"),
                         html.Div(id="hidden-figure-div", style={"display":"none"}),
                         html.Div(id="save-figure-status"),
-                        # dbc.Button("Save .hv", color="dark", id="save_hv-button"),
+                        html.Div(id="hidden-hv-div", style={"display":"none"}),
+                        html.Div(id="save-hv-status"),
                         # html.Div(id="intermediate-value"),
                         # html.P(id="figure_status"),
                         #dbc.Row([
@@ -502,16 +505,24 @@ def store_filename(contents, filename):
         return [filename, {"color":"#34a1eb", "padding":"4px", "margin-left":"4px"}, contents]
     else:
         return ["No file has been uploaded.", {"color":"gray", "padding":"4px", "margin-left":"4px"}, "No contents."]
-'''
+
 @app.callback(
-    Output('spinner', 'children'),
-    [Input('calculate-button', 'n_clicks')])
-def update_spinner(n_clicks):
+    Output('save-hv-status', 'children'),
+    [Input('save_hv-button', 'n_clicks'),
+     Input('hidden-hv-div', 'children'),
+     Input('filename-reference', 'children')])
+def save_hv(n_clicks, hv_data, filename):
     if n_clicks == None:
-        return html.P("")
+        return html.P("No hv saved yet.")
     else:
-        return dbc.Spinner(color="success")
-'''
+        '''
+        encoded_hv_bytes = bytearray(image_data[0], 'utf-8')
+        hv_title = filename.split('.miniseed')[0] + '.hv'
+        with open(hv_title, "wb") as fh:
+            fh.write(base64.decodebytes(encoded_hv_bytes))
+        '''
+        return html.P(".hv NOT saved!")
+
 @app.callback(
     Output('save-figure-status', 'children'),
     [Input('save_figure-button', 'n_clicks'),
@@ -619,7 +630,8 @@ def generate_table(hv, distribution_f0):
     Output('before-rejection-table', 'children'),
     Output('after-rejection-table', 'children'),
     Output('tables', 'style'),
-    Output('hidden-figure-div', 'children')],
+    Output('hidden-figure-div', 'children'),
+    Output('hidden-hv-div', 'children'),],
     [Input('calculate-button', 'n_clicks')],
     [State('filename-reference', 'children'),
      State('hidden-file-contents', 'children'),
@@ -819,10 +831,15 @@ def update_timerecord_plot(n_clicks, filename, contents, filter_bool, flow, fhig
 
         # return dcc.Graph(figure=plotly_fig)
         out_url, encoded_image = fig_to_uri(fig)
+
+        #out_hv = StringIO()
+        #hv.to_file(out_hv, distribution_f0, distribution_mc)
+        encoded_hv = html.P("Placeholder!")#base64.b64encode(out_hv.read())
+
         if rejection_bool:
-            return out_url, (html.H5("Window Information:"), dbc.Table(window_information_table_body, bordered=True, striped=True, hover=True, dark=True)), (html.H5("Statistics Before Rejection:"), table_before_rejection), (html.H5("Statistics After Rejection:"), table_after_rejection), ({"border": "2px solid #73AD21", "border-radius":"20px", "padding":"15px"}), [encoded_image]
+            return out_url, (html.H5("Window Information:"), dbc.Table(window_information_table_body, bordered=True, striped=True, hover=True, dark=True)), (html.H5("Statistics Before Rejection:"), table_before_rejection), (html.H5("Statistics After Rejection:"), table_after_rejection), ({"border": "2px solid #73AD21", "border-radius":"20px", "padding":"15px"}), [encoded_image], [encoded_hv]
         else:
-            return out_url, dbc.Table(window_information_table_body, bordered=True), (html.P("Statistics:"), table_no_rejection), ({"border": "2px solid #73AD21", "border-radius":"20px", "padding":"15px"})
+            return out_url, dbc.Table(window_information_table_body, bordered=True), (html.P("Statistics:"), table_no_rejection), ({"border": "2px solid #73AD21", "border-radius":"20px", "padding":"15px"}), [encoded_image], [encoded_hv]
     else:
         raise PreventUpdate
 
