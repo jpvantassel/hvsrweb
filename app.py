@@ -236,9 +236,9 @@ tab2_content = dbc.Card(
                     options=[
                         {"label": "Logarithmic", "value": "log"},
                         {"label": "Linear", "value": "linear"},
-                    ], 
+                    ],
                     value="log",
-            )], 
+            )],
             className="ml-2 mr-0"),
     ]),
     className="mt-3",
@@ -280,7 +280,7 @@ tab3_content = dbc.Card(
                 ),
             ]),
             dbc.Tooltip(
-                "Lognormal is recommended. " 
+                "Lognormal is recommended. "
                 "Geopsy uses Normal.",
                 target="distribution_f0-tooltip-target",
             ),
@@ -367,8 +367,8 @@ tab3_content = dbc.Card(
                 ),
                 dbc.Input(id="n_iteration-input", type="number", value=50, min=5, max=75, step=1),
                 html.P(""),
-            ], 
-            className="ml-2 mr-0", 
+            ],
+            className="ml-2 mr-0",
             id="rejection-options"),
     ]),
     className="mt-3",
@@ -428,8 +428,10 @@ body = dbc.Container([
                             dbc.Tab(tab3_content, label="H/V Options")
                         ]),
                         # dbc.Button("View details", color="secondary"),
-                        # html.P(id="total-time"),
-                        # dbc.Button("Save Figure", color="primary", id="save_figure-button", className="mr-2"),
+                        html.P(""),
+                        dbc.Button("Save Figure", color="primary", id="save_figure-button", className="mr-2"),
+                        html.Div(id="hidden-figure-div", style={"display":"none"}),
+                        html.Div(id="save-figure-status"),
                         # dbc.Button("Save .hv", color="dark", id="save_hv-button"),
                         # html.Div(id="intermediate-value"),
                         # html.P(id="figure_status"),
@@ -437,15 +439,15 @@ body = dbc.Container([
                         #    html.Div(id="stat-table"),
                         #], className="mt-2 ml-2"),
                     ],
-                    md=4,
+                    md=3,
                 ),
                 # Column2_2
                 dbc.Col([
                     # Row2_2_1
                     dbc.Row([
-                        html.Div([html.Img(id = 'cur_plot', src = '')], id='plot_div')#id="figure-div")
+                        html.Div([html.Img(id = 'cur_plot', src = '', style={"width":"50%"})], id='plot_div')#id="figure-div")
                     ]),
-                ], md=8)
+                ], md=6)
             ]),
         dbc.Row([
             dbc.Col([
@@ -509,22 +511,21 @@ def update_spinner(n_clicks):
         return html.P("")
     else:
         return dbc.Spinner(color="success")
-
-@app.callback(
-    Output('hidden-div', 'children'),
-    [Input('save_hv-button', 'n_clicks'),
-    Input('cur_plot', 'src')])
-def save_figure(n_clicks, src):
-    if n_clicks == None:
-        return html.P("")
-    else:
-
-        out_img = BytesIO()
-        in_fig.savefig(out_img, format='png', **save_args)
-        if close_all:
-            in_fig.clf()
-        return html.P("")
 '''
+@app.callback(
+    Output('save-figure-status', 'children'),
+    [Input('save_figure-button', 'n_clicks'),
+     Input('hidden-figure-div', 'children'),
+     Input('filename-reference', 'children')])
+def save_figure(n_clicks, image_data, filename):
+    if n_clicks == None:
+        return html.P("Nothing saved yet.")
+    else:
+        encoded_image_bytes = bytearray(image_data[0], 'utf-8')
+        img_title = filename.split('.miniseed')[0] + '_figure.png'
+        with open(img_title, "wb") as fh:
+            fh.write(base64.decodebytes(encoded_image_bytes))
+        return html.P("Figure saved!")
 
 # Show/hide bandpass filter options depending on user input
 @app.callback(Output('bandpass-options', 'style'),
@@ -580,7 +581,7 @@ def fig_to_uri(in_fig, close_all=True, **save_args):
         plt.close('all')
     out_img.seek(0)  # rewind file
     encoded = base64.b64encode(out_img.read()).decode("ascii").replace("\n", "")
-    return "data:image/png;base64,{}".format(encoded)
+    return "data:image/png;base64,{}".format(encoded), encoded
 
 def generate_table(hv, distribution_f0):
     if distribution_f0 == "log-normal":
@@ -609,7 +610,7 @@ def generate_table(hv, distribution_f0):
         ])
 
     table_body = [html.Tbody([row1, row2])]
-    table = dbc.Table(table_header + table_body, bordered=True, striped=True, hover=True, dark=True)
+    table = dbc.Table(table_header + table_body, bordered=True, hover=True)
     return table
 
 @app.callback(
@@ -617,7 +618,8 @@ def generate_table(hv, distribution_f0):
     Output('window-information-table', 'children'),
     Output('before-rejection-table', 'children'),
     Output('after-rejection-table', 'children'),
-    Output('tables', 'style')],
+    Output('tables', 'style'),
+    Output('hidden-figure-div', 'children')],
     [Input('calculate-button', 'n_clicks')],
     [State('filename-reference', 'children'),
      State('hidden-file-contents', 'children'),
@@ -669,6 +671,7 @@ def update_timerecord_plot(n_clicks, filename, contents, filter_bool, flow, fhig
         bp_filter = {"flag":filter_bool, "flow":flow, "fhigh":fhigh, "order":forder}
         resampling = {"minf":minf, "maxf":maxf, "nf":nf, "res_type":res_type}
         hv = sensor.hv(windowlength, bp_filter, width, bandwidth, resampling, method)
+
 
         individual_width = 0.3
         median_width = 1.3
@@ -794,9 +797,9 @@ def update_timerecord_plot(n_clicks, filename, contents, filter_bool, flow, fhig
         # return {"data":plotly_fig.data, "layout":plotly_fig.layout}
 
         # return dcc.Graph(figure=plotly_fig)
-        out_url = fig_to_uri(fig)
+        out_url, encoded_image = fig_to_uri(fig)
         if rejection_bool:
-            return out_url, (html.H5("Window Information:"), dbc.Table(window_information_table_body, bordered=True, striped=True, hover=True, dark=True)), (html.H5("Statistics Before Rejection:"), table_before_rejection), (html.H5("Statistics After Rejection:"), table_after_rejection), ({"border": "2px solid #73AD21", "border-radius":"20px", "padding":"15px"})
+            return out_url, (html.H5("Window Information:"), dbc.Table(window_information_table_body, bordered=True, striped=True, hover=True, dark=True)), (html.H5("Statistics Before Rejection:"), table_before_rejection), (html.H5("Statistics After Rejection:"), table_after_rejection), ({"border": "2px solid #73AD21", "border-radius":"20px", "padding":"15px"}), [encoded_image]
         else:
             return out_url, dbc.Table(window_information_table_body, bordered=True), (html.P("Statistics:"), table_no_rejection), ({"border": "2px solid #73AD21", "border-radius":"20px", "padding":"15px"})
     else:
