@@ -643,6 +643,27 @@ def generate_table(hv, distribution_f0):
 )
 def update_timerecord_plot(n_clicks, filename, contents, filter_bool, flow, fhigh, forder, minf, maxf, nf, res_type,
     windowlength, width, bandwidth, method, distribution_mc, rejection_bool, n, distribution_f0, n_iteration):
+
+    # print(filter_bool)
+    # print(flow)
+    # print(fhigh)
+    # print(forder)
+    # print(minf)
+    # print(maxf)
+    # print(nf)
+    # print(windowlength)
+    # print(width)
+    # print(bandwidth)
+    # print(method)
+    # print(distribution_mc)
+    # print(rejection_bool)
+    # print(n)
+    # print(distribution_f0)
+    # print(n_iteration)
+
+    filter_bool = True if filter_bool=="True" else False
+    rejection_bool = True if rejection_bool=="True" else False
+
     start = time.time()
     # print(filename)
     # print(data)
