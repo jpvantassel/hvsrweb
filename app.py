@@ -515,13 +515,11 @@ def save_hv(n_clicks, hv_data, filename):
     if n_clicks == None:
         return html.P("No hv saved yet.")
     else:
-        '''
-        encoded_hv_bytes = bytearray(image_data[0], 'utf-8')
+        hv_data = hv_data[0]
         hv_title = filename.split('.miniseed')[0] + '.hv'
-        with open(hv_title, "wb") as fh:
-            fh.write(base64.decodebytes(encoded_hv_bytes))
-        '''
-        return html.P(".hv NOT saved!")
+        with open(hv_title, "w") as f:
+            f.write(hv_data)
+        return html.P(".hv saved!")
 
 @app.callback(
     Output('save-figure-status', 'children'),
@@ -834,12 +832,13 @@ def update_timerecord_plot(n_clicks, filename, contents, filter_bool, flow, fhig
 
         #out_hv = StringIO()
         #hv.to_file(out_hv, distribution_f0, distribution_mc)
-        encoded_hv = html.P("Placeholder!")#base64.b64encode(out_hv.read())
+        style_lines = "".join(hv._hvsrpy_style_lines(distribution_f0, distribution_mc))
+        #print(style_lines)
 
         if rejection_bool:
-            return out_url, (html.H5("Window Information:"), dbc.Table(window_information_table_body, bordered=True, striped=True, hover=True, dark=True)), (html.H5("Statistics Before Rejection:"), table_before_rejection), (html.H5("Statistics After Rejection:"), table_after_rejection), ({"border": "2px solid #73AD21", "border-radius":"20px", "padding":"15px"}), [encoded_image], [encoded_hv]
+            return out_url, (html.H5("Window Information:"), dbc.Table(window_information_table_body, bordered=True, striped=True, hover=True, dark=True)), (html.H5("Statistics Before Rejection:"), table_before_rejection), (html.H5("Statistics After Rejection:"), table_after_rejection), ({"border": "2px solid #73AD21", "border-radius":"20px", "padding":"15px"}), [encoded_image], [style_lines]
         else:
-            return out_url, dbc.Table(window_information_table_body, bordered=True), (html.P("Statistics:"), table_no_rejection), ({"border": "2px solid #73AD21", "border-radius":"20px", "padding":"15px"}), [encoded_image], [encoded_hv]
+            return out_url, dbc.Table(window_information_table_body, bordered=True), (html.P("Statistics:"), table_no_rejection), ({"border": "2px solid #73AD21", "border-radius":"20px", "padding":"15px"}), [encoded_image], [style_lines]
     else:
         raise PreventUpdate
 
