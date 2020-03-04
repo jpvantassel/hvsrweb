@@ -419,7 +419,7 @@ body = dbc.Container([
         ], className="mt-1", style={"margin-left":"0px"}),
         # Row2
         dbc.Row([
-                # Column2_1
+                # SETTINGS (Column2_1)
                 dbc.Col(
                     [
                         html.H4("Settings"),
@@ -432,7 +432,7 @@ body = dbc.Container([
                         html.P(""),
                         dbc.Button("Save Figure", color="primary", id="save_figure-button", className="mr-1"),
                         dbc.Button("Save .hv", color="dark", id="save_hv-button", className="mr-1"),
-                        dbc.Button("Save geopsy", color="warning", id="save_geopsy-button"),
+                        dbc.Button("Save geopsy", color="info", id="save_geopsy-button"),
                         html.Div(id="hidden-figure-div", style={"display":"none"}),
                         html.Div(id="save-figure-status"),
                         html.Div(id="hidden-hv-div", style={"display":"none"}),
@@ -447,26 +447,23 @@ body = dbc.Container([
                     ],
                     md=3,
                 ),
-                # Column2_2
+                # FIGURE (Column2_2)
                 dbc.Col([
                     # Row2_2_1
                     dbc.Row([
-                        html.Div([html.Img(id = 'cur_plot', src = '', style={"width":"50%"})], id='plot_div')#id="figure-div")
+                        html.Div([html.Img(id = 'cur_plot', src = '', style={"width":"100%"})], id='plot_div')#id="figure-div")
                     ]),
-                ], md=6)
+                ], md=6),
+                # TABLES (Column2_3)
+                dbc.Col([
+                    html.Div(id='window-information-table', style={"font-size":"12px"}),
+                    html.Div(id='before-rejection-table', style={"font-size":"12px"}),
+                    html.Div(id='after-rejection-table', style={"font-size":"12px"}),
+                ]),
             ]),
-        dbc.Row([
-            dbc.Col([
-                html.Div(id='window-information-table'),
-            ], md=4),
-            dbc.Col([
-                html.Div(id='before-rejection-table'),
-            ], md=4),
-            dbc.Col([
-                html.Div(id='after-rejection-table'),
-            ], md=4),
-            #html.Div(id='rejection-tables')#id="figure-div")
-        ], className="mt-5 ml-4 mb-2", id="tables"),
+
+        html.Div(id='tables'),
+        #], className="mt-5 ml-4 mb-2", id="tables"),
         html.Div(id='hidden-file-contents', style={"display":"none"}),
     ], className="mt-4 mr-0", fluid=True)
 
@@ -856,9 +853,9 @@ def update_timerecord_plot(n_clicks, filename, contents, filter_bool, flow, fhig
         #print(style_lines)
 
         if rejection_bool:
-            return out_url, (html.H5("Window Information:"), dbc.Table(window_information_table_body, bordered=True, striped=True, hover=True, dark=True)), (html.H5("Statistics Before Rejection:"), table_before_rejection), (html.H5("Statistics After Rejection:"), table_after_rejection), ({"border": "2px solid #73AD21", "border-radius":"20px", "padding":"15px"}), [encoded_image], [style_lines], [geopsy_lines]
+            return out_url, (html.H6("Window Information:"), dbc.Table(window_information_table_body, bordered=True, hover=True)), (html.H6("Statistics Before Rejection:"), table_before_rejection), (html.H6("Statistics After Rejection:"), table_after_rejection), ({}), [encoded_image], [style_lines], [geopsy_lines]
         else:
-            return out_url, dbc.Table(window_information_table_body, bordered=True), (html.P("Statistics:"), table_no_rejection), ({"border": "2px solid #73AD21", "border-radius":"20px", "padding":"15px"}), [encoded_image], [style_lines], [geopsy_lines]
+            return out_url, dbc.Table(window_information_table_body, bordered=True), (html.P("Statistics:"), table_no_rejection), ({}), [encoded_image], [style_lines], [geopsy_lines]
     else:
         raise PreventUpdate
 
