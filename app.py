@@ -424,18 +424,21 @@ body = dbc.Container([
                     [
                         html.H4("Settings"),
                         dbc.Tabs([
-                            dbc.Tab(tab1_content, label="Time Domain"),
-                            dbc.Tab(tab2_content, label="Frequency Domain"),
-                            dbc.Tab(tab3_content, label="H/V Options")
+                            dbc.Tab(tab1_content, label="Time"),
+                            dbc.Tab(tab2_content, label="Frequency"),
+                            dbc.Tab(tab3_content, label="H/V")
                         ]),
                         # dbc.Button("View details", color="secondary"),
                         html.P(""),
-                        dbc.Button("Save Figure", color="primary", id="save_figure-button", className="mr-2"),
-                        dbc.Button("Save .hv", color="dark", id="save_hv-button"),
+                        dbc.Button("Save Figure", color="primary", id="save_figure-button", className="mr-1"),
+                        dbc.Button("Save .hv", color="dark", id="save_hv-button", className="mr-1"),
+                        dbc.Button("Save geopsy", color="warning", id="save_geopsy-button"),
                         html.Div(id="hidden-figure-div", style={"display":"none"}),
                         html.Div(id="save-figure-status"),
                         html.Div(id="hidden-hv-div", style={"display":"none"}),
                         html.Div(id="save-hv-status"),
+                        html.Div(id="hidden-geopsy-div", style={"display":"none"}),
+                        html.Div(id="save-geopsy-status"),
                         # html.Div(id="intermediate-value"),
                         # html.P(id="figure_status"),
                         #dbc.Row([
@@ -520,6 +523,21 @@ def save_hv(n_clicks, hv_data, filename):
         with open(hv_title, "w") as f:
             f.write(hv_data)
         return html.P(".hv saved!")
+
+@app.callback(
+    Output('save-geopsy-status', 'children'),
+    [Input('save_geopsy-button', 'n_clicks'),
+     Input('hidden-geopsy-div', 'children'),
+     Input('filename-reference', 'children')])
+def save_geopsy(n_clicks, geopsy_data, filename):
+    if n_clicks == None:
+        return html.P("No geopsy saved yet.")
+    else:
+        geopsy_data = geopsy_data[0]
+        geopsy_title = filename.split('.miniseed')[0] + '_geopsy.hv'
+        with open(geopsy_title, "w") as f:
+            f.write(geopsy_data)
+        return html.P("geopsy saved!")
 
 @app.callback(
     Output('save-figure-status', 'children'),
@@ -629,7 +647,8 @@ def generate_table(hv, distribution_f0):
     Output('after-rejection-table', 'children'),
     Output('tables', 'style'),
     Output('hidden-figure-div', 'children'),
-    Output('hidden-hv-div', 'children'),],
+    Output('hidden-hv-div', 'children'),
+    Output('hidden-geopsy-div', 'children'),],
     [Input('calculate-button', 'n_clicks')],
     [State('filename-reference', 'children'),
      State('hidden-file-contents', 'children'),
@@ -833,12 +852,13 @@ def update_timerecord_plot(n_clicks, filename, contents, filter_bool, flow, fhig
         #out_hv = StringIO()
         #hv.to_file(out_hv, distribution_f0, distribution_mc)
         style_lines = "".join(hv._hvsrpy_style_lines(distribution_f0, distribution_mc))
+        geopsy_lines = "".join(hv._geopsy_style_lines(distribution_f0, distribution_mc))
         #print(style_lines)
 
         if rejection_bool:
-            return out_url, (html.H5("Window Information:"), dbc.Table(window_information_table_body, bordered=True, striped=True, hover=True, dark=True)), (html.H5("Statistics Before Rejection:"), table_before_rejection), (html.H5("Statistics After Rejection:"), table_after_rejection), ({"border": "2px solid #73AD21", "border-radius":"20px", "padding":"15px"}), [encoded_image], [style_lines]
+            return out_url, (html.H5("Window Information:"), dbc.Table(window_information_table_body, bordered=True, striped=True, hover=True, dark=True)), (html.H5("Statistics Before Rejection:"), table_before_rejection), (html.H5("Statistics After Rejection:"), table_after_rejection), ({"border": "2px solid #73AD21", "border-radius":"20px", "padding":"15px"}), [encoded_image], [style_lines], [geopsy_lines]
         else:
-            return out_url, dbc.Table(window_information_table_body, bordered=True), (html.P("Statistics:"), table_no_rejection), ({"border": "2px solid #73AD21", "border-radius":"20px", "padding":"15px"}), [encoded_image], [style_lines]
+            return out_url, dbc.Table(window_information_table_body, bordered=True), (html.P("Statistics:"), table_no_rejection), ({"border": "2px solid #73AD21", "border-radius":"20px", "padding":"15px"}), [encoded_image], [style_lines], [geopsy_lines]
     else:
         raise PreventUpdate
 
