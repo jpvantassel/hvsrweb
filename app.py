@@ -404,11 +404,14 @@ body = dbc.Container([
                         multiple=False,
                     ),
                 ],
-                md=11,
+                md=10,
             style={"padding-bottom": "20px",}),
             # Column2_2
             dbc.Col([
                     dbc.Button("Calculate", id="calculate-button", outline=True, color="success", size="lg"),
+                ], md=1, ),
+            dbc.Col([
+                    dbc.Button("Demo", id="demo-button", color="primary", outline=True, size="lg", className="ml-1"),
                 ], md=1, ),
         ]),
         # Row1.5
@@ -434,11 +437,11 @@ body = dbc.Container([
                         dbc.Button("Save .hv", color="dark", id="save_hv-button", className="mr-1"),
                         dbc.Button("Save geopsy", color="info", id="save_geopsy-button"),
                         html.Div(id="hidden-figure-div", style={"display":"none"}),
-                        html.Div(id="save-figure-status"),
+                        html.Div(id="save-figure-status", style={"display":"none"}),
                         html.Div(id="hidden-hv-div", style={"display":"none"}),
-                        html.Div(id="save-hv-status"),
+                        html.Div(id="save-hv-status", style={"display":"none"}),
                         html.Div(id="hidden-geopsy-div", style={"display":"none"}),
-                        html.Div(id="save-geopsy-status"),
+                        html.Div(id="save-geopsy-status", style={"display":"none"}),
                         # html.Div(id="intermediate-value"),
                         # html.P(id="figure_status"),
                         #dbc.Row([
@@ -646,7 +649,8 @@ def generate_table(hv, distribution_f0):
     Output('hidden-figure-div', 'children'),
     Output('hidden-hv-div', 'children'),
     Output('hidden-geopsy-div', 'children'),],
-    [Input('calculate-button', 'n_clicks')],
+    [Input('calculate-button', 'n_clicks'),
+     Input('demo-button', 'n_clicks')],
     [State('filename-reference', 'children'),
      State('hidden-file-contents', 'children'),
      State('butterworth-input', 'value'),
@@ -667,9 +671,27 @@ def generate_table(hv, distribution_f0):
      State('distribution_f0-input', 'value'),
      State('n_iteration-input', 'value')]
 )
-def update_timerecord_plot(n_clicks, filename, contents, filter_bool, flow, fhigh, forder, minf, maxf, nf, res_type,
+def update_timerecord_plot(calc_button, demo_button, filename, contents, filter_bool, flow, fhigh, forder, minf, maxf, nf, res_type,
     windowlength, width, bandwidth, method, distribution_mc, rejection_bool, n, distribution_f0, n_iteration):
+    sensor = None
+    # Determine which button was clicked, Calculate or Demo
+    ctx = dash.callback_context
+    if ctx.triggered[0]['value'] is None:
+        button_id = 'No clicks yet'
+    else:
+        print("callback_context triggered!")
+        button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    print(button_id)
 
+    if button_id == "calculate-button":
+        if contents:
+            sensor = parse_data(contents, filename)
+        else:
+            print("No file uploaded yet, cannot perform calculate function.")
+            raise PreventUpdate
+    elif button_id == "demo-button":
+        sensor = hvsrpy.Sensor3c.from_mseed("UT.STN12.A2_C150.miniseed")
+        print("Performing demo calculation on UT.STN12.A2_C150.miniseed")
     # print(filter_bool)
     # print(flow)
     # print(fhigh)
@@ -693,7 +715,7 @@ def update_timerecord_plot(n_clicks, filename, contents, filter_bool, flow, fhig
     start = time.time()
     # print(filename)
     # print(data)
-    if contents:
+    if sensor:
         #contents = contents[0]
         #filename = filename[0]
 
@@ -714,7 +736,7 @@ def update_timerecord_plot(n_clicks, filename, contents, filter_bool, flow, fhig
             ax3 = fig.add_subplot(gs[1:4, 3:6])
             ax4 = False
 
-        sensor = parse_data(contents, filename)
+        #sensor = parse_data(contents, filename)
         bp_filter = {"flag":filter_bool, "flow":flow, "fhigh":fhigh, "order":forder}
         resampling = {"minf":minf, "maxf":maxf, "nf":nf, "res_type":res_type}
         hv = sensor.hv(windowlength, bp_filter, width, bandwidth, resampling, method)
@@ -801,19 +823,19 @@ def update_timerecord_plot(n_clicks, filename, contents, filter_bool, flow, fhig
                 break
             ax.set_title(title)
 
-        norm_factor = sensor.normalization_factor
-        for ax, timerecord, name in zip([ax0,ax1,ax2], [sensor.ns, sensor.ew, sensor.vt], ["NS", "EW", "VT"]):
-            ctime = timerecord.time
-            amp = timerecord.amp/norm_factor
-            ax.plot(ctime.T, amp.T, linewidth=0.2, color='#888888')
-            ax.set_title(f"Time Records ({name})")
-            ax.set_yticks([-1, -0.5, 0, 0.5, 1])
-            ax.set_xlim(0, windowlength*timerecord.n_windows)
-            ax.set_ylim(-1, 1)
-            ax.set_xlabel('Time (s)')
-            ax.set_ylabel('Normalized Amplitude')
-            for window_index in hv.rejected_window_indices:
-                ax.plot(ctime[window_index], amp[window_index], linewidth=0.2, color="cyan")
+            norm_factor = sensor.normalization_factor
+            for ax, timerecord, name in zip([ax0,ax1,ax2], [sensor.ns, sensor.ew, sensor.vt], ["NS", "EW", "VT"]):
+                ctime = timerecord.time
+                amp = timerecord.amp/norm_factor
+                ax.plot(ctime.T, amp.T, linewidth=0.2, color='#888888')
+                ax.set_title(f"Time Records ({name})")
+                ax.set_yticks([-1, -0.5, 0, 0.5, 1])
+                ax.set_xlim(0, windowlength*timerecord.n_windows)
+                ax.set_ylim(-1, 1)
+                ax.set_xlabel('Time (s)')
+                ax.set_ylabel('Normalized Amplitude')
+                for window_index in hv.rejected_window_indices:
+                    ax.plot(ctime[window_index], amp[window_index], linewidth=0.2, color="cyan")
 
         # TODO (jpv): Reintroduce save figure after async thread issue.
         save_figure = fig
