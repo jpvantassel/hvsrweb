@@ -491,11 +491,25 @@ server = app.server
 
 app.layout = html.Div(
     [
+        # Warning if CALC button pressed with no file uploaded
+        html.Div([
+            dcc.ConfirmDialog(
+                id='confirm',
+                message='Please upload a file first.',
+                displayed=False,
+            )]),
         body,
     ],
     style={"max-width":"97%"},
 )
 
+@app.callback(Output('confirm', 'displayed'),
+              [Input('calculate-button', 'n_clicks'),
+              Input('filename-reference', 'children')])
+def display_confirm(n_clicks, filename):
+    if (filename == "No file has been uploaded.") and (n_clicks):
+        return True
+    return False
 
 @app.callback(
     [Output('filename-reference', 'children'),
@@ -681,10 +695,10 @@ def update_timerecord_plot(calc_button, demo_button, filename, contents, filter_
     else:
         print("callback_context triggered!")
         button_id = ctx.triggered[0]['prop_id'].split('.')[0]
-    print(button_id)
+    print("Button pressed:", button_id)
 
     if button_id == "calculate-button":
-        if contents:
+        if contents != "No contents.":
             sensor = parse_data(contents, filename)
         else:
             print("No file uploaded yet, cannot perform calculate function.")
