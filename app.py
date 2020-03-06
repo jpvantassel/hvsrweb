@@ -412,6 +412,10 @@ body = dbc.Container([
                 ], md=1, ),
             dbc.Col([
                     dbc.Button("Demo", id="demo-button", color="primary", outline=True, size="lg", className="ml-1"),
+                    dbc.Tooltip(
+                        "Demo the application with a file supplied by us!",
+                        target="demo-button",
+                    ),
                 ], md=1, ),
         ]),
         # Row1.5
@@ -431,17 +435,17 @@ body = dbc.Container([
                             dbc.Tab(tab2_content, label="Frequency"),
                             dbc.Tab(tab3_content, label="H/V")
                         ]),
-                        # dbc.Button("View details", color="secondary"),
                         html.P(""),
-                        dbc.Button("Save Figure", color="primary", id="save_figure-button", className="mr-1"),
-                        dbc.Button("Save .hv", color="dark", id="save_hv-button", className="mr-1"),
-                        dbc.Button("Save geopsy", color="info", id="save_geopsy-button"),
-                        html.Div(id="hidden-figure-div", style={"display":"none"}),
-                        html.Div(id="save-figure-status", style={"display":"none"}),
-                        html.Div(id="hidden-hv-div", style={"display":"none"}),
-                        html.Div(id="save-hv-status", style={"display":"none"}),
-                        html.Div(id="hidden-geopsy-div", style={"display":"none"}),
-                        html.Div(id="save-geopsy-status", style={"display":"none"}),
+                        html.A(
+                            dbc.Button("Save Figure", color="primary", id="save_figure-button", className="mr-1"),
+                            id='figure-download', download="", href="", target="_blank"),
+                        html.A(
+                            dbc.Button("Save .hv", color="dark", id="save_hv-button", className="mr-1"),
+                            id="hv-download", download="", href="", target="_blank"),
+                        html.A(
+                            dbc.Button("Save geopsy", color="info", id="save_geopsy-button"),
+                            id="geopsy-download", download="", href="", target="_blank"),
+
                         # html.Div(id="intermediate-value"),
                         # html.P(id="figure_status"),
                         #dbc.Row([
@@ -466,6 +470,7 @@ body = dbc.Container([
             ]),
 
         html.Div(id='tables'),
+
         #], className="mt-5 ml-4 mb-2", id="tables"),
         html.Div(id='hidden-file-contents', style={"display":"none"}),
     ], className="mt-4 mr-0", fluid=True)
@@ -503,6 +508,7 @@ app.layout = html.Div(
     style={"max-width":"97%"},
 )
 
+# Warn a user if they click the calculate button without having uploaded a miniseed file
 @app.callback(Output('confirm', 'displayed'),
               [Input('calculate-button', 'n_clicks'),
               Input('filename-reference', 'children')])
@@ -511,6 +517,7 @@ def display_confirm(n_clicks, filename):
         return True
     return False
 
+# Save and display the uploaded file name
 @app.callback(
     [Output('filename-reference', 'children'),
     Output('filename-reference', 'style'),
@@ -522,51 +529,6 @@ def store_filename(contents, filename):
         return [filename, {"color":"#34a1eb", "padding":"4px", "margin-left":"4px"}, contents]
     else:
         return ["No file has been uploaded.", {"color":"gray", "padding":"4px", "margin-left":"4px"}, "No contents."]
-
-@app.callback(
-    Output('save-hv-status', 'children'),
-    [Input('save_hv-button', 'n_clicks'),
-     Input('hidden-hv-div', 'children'),
-     Input('filename-reference', 'children')])
-def save_hv(n_clicks, hv_data, filename):
-    if n_clicks == None:
-        return html.P("No hv saved yet.")
-    else:
-        hv_data = hv_data[0]
-        hv_title = filename.split('.miniseed')[0] + '.hv'
-        with open(hv_title, "w") as f:
-            f.write(hv_data)
-        return html.P(".hv saved!")
-
-@app.callback(
-    Output('save-geopsy-status', 'children'),
-    [Input('save_geopsy-button', 'n_clicks'),
-     Input('hidden-geopsy-div', 'children'),
-     Input('filename-reference', 'children')])
-def save_geopsy(n_clicks, geopsy_data, filename):
-    if n_clicks == None:
-        return html.P("No geopsy saved yet.")
-    else:
-        geopsy_data = geopsy_data[0]
-        geopsy_title = filename.split('.miniseed')[0] + '_geopsy.hv'
-        with open(geopsy_title, "w") as f:
-            f.write(geopsy_data)
-        return html.P("geopsy saved!")
-
-@app.callback(
-    Output('save-figure-status', 'children'),
-    [Input('save_figure-button', 'n_clicks'),
-     Input('hidden-figure-div', 'children'),
-     Input('filename-reference', 'children')])
-def save_figure(n_clicks, image_data, filename):
-    if n_clicks == None:
-        return html.P("Nothing saved yet.")
-    else:
-        encoded_image_bytes = bytearray(image_data[0], 'utf-8')
-        img_title = filename.split('.miniseed')[0] + '_figure.png'
-        with open(img_title, "wb") as fh:
-            fh.write(base64.decodebytes(encoded_image_bytes))
-        return html.P("Figure saved!")
 
 # Show/hide bandpass filter options depending on user input
 @app.callback(Output('bandpass-options', 'style'),
@@ -595,19 +557,13 @@ def parse_data(contents, filename):
     decoded = base64.b64decode(content_string)
     try:
         if 'miniseed' in filename:
-            #print("It tried miniseed")
-            stringio_obj = io.BytesIO(decoded)
-            #st = obspy.read(stringio_obj)
-            #print(st)
-            return hvsrpy.Sensor3c.from_mseed(stringio_obj)
-            #print(sensor)
+            bytesio_obj = io.BytesIO(decoded)
+            return hvsrpy.Sensor3c.from_mseed(bytesio_obj)
     # TODO (jpv): Fix logic. Does not make sense to return exception to caller.
     except Exception as e:
         raise PreventUpdate
-        # print(e)
-        # return html.Div([
-        #     'There was an error processing this file.'
-        # ])
+
+# Save matplotlib figure so that it can be used in html.Img source and for downloading purposes
 def fig_to_uri(in_fig, close_all=True, **save_args):
     # type: (plt.Figure) -> str
     """
@@ -620,7 +576,7 @@ def fig_to_uri(in_fig, close_all=True, **save_args):
     if close_all:
         in_fig.clf()
         plt.close('all')
-    out_img.seek(0)  # rewind file
+    out_img.seek(0)
     encoded = base64.b64encode(out_img.read()).decode("ascii").replace("\n", "")
     return "data:image/png;base64,{}".format(encoded), encoded
 
@@ -654,15 +610,19 @@ def generate_table(hv, distribution_f0):
     table = dbc.Table(table_header + table_body, bordered=True, hover=True)
     return table
 
+# Main calculate function
 @app.callback(
     [Output('cur_plot', 'src'),
     Output('window-information-table', 'children'),
     Output('before-rejection-table', 'children'),
     Output('after-rejection-table', 'children'),
     Output('tables', 'style'),
-    Output('hidden-figure-div', 'children'),
-    Output('hidden-hv-div', 'children'),
-    Output('hidden-geopsy-div', 'children'),],
+    Output('figure-download', 'href'),
+    Output('figure-download', 'download'),
+    Output('hv-download', 'href'),
+    Output('hv-download', 'download'),
+    Output('geopsy-download', 'href'),
+    Output('geopsy-download', 'download'),],
     [Input('calculate-button', 'n_clicks'),
      Input('demo-button', 'n_clicks')],
     [State('filename-reference', 'children'),
@@ -693,19 +653,15 @@ def update_timerecord_plot(calc_button, demo_button, filename, contents, filter_
     if ctx.triggered[0]['value'] is None:
         button_id = 'No clicks yet'
     else:
-        print("callback_context triggered!")
         button_id = ctx.triggered[0]['prop_id'].split('.')[0]
-    print("Button pressed:", button_id)
 
     if button_id == "calculate-button":
         if contents != "No contents.":
             sensor = parse_data(contents, filename)
         else:
-            print("No file uploaded yet, cannot perform calculate function.")
             raise PreventUpdate
     elif button_id == "demo-button":
         sensor = hvsrpy.Sensor3c.from_mseed("UT.STN12.A2_C150.miniseed")
-        print("Performing demo calculation on UT.STN12.A2_C150.miniseed")
     # print(filter_bool)
     # print(flow)
     # print(fhigh)
@@ -880,23 +836,41 @@ def update_timerecord_plot(calc_button, demo_button, filename, contents, filter_
         # return {"data":plotly_fig.data, "layout":plotly_fig.layout}
 
         # return dcc.Graph(figure=plotly_fig)
+
+        if (filename == "No file has been uploaded."): # this means user is attempting to download the demo file
+            filename = "hvsrpy_demo"
         out_url, encoded_image = fig_to_uri(fig)
+        fig_name = filename.split('.miniseed')[0] + '.png'
 
         #out_hv = StringIO()
         #hv.to_file(out_hv, distribution_f0, distribution_mc)
-        style_lines = "".join(hv._hvsrpy_style_lines(distribution_f0, distribution_mc))
-        geopsy_lines = "".join(hv._geopsy_style_lines(distribution_f0, distribution_mc))
-        #print(style_lines)
+        #hvsrpy_lines = "".join(hv._hvsrpy_style_lines(distribution_f0, distribution_mc))
+        #geopsy_lines = "".join(hv._geopsy_style_lines(distribution_f0, distribution_mc))
+
+        # Create hrefs to send to html.A links for download
+        for filetype in ["hvsrpy", "geopsy"]:
+            if filetype == "hvsrpy":
+                data = "".join(hv._hvsrpy_style_lines(distribution_f0, distribution_mc))
+            else:
+                data = "".join(hv._geopsy_style_lines(distribution_f0, distribution_mc))
+            bytesIO = BytesIO()
+            bytesIO.write(bytearray(data, 'utf-8'))
+            bytesIO.seek(0)
+            encoded = base64.b64encode(bytesIO.read()).decode("utf-8").replace("\n", "")
+            bytesIO.close()
+            if filetype == "hvsrpy":
+                hvsrpy_downloadable = f'data:text/plain;base64,{encoded}'
+                hvsrpy_name = filename.split('.miniseed')[0] + '.hv'
+            else:
+                geopsy_downloadable = f'data:text/plain;base64,{encoded}'
+                geopsy_name = filename.split('.miniseed')[0] + '_geopsy.hv'
 
         if rejection_bool:
-            return out_url, (html.H6("Window Information:"), dbc.Table(window_information_table_body, bordered=True, hover=True)), (html.H6("Statistics Before Rejection:"), table_before_rejection), (html.H6("Statistics After Rejection:"), table_after_rejection), ({}), [encoded_image], [style_lines], [geopsy_lines]
+            return out_url, (html.H6("Window Information:"), dbc.Table(window_information_table_body, bordered=True, hover=True)), (html.H6("Statistics Before Rejection:"), table_before_rejection), (html.H6("Statistics After Rejection:"), table_after_rejection), ({}), out_url, fig_name, hvsrpy_downloadable, hvsrpy_name, geopsy_downloadable, geopsy_name
         else:
-            return out_url, dbc.Table(window_information_table_body, bordered=True), (html.P("Statistics:"), table_no_rejection), ({}), [encoded_image], [style_lines], [geopsy_lines]
+            return out_url, dbc.Table(window_information_table_body, bordered=True), (html.P("Statistics:"), table_no_rejection), ({}), out_url, fig_name, hvsrpy_downloadable, hvsrpy_name, geopsy_downloadable, geopsy_name
     else:
         raise PreventUpdate
-
-    # return ([])
-    # return (""), "success", ("")
 
 
 '''
@@ -970,4 +944,4 @@ def update_output(uploaded_filenames, uploaded_file_contents):
 '''
 
 if __name__ == "__main__":
-    app.run_server(debug=True)#, port=8888)
+    app.run_server(debug=True)#, port=8000)
