@@ -661,7 +661,7 @@ def update_timerecord_plot(calc_button, demo_button, filename, contents, filter_
         else:
             raise PreventUpdate
     elif button_id == "demo-button":
-        sensor = hvsrpy.Sensor3c.from_mseed("UT.STN12.A2_C150.miniseed")
+        sensor = hvsrpy.Sensor3c.from_mseed("data/UT.STN12.A2_C150.miniseed")
     # print(filter_bool)
     # print(flow)
     # print(fhigh)
