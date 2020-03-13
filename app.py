@@ -13,7 +13,7 @@ from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
 
 import dash_table
-import pandas as pd
+# import pandas as pd
 import datetime
 import io
 import plotly.graph_objs as go
@@ -476,23 +476,24 @@ body = dbc.Container([
     ], className="mt-4 mr-0", fluid=True)
 
 # TODO (jpv): Need to change the below lines when deplyed on Heroku.
-UPLOAD_DIRECTORY = "/project/app_uploaded_files"
-if not os.path.exists(UPLOAD_DIRECTORY):
-    os.makedirs(UPLOAD_DIRECTORY)
+# UPLOAD_DIRECTORY = "/project/app_uploaded_files"
+# if not os.path.exists(UPLOAD_DIRECTORY):
+#     os.makedirs(UPLOAD_DIRECTORY)
 
 # Normally, Dash creates its own Flask server internally. By creating our own,
 # we can create a route for downloading files directly:
 server = Flask(__name__)
 app = dash.Dash(server=server, external_stylesheets=[dbc.themes.BOOTSTRAP])
-@server.route("/download/<path:path>")
-def download(path):
-    """Serve a file from the upload directory."""
-    return send_from_directory(UPLOAD_DIRECTORY, path, as_attachment=True)
-'''
-INSTEAD OF:
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
-server = app.server
-'''
+
+# @server.route("/download/<path:path>")
+# def download(path):
+#     """Serve a file from the upload directory."""
+#     return send_from_directory(UPLOAD_DIRECTORY, path, as_attachment=True)
+# '''
+# INSTEAD OF:
+# app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+# server = app.server
+# '''
 
 app.layout = html.Div(
     [
@@ -944,4 +945,4 @@ def update_output(uploaded_filenames, uploaded_file_contents):
 '''
 
 if __name__ == "__main__":
-    app.run_server(debug=True)#, port=8000)
+    server.run("0.0.0.0")
