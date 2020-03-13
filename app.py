@@ -817,5 +817,5 @@ def update_timerecord_plot(calc_clicked, demo_clicked, filename, contents, filte
         raise PreventUpdate
 
 if __name__ == "__main__":
-    # server.run("0.0.0.0")
-    app.run_server(debug=True)#, port=8000)
+    server.run("0.0.0.0")
+    # app.run_server(debug=True)#, port=8000)
