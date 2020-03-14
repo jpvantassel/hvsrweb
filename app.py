@@ -1,10 +1,9 @@
+import hvsrpy
+import matplotlib.pyplot as plt
 import io
 import os
 import base64
-import json
-import datetime
 import time
-
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
@@ -12,18 +11,14 @@ import dash_bootstrap_components as dbc
 from dash.exceptions import PreventUpdate
 from dash.dependencies import Input, Output, State
 from flask import Flask
-import numpy as np
 import matplotlib
 matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import hvsrpy
 
 # Style Settings
-default_style = {"cursor": "context-menu", "padding":"5px"}
+default_style = {"cursor": "context-menu", "padding": "5px"}
 
 # Bootstrap Layout:
-# TIME DOMAIN SETTINGS TAB
-tab1_content = dbc.Card(
+time_tab = dbc.Card(
     dbc.CardBody(
         [
             # Window Length
@@ -39,7 +34,8 @@ tab1_content = dbc.Card(
                 "For specific guidance on an appropriate window length refer to the SESAME (2004) guidelines.",
                 target="windowlength-tooltip-target",
             ),
-            dbc.Input(id="windowlength-input", type="number", value=60, min=0, max=600, step=1),
+            dbc.Input(id="windowlength-input", type="number",
+                      value=60, min=0, max=600, step=1),
             html.P(""),
 
             # Width of cosine taper
@@ -55,8 +51,9 @@ tab1_content = dbc.Card(
                 "0.1 is recommended.",
                 target="width-tooltip-target",
             ),
-            dbc.Input(id="width-input", type="number", value=0.1, min=0., max=1.0, step=0.1),
-            html.P(""), # used for styling purposes only
+            dbc.Input(id="width-input", type="number",
+                      value=0.1, min=0., max=1.0, step=0.1),
+            html.P(""),
 
             # Butterworth Filter
             html.P([
@@ -77,7 +74,7 @@ tab1_content = dbc.Card(
                     {"label": "Yes", "value": "True"},
                     {"label": "No", "value": "False"},
                 ], value="False"),
-            html.P(""), # used for styling purposes only
+            html.P(""),
 
             dbc.Container([
                 # Butterworth Filter: Low Frequency
@@ -92,8 +89,9 @@ tab1_content = dbc.Card(
                     "Frequencies below that specified are filtered.",
                     target="flow-tooltip-target",
                 ),
-                dbc.Input(id="flow-input", type="number", value=0.1, min=0, max=1000, step=0.01),
-                html.P(""), # used for styling purposes only
+                dbc.Input(id="flow-input", type="number",
+                          value=0.1, min=0, max=1000, step=0.01),
+                html.P(""),
 
                 # Butterworth Filter: High Frequency
                 html.P([
@@ -107,8 +105,9 @@ tab1_content = dbc.Card(
                     "Frequencies above that specified are filtered.",
                     target="fhigh-tooltip-target",
                 ),
-                dbc.Input(id="fhigh-input", type="number", value=30, min=0, max=600, step=1),
-                html.P(""), # used for styling purposes only
+                dbc.Input(id="fhigh-input", type="number",
+                          value=30, min=0, max=600, step=1),
+                html.P(""),
 
                 # Butterworth Filter: Filter Order
                 html.P([
@@ -122,16 +121,16 @@ tab1_content = dbc.Card(
                     "Order of Butterworth filter, 5 is recommended.",
                     target="forder-tooltip-target",
                 ),
-                dbc.Input(id="forder-input", type="number", value=5, min=0, max=600, step=1),
-                html.P(""), # used for styling purposes only
-                html.Hr(style={"border-top": "0.5px solid #bababa"}),# used for styling purposes only
-                ], className="ml-2 mr-0", id="bandpass-options"),
-    ]),
+                dbc.Input(id="forder-input", type="number",
+                          value=5, min=0, max=600, step=1),
+                html.P(""),
+                html.Hr(style={"border-top": "0.5px solid #bababa"}),
+            ], className="ml-2 mr-0", id="bandpass-options"),
+        ]),
     className="mt-3",
 )
 
-# FREQUENCY DOMAIN SETTINGS TAB
-tab2_content = dbc.Card(
+frequency_tab = dbc.Card(
     dbc.CardBody(
         [
             # Bandwidth
@@ -147,7 +146,8 @@ tab2_content = dbc.Card(
                 "40 is recommended.",
                 target="bandwidth-tooltip-target",
             ),
-            dbc.Input(id="bandwidth-input", type="number", value=40, min=0, max=600, step=1),
+            dbc.Input(id="bandwidth-input", type="number",
+                      value=40, min=0, max=600, step=1),
             html.P(""),
             # html.Hr(style={"border-top": "1px solid #bababa"}),
 
@@ -156,7 +156,7 @@ tab2_content = dbc.Card(
                 # Resampling: Minumum Frequency
                 html.P([
                     html.Span(
-                        "Minimum Frequency:",
+                        "Minimum Frequency (Hz):",
                         id="minf-tooltip-target",
                         style=default_style,
                     ),
@@ -165,13 +165,14 @@ tab2_content = dbc.Card(
                     "Minimum frequency considered when resampling.",
                     target="minf-tooltip-target",
                 ),
-                dbc.Input(id="minf-input", type="number", value=0.2, min=0.2, max=10, step=0.1),
+                dbc.Input(id="minf-input", type="number",
+                          value=0.2, min=0.2, max=10, step=0.1),
                 html.P(""),
 
                 # Resampling: Maximum Frequency
                 html.P([
                     html.Span(
-                        "Maximum Frequency:",
+                        "Maximum Frequency (Hz):",
                         id="maxf-tooltip-target",
                         style=default_style,
                     ),
@@ -180,7 +181,8 @@ tab2_content = dbc.Card(
                     "Maximum frequency considered when resampling.",
                     target="maxf-tooltip-target",
                 ),
-                dbc.Input(id="maxf-input", type="number", value=20, min=1, max=100, step=1),
+                dbc.Input(id="maxf-input", type="number",
+                          value=20, min=1, max=100, step=1),
                 html.P(""),
 
                 # Resampling: Number of Frequencies
@@ -188,14 +190,15 @@ tab2_content = dbc.Card(
                     html.Span(
                         "Number of Frequency Points:",
                         id="nf-tooltip-target",
-                        style={"cursor": "context-menu", "padding":"5px"},
+                        style={"cursor": "context-menu", "padding": "5px"},
                     ),
                 ]),
                 dbc.Tooltip(
                     "Number of frequency points after resampling.",
                     target="nf-tooltip-target",
                 ),
-                dbc.Input(id="nf-input", type="number", value=512, min=2, max=10000, step=1),
+                dbc.Input(id="nf-input", type="number",
+                          value=512, min=2, max=10000, step=1),
                 html.P(""),
 
                 # Resampling: Type
@@ -217,14 +220,13 @@ tab2_content = dbc.Card(
                         {"label": "Linear", "value": "linear"},
                     ],
                     value="log",
-            )],
-            className="ml-2 mr-0"),
-    ]),
+                )],
+                className="ml-2 mr-0"),
+        ]),
     className="mt-3",
 )
 
-# H/V SETTINGS TAB
-tab3_content = dbc.Card(
+hv_tab = dbc.Card(
     dbc.CardBody(
         [
             # Method for combining
@@ -328,7 +330,8 @@ tab3_content = dbc.Card(
                     "2 is recommended.",
                     target="n-tooltip-target",
                 ),
-                dbc.Input(id="n-input", type="number", value=2, min=1, max=4, step=0.5),
+                dbc.Input(id="n-input", type="number",
+                          value=2, min=1, max=4, step=0.5),
                 html.P(""),
 
                 # Maximum Number of Iterations
@@ -344,18 +347,19 @@ tab3_content = dbc.Card(
                     "50 is recommended.",
                     target="n_iteration-tooltip-target",
                 ),
-                dbc.Input(id="n_iteration-input", type="number", value=50, min=5, max=75, step=1),
+                dbc.Input(id="n_iteration-input", type="number",
+                          value=50, min=5, max=75, step=1),
                 html.P(""),
             ],
-            className="ml-2 mr-0",
-            id="rejection-options"),
-    ]),
+                className="ml-2 mr-0",
+                id="rejection-options"),
+        ]),
     className="mt-3",
 )
 
 body = dbc.Container([
-        # Row1
-        dbc.Row([
+    # Row1
+    dbc.Row([
             # Column1_1
             dbc.Col([
                     dcc.Upload(
@@ -378,110 +382,121 @@ body = dbc.Container([
                         # TODO (jpv): Changing from True to False will change back to True at some point.
                         multiple=False,
                     ),
-                ],
-                md=10,
-            style={"padding-bottom": "20px",}),
+                    ],
+                    md=10,
+                    style={"padding-bottom": "20px", }),
             # Column2_2
             dbc.Col([
-                    dbc.Button("Calculate", id="calculate-button", outline=True, color="success", size="lg"),
-                ], md=1, ),
+                    dbc.Button("Calculate", id="calculate-button",
+                               outline=True, color="success", size="lg"),
+                    ], md=1, ),
             dbc.Col([
-                    dbc.Button("Demo", id="demo-button", color="primary", outline=True, size="lg", className="ml-1"),
+                    dbc.Button("Demo", id="demo-button", color="primary",
+                               outline=True, size="lg", className="ml-1"),
                     dbc.Tooltip(
                         "Demo the application with a file supplied by us!",
                         target="demo-button",
                     ),
-                ], md=1, ),
-        ]),
-        # Row1.5
-        dbc.Row([
+                    ], md=1, ),
+            ]),
+    # Row1.5
+    dbc.Row([
             html.H4("Current File:"),
             html.P(id="filename-reference")
-        ], className="mt-1", style={"margin-left":"0px"}),
-        # Row2
-        dbc.Row([
-                # SETTINGS (Column2_1)
-                dbc.Col(
-                    [
-                        html.H4("Settings"),
-                        dbc.Tabs([
-                            dbc.Tab(tab1_content, label="Time"),
-                            dbc.Tab(tab2_content, label="Frequency"),
-                            dbc.Tab(tab3_content, label="H/V")
-                        ]),
-                        html.P(""),
-                        html.A(
-                            dbc.Button("Save Figure", color="primary", id="save_figure-button", outline=True, className="mr-1"),
-                            id='figure-download', download="", href="", target="_blank"),
-                        html.A(
-                            dbc.Button("Save .hv", color="primary", id="save_hv-button", outline=True, className="mr-1"),
-                            id="hv-download", download="", href="", target="_blank"),
-                        html.A(
-                            dbc.Button("Save geopsy", color="primary", outline=True, id="save_geopsy-button"),
-                            id="geopsy-download", download="", href="", target="_blank"),
-                    ],
-                    md=3,
-                ),
-                # FIGURE (Column2_2)
-                dbc.Col([
-                    # Row2_2_1
-                    dbc.Row([
-                        html.Div([html.Img(id = 'cur_plot', src = '', style={"width":"100%"})], id='plot_div')#id="figure-div")
-                    ]),
-                ], md=6),
-                # TABLES (Column2_3)
-                dbc.Col([
-                    html.Div(id='window-information-table', style={"font-size":"12px"}),
-                    html.Div(id='before-rejection-table', style={"font-size":"12px"}),
-                    html.Div(id='after-rejection-table', style={"font-size":"12px"}),
+            ], className="mt-1", style={"margin-left": "0px"}),
+    # Row2
+    dbc.Row([
+        # SETTINGS (Column2_1)
+        dbc.Col(
+            [
+                html.H4("Settings"),
+                dbc.Tabs([
+                    dbc.Tab(time_tab, label="Time"),
+                    dbc.Tab(frequency_tab, label="Frequency"),
+                    dbc.Tab(hv_tab, label="H/V")
                 ]),
+                html.P(""),
+                html.A(
+                    dbc.Button("Save Figure", color="primary",
+                               id="save_figure-button", outline=True, className="mr-1"),
+                    id='figure-download', download="", href="", target="_blank"),
+                html.A(
+                    dbc.Button(
+                        "Save .hv", color="primary", id="save_hv-button", outline=True, className="mr-1"),
+                    id="hv-download", download="", href="", target="_blank"),
+                html.A(
+                    dbc.Button("Save geopsy", color="primary",
+                               outline=True, id="save_geopsy-button"),
+                    id="geopsy-download", download="", href="", target="_blank"),
+            ],
+            md=3,
+        ),
+        # FIGURE (Column2_2)
+        dbc.Col([
+            # Row2_2_1
+            dbc.Row([
+                # id="figure-div")
+                html.Div([html.Img(id='cur_plot', src='', style={
+                         "width": "100%"})], id='plot_div')
             ]),
+        ], md=6),
+        # TABLES (Column2_3)
+        dbc.Col([
+            html.Div(id='window-information-table',
+                     style={"font-size": "12px"}),
+            html.Div(id='before-rejection-table',
+                     style={"font-size": "12px"}),
+            html.Div(id='after-rejection-table',
+                     style={"font-size": "12px"}),
+        ]),
+    ]),
 
-        html.Div(id='tables'),
-        html.Div(id='hidden-file-contents', style={"display":"none"}),
-    ], className="mt-4 mr-0", fluid=True)
+    html.Div(id='tables'),
+    html.Div(id='hidden-file-contents', style={"display": "none"}),
+], className="mt-4 mr-0", fluid=True)
 
 server = Flask(__name__)
 app = dash.Dash(server=server, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 app.layout = html.Div(
     [
-        # Warning if CALCULATE button pressed with no file uploaded
         html.Div([
             dcc.ConfirmDialog(
-                id='confirm',
-                message='Please upload a file first.',
+                id='no_file_warn',
+                message='Please upload a file before clicking calculate.',
                 displayed=False,
             )]),
         body,
     ],
-    style={"max-width":"97%"},
+    style={"max-width": "97%"},
 )
 
-@app.callback(Output('confirm', 'displayed'),
+
+@app.callback(Output('no_file_warn', 'displayed'),
               [Input('calculate-button', 'n_clicks'),
-              Input('filename-reference', 'children')])
-def display_confirm(n_clicks, filename):
-    """Warn user if they click CALCULATE without having uploaded a miniseed file."""
+               Input('filename-reference', 'children')])
+def display_no_file_warn(n_clicks, filename):
+    """Warn user if they click CALCULATE without having uploaded a data file."""
     if (filename == "No file has been uploaded.") and (n_clicks):
         return True
     return False
 
+
 @app.callback(
     [Output('filename-reference', 'children'),
-    Output('filename-reference', 'style'),
-    Output('hidden-file-contents', 'children')],
+     Output('filename-reference', 'style'),
+     Output('hidden-file-contents', 'children')],
     [Input('upload-bar', 'contents'),
-    Input('upload-bar', 'filename')])
+     Input('upload-bar', 'filename')])
 def store_filename(contents, filename):
     """Display the uploaded filename and store its contents."""
     if filename:
-        return [filename, {"color":"#34a1eb", "padding":"4px", "margin-left":"4px"}, contents]
+        return [filename, {"color": "#34a1eb", "padding": "4px", "margin-left": "4px"}, contents]
     else:
-        return ["No file has been uploaded.", {"color":"gray", "padding":"4px", "margin-left":"4px"}, "No contents."]
+        return ["No file has been uploaded.", {"color": "gray", "padding": "4px", "margin-left": "4px"}, "No contents."]
 
 @app.callback(Output('bandpass-options', 'style'),
-             [Input('butterworth-input', 'value')])
+              [Input('butterworth-input', 'value')])
 def set_bandpass_options_style(value):
     """Show/hide Bandpass Filter options depending on user input."""
     if value == "True":
@@ -490,13 +505,14 @@ def set_bandpass_options_style(value):
         return {'display': 'none'}
 
 @app.callback(Output('rejection-options', 'style'),
-             [Input('rejection_bool-input', 'value')])
+              [Input('rejection_bool-input', 'value')])
 def set_rejection_options_style(value):
     """Show/hide Window Rejection options depending on user input."""
     if value == "True":
         return {'display': 'block'}
     elif value == "False":
         return {'display': 'none'}
+
 
 def parse_data(contents, filename):
     """Parse uploaded data and return a Sensor3c object."""
@@ -509,6 +525,7 @@ def parse_data(contents, filename):
     except Exception as e:
         raise PreventUpdate
 
+
 def fig_to_uri(in_fig, close_all=True, **save_args):
     """Save matplotlib figure for use as html.Img source and for downloading purposes."""
     out_img = io.BytesIO()
@@ -517,13 +534,16 @@ def fig_to_uri(in_fig, close_all=True, **save_args):
         in_fig.clf()
         plt.close('all')
     out_img.seek(0)
-    encoded = base64.b64encode(out_img.read()).decode("ascii").replace("\n", "")
+    encoded = base64.b64encode(out_img.read()).decode(
+        "ascii").replace("\n", "")
     return "data:image/png;base64,{}".format(encoded), encoded
+
 
 def generate_table(hv, distribution_f0):
     """Generate output tables depending on user specifications."""
     if distribution_f0 == "log-normal":
-        table_header = [html.Thead(html.Tr([html.Th("Name"), html.Th("Log-Normal Median"), html.Th("Log-Normal Standard Deviation")]))]
+        table_header = [html.Thead(html.Tr([html.Th("Name"), html.Th(
+            "Log-Normal Median"), html.Th("Log-Normal Standard Deviation")]))]
         row1 = html.Tr([
             html.Td("Fundamental Site Frequency, f0"),
             html.Td(str(hv.mean_f0_frq(distribution_f0))[:4]+" Hz"),
@@ -535,7 +555,8 @@ def generate_table(hv, distribution_f0):
             html.Td(str(hv.std_f0_frq(distribution_f0))[:4])
         ])
     elif distribution_f0 == "normal":
-        table_header = [html.Thead(html.Tr([html.Th("Name"), html.Th("Mean"), html.Th("Standard Deviation")]))]
+        table_header = [html.Thead(
+            html.Tr([html.Th("Name"), html.Th("Mean"), html.Th("Standard Deviation")]))]
         row1 = html.Tr([
             html.Td("Fundamental Site Frequency, f0"),
             html.Td(str(hv.mean_f0_frq(distribution_f0))[:4]+" Hz"),
@@ -551,17 +572,18 @@ def generate_table(hv, distribution_f0):
     table = dbc.Table(table_header + table_body, bordered=True, hover=True)
     return table
 
+
 @app.callback(
     [Output('cur_plot', 'src'),
-    Output('window-information-table', 'children'),
-    Output('before-rejection-table', 'children'),
-    Output('after-rejection-table', 'children'),
-    Output('figure-download', 'href'),
-    Output('figure-download', 'download'),
-    Output('hv-download', 'href'),
-    Output('hv-download', 'download'),
-    Output('geopsy-download', 'href'),
-    Output('geopsy-download', 'download'),],
+     Output('window-information-table', 'children'),
+     Output('before-rejection-table', 'children'),
+     Output('after-rejection-table', 'children'),
+     Output('figure-download', 'href'),
+     Output('figure-download', 'download'),
+     Output('hv-download', 'href'),
+     Output('hv-download', 'download'),
+     Output('geopsy-download', 'href'),
+     Output('geopsy-download', 'download'), ],
     [Input('calculate-button', 'n_clicks'),
      Input('demo-button', 'n_clicks')],
     [State('filename-reference', 'children'),
@@ -585,7 +607,7 @@ def generate_table(hv, distribution_f0):
      State('n_iteration-input', 'value')]
 )
 def update_timerecord_plot(calc_clicked, demo_clicked, filename, contents, filter_bool, flow, fhigh, forder, minf, maxf, nf, res_type,
-    windowlength, width, bandwidth, method, distribution_mc, rejection_bool, n, distribution_f0, n_iteration):
+                           windowlength, width, bandwidth, method, distribution_mc, rejection_bool, n, distribution_f0, n_iteration):
     """Create figure and tables from user-uploaded file.
 
     Determine if user is requesting a demo or uploading a file. Run calculation and create figure and
@@ -663,14 +685,14 @@ def update_timerecord_plot(calc_clicked, demo_clicked, filename, contents, filte
     elif button_id == "demo-button":
         sensor = hvsrpy.Sensor3c.from_mseed("data/UT.STN12.A2_C150.miniseed")
 
-    filter_bool = True if filter_bool=="True" else False
-    rejection_bool = True if rejection_bool=="True" else False
+    filter_bool = True if filter_bool == "True" else False
+    rejection_bool = True if rejection_bool == "True" else False
 
     start = time.time()
 
     if sensor:
-        fig = plt.figure(figsize=(6,6), dpi=150)
-        gs = fig.add_gridspec(nrows=6,ncols=6)
+        fig = plt.figure(figsize=(6, 6), dpi=150)
+        gs = fig.add_gridspec(nrows=6, ncols=6)
 
         ax0 = fig.add_subplot(gs[0:2, 0:3])
         ax1 = fig.add_subplot(gs[2:4, 0:3])
@@ -683,58 +705,65 @@ def update_timerecord_plot(calc_clicked, demo_clicked, filename, contents, filte
             ax3 = fig.add_subplot(gs[1:4, 3:6])
             ax4 = False
 
-        bp_filter = {"flag":filter_bool, "flow":flow, "fhigh":fhigh, "order":forder}
-        resampling = {"minf":minf, "maxf":maxf, "nf":nf, "res_type":res_type}
-        hv = sensor.hv(windowlength, bp_filter, width, bandwidth, resampling, method)
+        bp_filter = {"flag": filter_bool, "flow": flow,
+                     "fhigh": fhigh, "order": forder}
+        resampling = {"minf": minf, "maxf": maxf,
+                      "nf": nf, "res_type": res_type}
+        hv = sensor.hv(windowlength, bp_filter, width,
+                       bandwidth, resampling, method)
 
         individual_width = 0.3
         median_width = 1.3
 
         for ax, title in zip([ax3, ax4], ["Before Rejection", "After Rejection"]):
             # Rejected Windows
-            if title=="After Rejection":
-                if hv.rejected_window_indices.size>0:
+            if title == "After Rejection":
+                if hv.rejected_window_indices.size > 0:
                     label = "Rejected"
                     for amp in hv.amp[hv.rejected_window_indices]:
-                        ax.plot(hv.frq, amp, color='#00ffff', linewidth=individual_width, zorder=2, label=label)
-                        label=None
+                        ax.plot(hv.frq, amp, color='#00ffff',
+                                linewidth=individual_width, zorder=2, label=label)
+                        label = None
 
             # Accepted Windows
-            label="Accepted"
+            label = "Accepted"
             for amp in hv.amp[hv.valid_window_indices]:
                 ax.plot(hv.frq, amp, color='#888888', linewidth=individual_width,
-                        label = label if title=="Before Rejection" else "")
-                label=None
+                        label=label if title == "Before Rejection" else "")
+                label = None
 
             # Window Peaks
             ax.plot(hv.peak_frq, hv.peak_amp, linestyle="", zorder=2,
                     marker='o', markersize=2.5, markerfacecolor="#ffffff", markeredgewidth=0.5, markeredgecolor='k',
-                    label="" if title=="Before Rejection" and rejection_bool else r"$f_{0,i}$")
+                    label="" if title == "Before Rejection" and rejection_bool else r"$f_{0,i}$")
 
             # Peak Mean Curve
             ax.plot(hv.mc_peak_frq(distribution_mc), hv.mc_peak_amp(distribution_mc), linestyle="", zorder=4,
                     marker='D', markersize=4, markerfacecolor='#66ff33', markeredgewidth=1, markeredgecolor='k',
-                    label = "" if title=="Before Rejection" and rejection_bool else r"$f_{0,mc}$")
+                    label="" if title == "Before Rejection" and rejection_bool else r"$f_{0,mc}$")
 
             # Mean Curve
-            label = r"$LM_{curve}$" if distribution_mc=="log-normal" else "Mean Curve"
+            label = r"$LM_{curve}$" if distribution_mc == "log-normal" else "Mean Curve"
             ax.plot(hv.frq, hv.mean_curve(distribution_mc), color='k', linewidth=median_width,
-                    label="" if title=="Before Rejection" and rejection_bool else label)
+                    label="" if title == "Before Rejection" and rejection_bool else label)
 
             # Mean +/- Curve
-            label = r"$LM_{curve}$"+" ± 1 STD" if distribution_mc=="log-normal" else "Mean ± 1 STD"
+            label = r"$LM_{curve}$" + \
+                " ± 1 STD" if distribution_mc == "log-normal" else "Mean ± 1 STD"
             ax.plot(hv.frq, hv.nstd_curve(-1, distribution_mc),
                     color='k', linestyle='--', linewidth=median_width, zorder=3,
-                    label = "" if title=="Before Rejection" and rejection_bool else label)
+                    label="" if title == "Before Rejection" and rejection_bool else label)
             ax.plot(hv.frq, hv.nstd_curve(+1, distribution_mc),
                     color='k', linestyle='--', linewidth=median_width, zorder=3)
 
-            label = r"$LM_{f0}$"+" ± 1 STD" if distribution_f0=="log-normal" else "Mean f0 ± 1 STD"
+            label = r"$LM_{f0}$" + \
+                " ± 1 STD" if distribution_f0 == "log-normal" else "Mean f0 ± 1 STD"
             ymin, ymax = ax.get_ylim()
-            ax.plot([hv.mean_f0_frq(distribution_f0)]*2, [ymin, ymax], linestyle="-.", color="#000000")
+            ax.plot([hv.mean_f0_frq(distribution_f0)]*2,
+                    [ymin, ymax], linestyle="-.", color="#000000")
             ax.fill([hv.nstd_f0_frq(-1, distribution_f0)]*2 + [hv.nstd_f0_frq(+1, distribution_f0)]*2, [ymin, ymax, ymax, ymin],
-                    color = "#ff8080",
-                    label="" if title=="Before Rejection" and rejection_bool else label)
+                    color="#ff8080",
+                    label="" if title == "Before Rejection" and rejection_bool else label)
 
             ax.set_ylim((ymin, ymax))
             ax.set_xscale('log')
@@ -742,25 +771,34 @@ def update_timerecord_plot(calc_clicked, demo_clicked, filename, contents, filte
             ax.set_ylabel("HVSR Ampltidue")
 
             if rejection_bool:
-                if title=="Before Rejection":
-                    table_before_rejection = generate_table(hv, distribution_f0)
+                if title == "Before Rejection":
+                    table_before_rejection = generate_table(
+                        hv, distribution_f0)
                     c_iter = hv.reject_windows(n, max_iterations=n_iteration,
-                                       distribution_f0=distribution_f0, distribution_mc=distribution_mc)
+                                               distribution_f0=distribution_f0, distribution_mc=distribution_mc)
                     # Create Window Information Table
-                    row1 = html.Tr([html.Td("Window length"), html.Td(str(windowlength)+"s")])
-                    row2 = html.Tr([html.Td("No. of windows"), html.Td(str(sensor.ns.n_windows))])
-                    row3 = html.Tr([html.Td("No. of iterations to convergence"), html.Td(str(c_iter)+" of "+str(n_iteration)+" allowed.")])
+                    row1 = html.Tr([html.Td("Window length"),
+                                    html.Td(str(windowlength)+"s")])
+                    row2 = html.Tr([html.Td("No. of windows"),
+                                    html.Td(str(sensor.ns.n_windows))])
+                    row3 = html.Tr([html.Td("No. of iterations to convergence"), html.Td(
+                        str(c_iter)+" of "+str(n_iteration)+" allowed.")])
 
-                elif title=="After Rejection":
+                elif title == "After Rejection":
                     table_after_rejection = generate_table(hv, distribution_f0)
-                    fig.legend(ncol=4, loc='lower center', bbox_to_anchor=(0.51, 0), columnspacing=2)
-                    row4 = html.Tr([html.Td("No. of rejected windows"), html.Td(str(len(hv.rejected_window_indices)))])
-                    window_information_table_body = [html.Tbody([row1, row2, row3, row4])]
+                    fig.legend(ncol=4, loc='lower center',
+                               bbox_to_anchor=(0.51, 0), columnspacing=2)
+                    row4 = html.Tr([html.Td("No. of rejected windows"), html.Td(
+                        str(len(hv.rejected_window_indices)))])
+                    window_information_table_body = [
+                        html.Tbody([row1, row2, row3, row4])]
             else:
                 table_no_rejection = generate_table(hv, distribution_f0)
                 # Create Window Information Table
-                row1 = html.Tr([html.Td("Window length"), html.Td(str(windowlength)+"s")])
-                row2 = html.Tr([html.Td("No. of windows"), html.Td(str(sensor.ns.n_windows))])
+                row1 = html.Tr([html.Td("Window length"),
+                                html.Td(str(windowlength)+"s")])
+                row2 = html.Tr([html.Td("No. of windows"),
+                                html.Td(str(sensor.ns.n_windows))])
                 window_information_table_body = [html.Tbody([row1, row2])]
 
                 fig.legend(loc="upper center", bbox_to_anchor=(0.75, 0.3))
@@ -768,7 +806,7 @@ def update_timerecord_plot(calc_clicked, demo_clicked, filename, contents, filte
             ax.set_title(title)
 
         norm_factor = sensor.normalization_factor
-        for ax, timerecord, name in zip([ax0,ax1,ax2], [sensor.ns, sensor.ew, sensor.vt], ["NS", "EW", "VT"]):
+        for ax, timerecord, name in zip([ax0, ax1, ax2], [sensor.ns, sensor.ew, sensor.vt], ["NS", "EW", "VT"]):
             ctime = timerecord.time
             amp = timerecord.amp/norm_factor
             ax.plot(ctime.T, amp.T, linewidth=0.2, color='#888888')
@@ -779,14 +817,16 @@ def update_timerecord_plot(calc_clicked, demo_clicked, filename, contents, filte
             ax.set_xlabel('Time (s)')
             ax.set_ylabel('Normalized Amplitude')
             for window_index in hv.rejected_window_indices:
-                ax.plot(ctime[window_index], amp[window_index], linewidth=0.2, color="cyan")
+                ax.plot(ctime[window_index], amp[window_index],
+                        linewidth=0.2, color="cyan")
 
         save_figure = fig
-        fig.tight_layout(h_pad=1, w_pad=2, rect=(0,0.08,1,1))
-        save_figure.tight_layout(h_pad=1, w_pad=2, rect=(0,0.08,1,1))
+        fig.tight_layout(h_pad=1, w_pad=2, rect=(0, 0.08, 1, 1))
+        save_figure.tight_layout(h_pad=1, w_pad=2, rect=(0, 0.08, 1, 1))
         end = time.time()
 
-        if (filename == "No file has been uploaded."): # User is attempting to download the demo file
+        # User is attempting to download the demo file
+        if (filename == "No file has been uploaded."):
             filename = "hvsrpy_demo"
         out_url, encoded_image = fig_to_uri(fig)
         fig_name = filename.split('.miniseed')[0] + '.png'
@@ -794,13 +834,16 @@ def update_timerecord_plot(calc_clicked, demo_clicked, filename, contents, filte
         # Create hrefs to send to html.A links for download
         for filetype in ["hvsrpy", "geopsy"]:
             if filetype == "hvsrpy":
-                data = "".join(hv._hvsrpy_style_lines(distribution_f0, distribution_mc))
+                data = "".join(hv._hvsrpy_style_lines(
+                    distribution_f0, distribution_mc))
             else:
-                data = "".join(hv._geopsy_style_lines(distribution_f0, distribution_mc))
+                data = "".join(hv._geopsy_style_lines(
+                    distribution_f0, distribution_mc))
             bytesIO = io.BytesIO()
             bytesIO.write(bytearray(data, 'utf-8'))
             bytesIO.seek(0)
-            encoded = base64.b64encode(bytesIO.read()).decode("utf-8").replace("\n", "")
+            encoded = base64.b64encode(bytesIO.read()).decode(
+                "utf-8").replace("\n", "")
             bytesIO.close()
             if filetype == "hvsrpy":
                 hvsrpy_downloadable = f'data:text/plain;base64,{encoded}'
@@ -816,6 +859,6 @@ def update_timerecord_plot(calc_clicked, demo_clicked, filename, contents, filte
     else:
         raise PreventUpdate
 
+
 if __name__ == "__main__":
     server.run("0.0.0.0")
-    # app.run_server(debug=True)#, port=8000)
