@@ -387,33 +387,31 @@ body = dbc.Container([
                     style={"padding-bottom": "20px", }),
             # Column2_2
             dbc.Col([
-                    dbc.Button("Calculate", id="calculate-button",
-                               outline=True, color="success", size="lg"),
+                    dbc.Button("Calculate", id="calculate-button", color="primary",
+                                size="lg"),
                     ], md=1, ),
             dbc.Col([
-                    dbc.Button("Demo", id="demo-button", color="primary",
-                               outline=True, size="lg", className="ml-1"),
+                    dbc.Button("Demo", id="demo-button", color="secondary",
+                                size="lg", className="ml-1"),
                     dbc.Tooltip(
                         "Demo the application with a file supplied by us!",
                         target="demo-button",
                     ),
                     ], md=1, ),
             ]),
-    # Row1.5
-    dbc.Row([
-            html.H4("Current File:"),
-            html.P(id="filename-reference")
-            ], className="mt-1", style={"margin-left": "0px"}),
     # Row2
     dbc.Row([
         # SETTINGS (Column2_1)
         dbc.Col(
             [
-                html.H4("Settings"),
+                html.Div([
+                         html.H5("Current File:", style={"display":"inline"}),
+                         html.P(id="filename-reference"),
+                ], className="mb-2"),
                 dbc.Tabs([
                     dbc.Tab(time_tab, label="Time"),
                     dbc.Tab(frequency_tab, label="Frequency"),
-                    dbc.Tab(hv_tab, label="H/V")
+                    dbc.Tab(hv_tab, label="H/V"),
                 ]),
                 html.P(""),
                 html.A(
@@ -458,6 +456,7 @@ body = dbc.Container([
 server = Flask(__name__)
 app = dash.Dash(server=server, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
+app.title = 'hvsrpy-app'
 app.layout = html.Div(
     [
         html.Div([
@@ -481,19 +480,21 @@ def display_no_file_warn(n_clicks, filename):
         return True
     return False
 
-
 @app.callback(
     [Output('filename-reference', 'children'),
      Output('filename-reference', 'style'),
      Output('hidden-file-contents', 'children')],
     [Input('upload-bar', 'contents'),
-     Input('upload-bar', 'filename')])
-def store_filename(contents, filename):
+     Input('upload-bar', 'filename'),
+     Input('demo-button', 'n_clicks')])
+def store_filename(contents, filename, n_clicks):
     """Display the uploaded filename and store its contents."""
     if filename:
-        return [filename, {"color": "#34a1eb", "padding": "4px", "margin-left": "4px"}, contents]
+        return [filename, {"color": "#34a1eb", "padding": "4px", "margin-left": "4px", "display":"inline"}, contents]
+    if n_clicks != None:
+        return ["Demo file", {"color": "#34a1eb", "padding": "4px", "margin-left": "4px", "display":"inline"}, "UT.STN12.A2_C150.miniseed"]
     else:
-        return ["No file has been uploaded.", {"color": "gray", "padding": "4px", "margin-left": "4px"}, "No contents."]
+        return ["No file has been uploaded.", {"color": "gray", "padding": "4px", "margin-left": "4px", "display":"inline"}, "No contents."]
 
 @app.callback(Output('bandpass-options', 'style'),
               [Input('butterworth-input', 'value')])
@@ -584,8 +585,7 @@ def generate_table(hv, distribution_f0):
      Output('hv-download', 'download'),
      Output('geopsy-download', 'href'),
      Output('geopsy-download', 'download'), ],
-    [Input('calculate-button', 'n_clicks'),
-     Input('demo-button', 'n_clicks')],
+    [Input('calculate-button', 'n_clicks')],
     [State('filename-reference', 'children'),
      State('hidden-file-contents', 'children'),
      State('butterworth-input', 'value'),
@@ -606,7 +606,7 @@ def generate_table(hv, distribution_f0):
      State('distribution_f0-input', 'value'),
      State('n_iteration-input', 'value')]
 )
-def update_timerecord_plot(calc_clicked, demo_clicked, filename, contents, filter_bool, flow, fhigh, forder, minf, maxf, nf, res_type,
+def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, fhigh, forder, minf, maxf, nf, res_type,
                            windowlength, width, bandwidth, method, distribution_mc, rejection_bool, n, distribution_f0, n_iteration):
     """Create figure and tables from user-uploaded file.
 
@@ -668,29 +668,12 @@ def update_timerecord_plot(calc_clicked, demo_clicked, filename, contents, filte
 
     """
 
-    sensor = None
-
-    # Determine which button was clicked (Calculate or Demo)
-    ctx = dash.callback_context
-    if ctx.triggered[0]['value'] is None:
-        button_id = 'No clicks yet'
-    else:
-        button_id = ctx.triggered[0]['prop_id'].split('.')[0]
-
-    if button_id == "calculate-button":
-        if contents != "No contents.":
-            sensor = parse_data(contents, filename)
-        else:
-            raise PreventUpdate
-    elif button_id == "demo-button":
-        sensor = hvsrpy.Sensor3c.from_mseed("data/UT.STN12.A2_C150.miniseed")
-
     filter_bool = True if filter_bool == "True" else False
     rejection_bool = True if rejection_bool == "True" else False
 
     start = time.time()
 
-    if sensor:
+    if (contents) and (contents != "No contents."):
         fig = plt.figure(figsize=(6, 6), dpi=150)
         gs = fig.add_gridspec(nrows=6, ncols=6)
 
@@ -705,6 +688,10 @@ def update_timerecord_plot(calc_clicked, demo_clicked, filename, contents, filte
             ax3 = fig.add_subplot(gs[1:4, 3:6])
             ax4 = False
 
+        if filename == "Demo file":
+            sensor = hvsrpy.Sensor3c.from_mseed(contents)
+        else:
+            sensor = parse_data(contents, filename)
         bp_filter = {"flag": filter_bool, "flow": flow,
                      "fhigh": fhigh, "order": forder}
         resampling = {"minf": minf, "maxf": maxf,
@@ -826,7 +813,7 @@ def update_timerecord_plot(calc_clicked, demo_clicked, filename, contents, filte
         end = time.time()
 
         # User is attempting to download the demo file
-        if (filename == "No file has been uploaded."):
+        if (filename == "Demo file"):
             filename = "hvsrpy_demo"
         out_url, encoded_image = fig_to_uri(fig)
         fig_name = filename.split('.miniseed')[0] + '.png'
@@ -861,4 +848,5 @@ def update_timerecord_plot(calc_clicked, demo_clicked, filename, contents, filte
 
 
 if __name__ == "__main__":
-    server.run("0.0.0.0")
+    app.run_server(debug=True, port=8880)
+    #server.run("0.0.0.0")
