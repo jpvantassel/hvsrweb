@@ -1,9 +1,9 @@
-import hvsrpy
-import matplotlib.pyplot as plt
 import io
 import os
 import base64
 import time
+
+import hvsrpy
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
@@ -12,7 +12,9 @@ from dash.exceptions import PreventUpdate
 from dash.dependencies import Input, Output, State
 from flask import Flask
 import matplotlib
+import matplotlib.pyplot as plt
 matplotlib.use('Agg')
+
 
 # Style Settings
 default_style = {"cursor": "context-menu", "padding": "5px"}
@@ -449,7 +451,6 @@ body = dbc.Container([
         ]),
     ]),
 
-    html.Div(id='tables'),
     html.Div(id='hidden-file-contents', style={"display": "none"}),
 ], className="mt-4 mr-0", fluid=True)
 
@@ -467,7 +468,6 @@ app.layout = html.Div(
             )]),
         body,
     ],
-    style={"max-width": "97%"},
 )
 
 
@@ -698,6 +698,7 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
                       "nf": nf, "res_type": res_type}
         hv = sensor.hv(windowlength, bp_filter, width,
                        bandwidth, resampling, method)
+        hv.meta["File Name"] = filename # TODO (dmb): Fix this so it doesn't need a monkey patch
 
         individual_width = 0.3
         median_width = 1.3
@@ -848,5 +849,4 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
 
 
 if __name__ == "__main__":
-    app.run_server(debug=True, port=8880)
-    #server.run("0.0.0.0")
+    server.run("0.0.0.0")
