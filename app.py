@@ -359,8 +359,35 @@ hv_tab = dbc.Card(
     className="mt-3",
 )
 
+results_tab = dbc.Card(
+    dbc.CardBody(
+        [
+            html.A(
+                dbc.Button("Save Figure", color="primary",
+                           id="save_figure-button", outline=True, style={"width":"33%"}),
+                id='figure-download', download="", href="", target="_blank"),
+            html.A(
+                dbc.Button("Save .hv", color="primary",
+                           id="save_hv-button", outline=True, style={"width":"33%"}),
+                id="hv-download", download="", href="", target="_blank"),
+            html.A(
+                dbc.Button("Save geopsy", color="primary",
+                           outline=True, id="save_geopsy-button", style={"width":"33%"}),
+                id="geopsy-download", download="", href="", target="_blank"),
+
+            html.P(""),
+            html.Div(id='window-information-table',
+                     style={"font-size": "12px"}),
+            html.Div(id='before-rejection-table',
+                     style={"font-size": "12px"}),
+            html.Div(id='after-rejection-table',
+                     style={"font-size": "12px"}),
+        ]),
+    className="mt-3",
+)
+
 body = dbc.Container([
-    # Row1
+    # Row for Upload Bar and Calc/Demo Buttons
     dbc.Row([
             # Column1_1
             dbc.Col([
@@ -401,9 +428,9 @@ body = dbc.Container([
                     ),
                     ], md=1, ),
             ]),
-    # Row2
+    # Row for Current File, Settings, and Figure
     dbc.Row([
-        # SETTINGS (Column2_1)
+        # SETTINGS
         dbc.Col(
             [
                 html.Div([
@@ -414,41 +441,18 @@ body = dbc.Container([
                     dbc.Tab(time_tab, label="Time"),
                     dbc.Tab(frequency_tab, label="Frequency"),
                     dbc.Tab(hv_tab, label="H/V"),
+                    dbc.Tab(results_tab, label="Results", disabled=True, id="results-tab"),
                 ]),
-                html.P(""),
-                html.A(
-                    dbc.Button("Save Figure", color="primary",
-                               id="save_figure-button", outline=True, className="mr-1"),
-                    id='figure-download', download="", href="", target="_blank"),
-                html.A(
-                    dbc.Button(
-                        "Save .hv", color="primary", id="save_hv-button", outline=True, className="mr-1"),
-                    id="hv-download", download="", href="", target="_blank"),
-                html.A(
-                    dbc.Button("Save geopsy", color="primary",
-                               outline=True, id="save_geopsy-button"),
-                    id="geopsy-download", download="", href="", target="_blank"),
             ],
-            md=3,
+            md=4,
         ),
-        # FIGURE (Column2_2)
+        # FIGURE
         dbc.Col([
-            # Row2_2_1
             dbc.Row([
-                # id="figure-div")
                 html.Div([html.Img(id='cur_plot', src='', style={
                          "width": "100%"})], id='plot_div')
             ]),
-        ], md=6),
-        # TABLES (Column2_3)
-        dbc.Col([
-            html.Div(id='window-information-table',
-                     style={"font-size": "12px"}),
-            html.Div(id='before-rejection-table',
-                     style={"font-size": "12px"}),
-            html.Div(id='after-rejection-table',
-                     style={"font-size": "12px"}),
-        ]),
+        ], md=8),
     ]),
 
     html.Div(id='hidden-file-contents', style={"display": "none"}),
@@ -584,7 +588,8 @@ def generate_table(hv, distribution_f0):
      Output('hv-download', 'href'),
      Output('hv-download', 'download'),
      Output('geopsy-download', 'href'),
-     Output('geopsy-download', 'download'), ],
+     Output('geopsy-download', 'download'),
+     Output('results-tab', 'disabled')],
     [Input('calculate-button', 'n_clicks')],
     [State('filename-reference', 'children'),
      State('hidden-file-contents', 'children'),
@@ -841,12 +846,13 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
                 geopsy_name = filename.split('.miniseed')[0] + '_geopsy.hv'
 
         if rejection_bool:
-            return out_url, (html.H6("Window Information:"), dbc.Table(window_information_table_body, bordered=True, hover=True)), (html.H6("Statistics Before Rejection:"), table_before_rejection), (html.H6("Statistics After Rejection:"), table_after_rejection), out_url, fig_name, hvsrpy_downloadable, hvsrpy_name, geopsy_downloadable, geopsy_name
+            return out_url, (html.H6("Window Information:"), dbc.Table(window_information_table_body, bordered=True, hover=True)), (html.H6("Statistics Before Rejection:"), table_before_rejection), (html.H6("Statistics After Rejection:"), table_after_rejection), out_url, fig_name, hvsrpy_downloadable, hvsrpy_name, geopsy_downloadable, geopsy_name, False
         else:
-            return out_url, (html.H6("Window Information:"), dbc.Table(window_information_table_body, bordered=True)), (html.H6("Statistics:"), table_no_rejection), ([]), out_url, fig_name, hvsrpy_downloadable, hvsrpy_name, geopsy_downloadable, geopsy_name
+            return out_url, (html.H6("Window Information:"), dbc.Table(window_information_table_body, bordered=True)), (html.H6("Statistics:"), table_no_rejection), ([]), out_url, fig_name, hvsrpy_downloadable, hvsrpy_name, geopsy_downloadable, geopsy_name, False
     else:
         raise PreventUpdate
 
 
 if __name__ == "__main__":
+    #app.run_server(debug=True)#, port=8888)
     server.run("0.0.0.0")
