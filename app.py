@@ -367,12 +367,20 @@ results_tab = dbc.Card(
                            id="save_figure-button", outline=True, style={"width":"33%"}),
                 id='figure-download', download="", href="", target="_blank"),
             html.A(
-                dbc.Button("Save .hv", color="primary",
-                           id="save_hv-button", outline=True, style={"width":"33%"}),
+                dbc.Button("Save as hvsrpy", color="primary",
+                           id="save_hvsrpy-button", outline=True, style={"width":"33%"}),
                 id="hv-download", download="", href="", target="_blank"),
+                # dbc.Tooltip(
+                #     "Save results in the hvsrpy-style text format.",
+                #     target="save_hvsrpy-button",
+                # ),
             html.A(
-                dbc.Button("Save geopsy", color="primary",
+                dbc.Button("Save as geopsy", color="primary",
                            outline=True, id="save_geopsy-button", style={"width":"33%"}),
+                # dbc.Tooltip(
+                #     "Save results in the geopsy-style text format.",
+                #     target="save_geopsy-button",
+                # ),
                 id="geopsy-download", download="", href="", target="_blank"),
 
             html.P(""),
@@ -418,12 +426,16 @@ body = dbc.Container([
             dbc.Col([
                     dbc.Button("Calculate", id="calculate-button", color="primary",
                                 size="lg"),
+                    dbc.Tooltip(
+                        "Perform HVSR calculation with the current file and settings",
+                        target="calculate-button",
+                    ),
                     ], md=1, ),
             dbc.Col([
                     dbc.Button("Demo", id="demo-button", color="secondary",
                                 size="lg", className="ml-1"),
                     dbc.Tooltip(
-                        "Demo the application with a file supplied by us!",
+                        "Load a file supplied by us!",
                         target="demo-button",
                     ),
                     ], md=1, ),
@@ -450,7 +462,7 @@ body = dbc.Container([
         dbc.Col([
             dbc.Row([
                 html.Div([html.Img(id='cur_plot', src='', style={
-                         "width": "100%"})], id='plot_div')
+                         "width": "70%"})], id='plot_div')
             ]),
         ], md=8),
     ]),
@@ -496,7 +508,7 @@ def store_filename(contents, filename, n_clicks):
     if filename:
         return [filename, {"color": "#34a1eb", "padding": "4px", "margin-left": "4px", "display":"inline"}, contents]
     if n_clicks != None:
-        return ["Demo file", {"color": "#34a1eb", "padding": "4px", "margin-left": "4px", "display":"inline"}, "UT.STN12.A2_C150.miniseed"]
+        return ["Demo file", {"color": "#34a1eb", "padding": "4px", "margin-left": "4px", "display":"inline"}, "data/UT.STN12.A2_C150.miniseed"]
     else:
         return ["No file has been uploaded.", {"color": "gray", "padding": "4px", "margin-left": "4px", "display":"inline"}, "No contents."]
 
