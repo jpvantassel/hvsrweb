@@ -257,7 +257,7 @@ hv_tab = dbc.Card(
             # Distribution of f0
             html.P([
                 html.Span(
-                    "Distribution of f0:",
+                    ["Distribution of ", html.Div(['f', html.Sub('0')], style={"display":"inline"}), ":"],
                     id="distribution_f0-tooltip-target",
                     style=default_style,
                 ),
@@ -362,32 +362,42 @@ hv_tab = dbc.Card(
 results_tab = dbc.Card(
     dbc.CardBody(
         [
-            html.A(
-                dbc.Button("Save Figure", color="primary",
-                           id="save_figure-button", outline=True, style={"width":"33%"}),
-                id='figure-download', download="", href="", target="_blank"),
-            html.A(
-                dbc.Button("Save as hvsrpy", color="primary",
-                           id="save_hvsrpy-button", outline=True, style={"width":"33%"}),
-                id="hv-download", download="", href="", target="_blank"),
-                # dbc.Tooltip(
-                #     "Save results in the hvsrpy-style text format.",
-                #     target="save_hvsrpy-button",
-                # ),
-            html.A(
-                dbc.Button("Save as geopsy", color="primary",
-                           outline=True, id="save_geopsy-button", style={"width":"33%"}),
-                # dbc.Tooltip(
-                #     "Save results in the geopsy-style text format.",
-                #     target="save_geopsy-button",
-                # ),
-                id="geopsy-download", download="", href="", target="_blank"),
+            dbc.Row([
+                dbc.Col([
+                    html.A(
+                        dbc.Button("Save Figure", color="primary",
+                                   id="save_figure-button", style={"width":"100%"}),
+                        id='figure-download', download="", href="", target="_blank"),
+                ]),
+                dbc.Col([
+                    html.A(
+                        dbc.Button("Save as hvsrpy", color="primary",
+                                   id="save_hvsrpy-button", style={"width":"100%"}),
+                        id="hv-download", download="", href="", target="_blank"),
+                    dbc.Tooltip(
+                        "Save results in the hvsrpy-style text format.",
+                        target="save_hvsrpy-button"),
+                ]),
+                dbc.Col([
+                    html.A(
+                        dbc.Button("Save as geopsy", color="primary",
+                                    id="save_geopsy-button", style={"width":"100%"}),
+                        id="geopsy-download", download="", href="", target="_blank"),
+                    dbc.Tooltip(
+                        "Save results in the geopsy-style text format.",
+                        target="save_geopsy-button"),
+                ]),
+            ]),
+
+
+
 
             html.P(""),
             html.Div(id='window-information-table',
                      style={"font-size": "12px"}),
             html.Div(id='before-rejection-table',
                      style={"font-size": "12px"}),
+            html.P(""),
             html.Div(id='after-rejection-table',
                      style={"font-size": "12px"}),
         ]),
@@ -453,18 +463,18 @@ body = dbc.Container([
                     dbc.Tab(time_tab, label="Time"),
                     dbc.Tab(frequency_tab, label="Frequency"),
                     dbc.Tab(hv_tab, label="H/V"),
-                    dbc.Tab(results_tab, label="Results", disabled=True, id="results-tab"),
+                    dbc.Tab(results_tab, label="Results", id="results-tab", disabled=True),
                 ]),
             ],
-            md=4,
+            md=5,
         ),
         # FIGURE
         dbc.Col([
             dbc.Row([
                 html.Div([html.Img(id='cur_plot', src='', style={
-                         "width": "70%"})], id='plot_div')
+                         "width": "90%"})], id='plot_div')
             ]),
-        ], md=8),
+        ], md=7),
     ]),
 
     html.Div(id='hidden-file-contents', style={"display": "none"}),
@@ -560,33 +570,37 @@ def generate_table(hv, distribution_f0):
     """Generate output tables depending on user specifications."""
     if distribution_f0 == "log-normal":
         table_header = [html.Thead(html.Tr([html.Th("Name"), html.Th(
-            "Log-Normal Median"), html.Th("Log-Normal Standard Deviation")]))]
+            "Log-Normal Median"), html.Th("Log-Normal Standard Deviation")], style={"font-size":"16px"}))]
         row1 = html.Tr([
-            html.Td("Fundamental Site Frequency, f0"),
+            html.Td(html.Div(['f', html.Sub('0')]), id="fund_freq_lognormal", style={"padding":"10px"}),
             html.Td(str(hv.mean_f0_frq(distribution_f0))[:4]+" Hz"),
-            html.Td(str(hv.std_f0_frq(distribution_f0))[:4])
-        ])
+            html.Td(str(hv.std_f0_frq(distribution_f0))[:4]),
+            dbc.Tooltip("Fundamental Site Frequency", target="fund_freq_lognormal"),
+        ], style={"font-size":"16px"})
         row2 = html.Tr([
-            html.Td("Fundamental Site Period, T0"),
+            html.Td(html.Div(['T', html.Sub('0')]), id="fund_period_lognormal"),
             html.Td(str((1/hv.mean_f0_frq(distribution_f0)))[:4]+" s"),
-            html.Td(str(hv.std_f0_frq(distribution_f0))[:4])
-        ])
+            html.Td(str(hv.std_f0_frq(distribution_f0))[:4]),
+            dbc.Tooltip("Fundamental Site Period", target="fund_period_lognormal"),
+        ], style={"font-size":"16px"})
     elif distribution_f0 == "normal":
         table_header = [html.Thead(
             html.Tr([html.Th("Name"), html.Th("Mean"), html.Th("Standard Deviation")]))]
         row1 = html.Tr([
-            html.Td("Fundamental Site Frequency, f0"),
+            html.Td(html.Div(['f', html.Sub('0')]), id="fund_freq_normal"),
             html.Td(str(hv.mean_f0_frq(distribution_f0))[:4]+" Hz"),
-            html.Td(str(hv.std_f0_frq(distribution_f0))[:4])
-        ])
+            html.Td(str(hv.std_f0_frq(distribution_f0))[:4]),
+            dbc.Tooltip("Fundamental Site Frequency", target="fund_freq_normal"),
+        ], style={"font-size":"16px"})
         row2 = html.Tr([
-            html.Td("Fundamental Site Period, T0"),
+            html.Td(html.Div(['T', html.Sub('0')]), id="fund_period_normal"),
             html.Td("-"),
-            html.Td("-")
-        ])
+            html.Td("-"),
+            dbc.Tooltip("Fundamental Site Period", target="fund_period_normal"),
+        ], style={"font-size":"16px"})
 
     table_body = [html.Tbody([row1, row2])]
-    table = dbc.Table(table_header + table_body, bordered=True, hover=True)
+    table = dbc.Table(table_header + table_body, bordered=True, hover=True, className="mb-0")
     return table
 
 
@@ -783,20 +797,18 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
                                                distribution_f0=distribution_f0, distribution_mc=distribution_mc)
                     # Create Window Information Table
                     row1 = html.Tr([html.Td("Window length"),
-                                    html.Td(str(windowlength)+"s")])
-                    row2 = html.Tr([html.Td("No. of windows"),
-                                    html.Td(str(sensor.ns.n_windows))])
-                    row3 = html.Tr([html.Td("No. of iterations to convergence"), html.Td(
-                        str(c_iter)+" of "+str(n_iteration)+" allowed.")])
+                                    html.Td(str(windowlength)+"s")], style={"font-size":"16px"})
+                    row2 = html.Tr([html.Td("No. of iterations to convergence"), html.Td(
+                        str(c_iter)+" of "+str(n_iteration)+" allowed.")], style={"font-size":"16px"})
 
                 elif title == "After Rejection":
                     table_after_rejection = generate_table(hv, distribution_f0)
                     fig.legend(ncol=4, loc='lower center',
                                bbox_to_anchor=(0.51, 0), columnspacing=2)
-                    row4 = html.Tr([html.Td("No. of rejected windows"), html.Td(
-                        str(len(hv.rejected_window_indices)))])
+                    row3 = html.Tr([html.Td("X rejected of X windows"), html.Td(
+                        str(len(hv.rejected_window_indices)) + " of " + str(sensor.ns.n_windows))], style={"font-size":"16px"})
                     window_information_table_body = [
-                        html.Tbody([row1, row2, row3, row4])]
+                        html.Tbody([row1, row2, row3])]
             else:
                 table_no_rejection = generate_table(hv, distribution_f0)
                 # Create Window Information Table
