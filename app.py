@@ -492,7 +492,13 @@ app.layout = html.Div(
                 message='Please upload a file before clicking calculate.',
                 displayed=False,
             )]),
+        html.Div(
+            id="banner",
+            className="banner",
+            children=[html.Img(src=app.get_asset_url("hvsr_app_logo.png"))],
+        ),
         body,
+        html.Footer("© 2019-2020 Dana M. Brannon & Joseph P. Vantassel"),
     ],
 )
 
