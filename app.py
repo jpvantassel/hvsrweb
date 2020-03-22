@@ -17,7 +17,9 @@ matplotlib.use('Agg')
 
 
 # Style Settings
-default_style = {"cursor": "context-menu", "padding": "1px"}
+default_span_style = {"cursor": "context-menu",
+                      "padding": "1px", "margin-top": "0em"}
+default_p_style = {"margin-top": "1em", "margin-bottom": 0}
 
 # Bootstrap Layout:
 time_tab = dbc.Card(
@@ -28,9 +30,9 @@ time_tab = dbc.Card(
                 html.Span(
                     "Window Length (s):",
                     id="windowlength-tooltip-target",
-                    style=default_style,
+                    style=default_span_style,
                 ),
-            ]),
+            ], style=default_p_style),
             dbc.Tooltip(
                 "Length of each time window in seconds. "
                 "For specific guidance on an appropriate window length refer to the SESAME (2004) guidelines.",
@@ -38,16 +40,16 @@ time_tab = dbc.Card(
             ),
             dbc.Input(id="windowlength-input", type="number",
                       value=60, min=0, max=600, step=1),
-            html.P(""),
+            # html.P(""),
 
             # Width of cosine taper
             html.P([
                 html.Span(
                     "Width of Cosine Taper:",
                     id="width-tooltip-target",
-                    style=default_style,
+                    style=default_span_style,
                 ),
-            ]),
+            ], style=default_p_style),
             dbc.Tooltip(
                 "Fraction of each time window to be cosine tapered. "
                 "0.1 is recommended.",
@@ -55,16 +57,16 @@ time_tab = dbc.Card(
             ),
             dbc.Input(id="width-input", type="number",
                       value=0.1, min=0., max=1.0, step=0.1),
-            html.P(""),
+            # html.P(""),
 
             # Butterworth Filter
             html.P([
                 html.Span(
                     "Apply Butterworth Filter?",
                     id="butterworth-tooltip-target",
-                    style=default_style,
+                    style=default_span_style,
                 ),
-            ]),
+            ], style=default_p_style),
             dbc.Tooltip(
                 "Select whether a Butterworth bandpass filter is applied to the time-domain singal. "
                 "Geopsy does not apply a bandpass filter.",
@@ -76,7 +78,7 @@ time_tab = dbc.Card(
                     {"label": "Yes", "value": "True"},
                     {"label": "No", "value": "False"},
                 ], value="False"),
-            html.P(""),
+            # html.P(""),
 
             dbc.Container([
                 # Butterworth Filter: Low Frequency
@@ -84,49 +86,49 @@ time_tab = dbc.Card(
                     html.Span(
                         "Low-cut Frequency (Hz):",
                         id="flow-tooltip-target",
-                        style=default_style,
+                        style=default_span_style,
                     ),
-                ]),
+                ], style=default_p_style),
                 dbc.Tooltip(
                     "Frequencies below that specified are filtered.",
                     target="flow-tooltip-target",
                 ),
                 dbc.Input(id="flow-input", type="number",
                           value=0.1, min=0, max=1000, step=0.01),
-                html.P(""),
+                # html.P(""),
 
                 # Butterworth Filter: High Frequency
                 html.P([
                     html.Span(
                         "High-cut Frequency (Hz):",
                         id="fhigh-tooltip-target",
-                        style=default_style,
+                        style=default_span_style,
                     ),
-                ]),
+                ], style=default_p_style),
                 dbc.Tooltip(
                     "Frequencies above that specified are filtered.",
                     target="fhigh-tooltip-target",
                 ),
                 dbc.Input(id="fhigh-input", type="number",
                           value=30, min=0, max=600, step=1),
-                html.P(""),
+                # html.P(""),
 
                 # Butterworth Filter: Filter Order
                 html.P([
                     html.Span(
                         "Filter Order:",
                         id="forder-tooltip-target",
-                        style=default_style,
+                        style=default_span_style,
                     ),
-                ]),
+                ], style=default_p_style),
                 dbc.Tooltip(
                     "Order of Butterworth filter, 5 is recommended.",
                     target="forder-tooltip-target",
                 ),
                 dbc.Input(id="forder-input", type="number",
                           value=5, min=0, max=600, step=1),
-                html.P(""),
-                html.Hr(style={"border-top": "0.5px solid #bababa"}),
+                # html.P(""),
+                # html.Hr(style={"border-top": "0.5px solid #bababa"}),
             ], className="ml-2 mr-0", id="bandpass-options"),
         ]),
     className="mt-3",
@@ -140,9 +142,9 @@ frequency_tab = dbc.Card(
                 html.Span(
                     "Konno and Ohmachi Smoothing Coefficient:",
                     id="bandwidth-tooltip-target",
-                    style=default_style,
+                    style=default_span_style,
                 ),
-            ]),
+            ], style=default_p_style),
             dbc.Tooltip(
                 "Bandwidth coefficient (b) for Konno and Ohmachi (1998) smoothing, "
                 "40 is recommended.",
@@ -150,7 +152,7 @@ frequency_tab = dbc.Card(
             ),
             dbc.Input(id="bandwidth-input", type="number",
                       value=40, min=0, max=600, step=1),
-            html.P(""),
+            # html.P(""),
             # html.Hr(style={"border-top": "1px solid #bababa"}),
 
             html.P("Resampling:"),
@@ -160,32 +162,32 @@ frequency_tab = dbc.Card(
                     html.Span(
                         "Minimum Frequency (Hz):",
                         id="minf-tooltip-target",
-                        style=default_style,
+                        style=default_span_style,
                     ),
-                ]),
+                ], style=default_p_style),
                 dbc.Tooltip(
                     "Minimum frequency considered when resampling.",
                     target="minf-tooltip-target",
                 ),
                 dbc.Input(id="minf-input", type="number",
                           value=0.2, min=0.2, max=10, step=0.1),
-                html.P(""),
+                # html.P(""),
 
                 # Resampling: Maximum Frequency
                 html.P([
                     html.Span(
                         "Maximum Frequency (Hz):",
                         id="maxf-tooltip-target",
-                        style=default_style,
+                        style=default_span_style,
                     ),
-                ]),
+                ], style=default_p_style),
                 dbc.Tooltip(
                     "Maximum frequency considered when resampling.",
                     target="maxf-tooltip-target",
                 ),
                 dbc.Input(id="maxf-input", type="number",
                           value=20, min=1, max=100, step=1),
-                html.P(""),
+                # html.P(""),
 
                 # Resampling: Number of Frequencies
                 html.P([
@@ -194,23 +196,23 @@ frequency_tab = dbc.Card(
                         id="nf-tooltip-target",
                         style={"cursor": "context-menu", "padding": "5px"},
                     ),
-                ]),
+                ], style=default_p_style),
                 dbc.Tooltip(
                     "Number of frequency points after resampling.",
                     target="nf-tooltip-target",
                 ),
                 dbc.Input(id="nf-input", type="number",
                           value=512, min=2, max=10000, step=1),
-                html.P(""),
+                # html.P(""),
 
                 # Resampling: Type
                 html.P([
                     html.Span(
                         "Type:",
                         id="res_type-tooltip-target",
-                        style=default_style,
+                        style=default_span_style,
                     ),
-                ]),
+                ], style=default_p_style),
                 dbc.Tooltip(
                     "Distribution of frequency samples.",
                     target="res_type-tooltip-target",
@@ -236,9 +238,9 @@ hv_tab = dbc.Card(
                 html.Span(
                     "Define Horizontal Component with:",
                     id="method-tooltip-target",
-                    style=default_style,
+                    style=default_span_style,
                 ),
-            ]),
+            ], style=default_p_style),
             dbc.Tooltip(
                 "Geometric-Mean is recommended. "
                 "Geopsy uses the Squared-Average. ",
@@ -252,7 +254,7 @@ hv_tab = dbc.Card(
                 ],
                 value="geometric-mean",
             ),
-            html.P(" "),
+            # html.P(" "),
 
             # Distribution of f0
             html.P([
@@ -260,9 +262,9 @@ hv_tab = dbc.Card(
                     ["Distribution of ", html.Div(['f', html.Sub('0')], style={
                                                   "display": "inline"}), ":"],
                     id="distribution_f0-tooltip-target",
-                    style=default_style,
+                    style=default_span_style,
                 ),
-            ]),
+            ], style=default_p_style),
             dbc.Tooltip(
                 "Lognormal is recommended. "
                 "Geopsy uses Normal.",
@@ -274,16 +276,16 @@ hv_tab = dbc.Card(
                     {"label": "Lognormal", "value": "log-normal"},
                     {"label": "Normal", "value": "normal"},
                 ], value='log-normal'),
-            html.P(""),
+            # html.P(""),
 
             # Distribution of Median Curve
             html.P([
                 html.Span(
                     "Distribution of Median Curve:",
                     id="distribution_mc-tooltip-target",
-                    style=default_style,
+                    style=default_span_style,
                 ),
-            ]),
+            ], style=default_p_style),
             dbc.Tooltip(
                 "Lognormal is recommended. "
                 "Geopsy uses Lognormal",
@@ -295,16 +297,16 @@ hv_tab = dbc.Card(
                     {"label": "Lognormal", "value": "log-normal"},
                     {"label": "Normal", "value": "normal"},
                 ], value="log-normal"),
-            html.P(""),
+            # html.P(""),
 
             # Frequency-Domain Window-Rejection Algorithm
             html.P([
                 html.Span(
                     "Apply Frequency-Domain Window-Rejection?",
                     id="rejection_bool-tooltip-target",
-                    style=default_style,
+                    style=default_span_style,
                 ),
-            ]),
+            ], style=default_p_style),
             dbc.Tooltip(
                 "Select whether the frequency-domain window-rejection algorithm proposed "
                 "by Cox et al. (2020) is applied. Geopsy does not offer this functionality.",
@@ -316,7 +318,7 @@ hv_tab = dbc.Card(
                     {"label": "Yes", "value": "True"},
                     {"label": "No", "value": "False"},
                 ], value="True"),
-            html.P(""),
+            # html.P(""),
 
             dbc.Container([
                 # Number of Standard Deviations
@@ -324,9 +326,9 @@ hv_tab = dbc.Card(
                     html.Span(
                         "Number of Standard Deviations (n):",
                         id="n-tooltip-target",
-                        style=default_style,
+                        style=default_span_style,
                     ),
-                ]),
+                ], style=default_p_style),
                 dbc.Tooltip(
                     "Number of standard deviations to consider during rejection. "
                     "Smaller values will tend to reject more windows than larger values. "
@@ -335,16 +337,16 @@ hv_tab = dbc.Card(
                 ),
                 dbc.Input(id="n-input", type="number",
                           value=2, min=1, max=4, step=0.5),
-                html.P(""),
+                # html.P(""),
 
                 # Maximum Number of Iterations
                 html.P([
                     html.Span(
                         "Maximum Number of Allowed Iterations:",
                         id="n_iteration-tooltip-target",
-                        style=default_style,
+                        style=default_span_style,
                     ),
-                ]),
+                ], style=default_p_style),
                 dbc.Tooltip(
                     "Maximum number of iterations of the rejection algorithm. "
                     "50 is recommended.",
@@ -352,7 +354,7 @@ hv_tab = dbc.Card(
                 ),
                 dbc.Input(id="n_iteration-input", type="number",
                           value=50, min=5, max=75, step=1),
-                html.P(""),
+                # html.P(""),
             ],
                 className="ml-2 mr-0",
                 id="rejection-options"),
@@ -360,6 +362,7 @@ hv_tab = dbc.Card(
     className="mt-3",
 )
 
+button_style = {"width": "100%"}
 results_tab = dbc.Card(
     dbc.CardBody(
         [
@@ -367,13 +370,13 @@ results_tab = dbc.Card(
                 dbc.Col([
                     html.A(
                         dbc.Button("Save Figure", color="primary",
-                                   id="save_figure-button", style={"width": "100%"}),
+                                   id="save_figure-button", style=button_style),
                         id='figure-download', download="", href="", target="_blank"),
                 ]),
                 dbc.Col([
                     html.A(
                         dbc.Button("Save as hvsrpy", color="primary",
-                                   id="save_hvsrpy-button", style={"width": "100%"}),
+                                   id="save_hvsrpy-button", style=button_style),
                         id="hv-download", download="", href="", target="_blank"),
                     dbc.Tooltip(
                         "Save results in the hvsrpy-style text format.",
@@ -382,7 +385,7 @@ results_tab = dbc.Card(
                 dbc.Col([
                     html.A(
                         dbc.Button("Save as geopsy", color="primary",
-                                   id="save_geopsy-button", style={"width": "100%"}),
+                                   id="save_geopsy-button", style=button_style),
                         id="geopsy-download", download="", href="", target="_blank"),
                     dbc.Tooltip(
                         "Save results in the geopsy-style text format.",
@@ -390,12 +393,12 @@ results_tab = dbc.Card(
                 ]),
             ]),
 
-            html.P(""),
+            # html.P(""),
             html.Div(id='window-information-table',
                      style={"font-size": "12px"}),
             html.Div(id='before-rejection-table',
                      style={"font-size": "12px"}),
-            html.P(""),
+            # html.P(""),
             html.Div(id='after-rejection-table',
                      style={"font-size": "12px"}),
         ]),
@@ -471,7 +474,7 @@ body = dbc.Container([
         dbc.Col([
             dbc.Row([
                 html.Div([html.Img(id='cur_plot', src='', style={
-                         "width": "90%"})], id='plot_div')
+                         "width": "83%"})], id='plot_div')
             ]),
         ], md=5),
     ]),
@@ -498,10 +501,11 @@ app.layout = html.Div(
         ),
         body,
         html.Footer([
-            html.Div([
-                html.Li("© 2019-2020 Dana M. Brannon & Joseph P. Vantassel",
-                        style={"color": "gray"})
-            ])])
+        # html.Div([
+            html.Li("© 2019-2020 Dana M. Brannon & Joseph P. Vantassel",
+                    style={"color": "gray"})
+        ])
+            # ])
     ],
 )
 
@@ -578,16 +582,19 @@ def fig_to_uri(in_fig, close_all=True, **save_args):
 
 def generate_table(hv, distribution_f0):
     """Generate output tables depending on user specifications."""
-    head_style = {"font-size": "16px"}
-    row_style = {"font-size": "16px"}
+    head_style = {"font-size": "16px", "padding":"0.5px"}
+    row_style = {"font-size": "16px", "padding":"0.5px"}
+    td_style = {"padding":"0px"}
 
     if distribution_f0 == "log-normal":
         row0 = html.Tr([
             html.Td(""),
             html.Td(html.Div(["LM"]),
-                    id="log_median"),
+                    id="log_median",
+                    style=td_style),
             html.Td(html.Div([u"\u03c3", html.Sub('ln')]),
-                    id="log_std"),
+                    id="log_std",
+                    style=td_style),
             dbc.Tooltip("Log-Normal Median",
                         target="log_median"),
             dbc.Tooltip("Log-Normal Standard Deviation",
@@ -597,18 +604,23 @@ def generate_table(hv, distribution_f0):
         row1 = html.Tr([
             html.Td(html.Div(['f', html.Sub('0')]),
                     id="f0_lognormal",
-                    style={"padding": "10px"}),
-            html.Td(str(hv.mean_f0_frq(distribution_f0))[:4]+" Hz"),
-            html.Td(str(hv.std_f0_frq(distribution_f0))[:4]),
+                    style=td_style),
+            html.Td(str(hv.mean_f0_frq(distribution_f0))[:4]+" Hz",
+                    style=td_style),
+            html.Td(str(hv.std_f0_frq(distribution_f0))[:4],
+                    style=td_style),
             dbc.Tooltip("Fundamental Site Frequency",
                         target="f0_lognormal"),
         ], style=row_style)
 
         row2 = html.Tr([
             html.Td(html.Div(['T', html.Sub('0')]),
-                    id="T0_lognormal"),
-            html.Td(str((1/hv.mean_f0_frq(distribution_f0)))[:4]+" s"),
-            html.Td(str(hv.std_f0_frq(distribution_f0))[:4]),
+                    id="T0_lognormal",
+                    style=td_style),
+            html.Td(str((1/hv.mean_f0_frq(distribution_f0)))[:4]+" s",
+                    style=td_style),
+            html.Td(str(hv.std_f0_frq(distribution_f0))[:4],
+                    style=td_style),
             dbc.Tooltip("Fundamental Site Period",
                         target="T0_lognormal"),
         ], style=row_style)
@@ -646,7 +658,7 @@ def generate_table(hv, distribution_f0):
 
     table_body = [html.Tbody([row1, row2])]
     table = dbc.Table([html.Thead(row0)] + table_body, bordered=True,
-                      hover=True, className="mb-0")
+                      hover=True, className="mb-0", style={"padding":"0"})
     return table
 
 
@@ -855,8 +867,7 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
                                bbox_to_anchor=(0.51, 0), columnspacing=2)
                     row3 = html.Tr([html.Td("No. of rejected windows"), html.Td(
                         str(len(hv.rejected_window_indices)) + " of " + str(sensor.ns.n_windows))], style={"font-size": "16px"})
-                    window_information_table_body = [
-                        html.Tbody([row1, row2, row3])]
+                    window_table = [html.Tbody([row1, row2, row3])]
             else:
                 table_no_rejection = generate_table(hv, distribution_f0)
                 # Create Window Information Table
@@ -864,7 +875,7 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
                                 html.Td(str(windowlength)+"s")])
                 row2 = html.Tr([html.Td("No. of windows"),
                                 html.Td(str(sensor.ns.n_windows))])
-                window_information_table_body = [html.Tbody([row1, row2])]
+                window_table = [html.Tbody([row1, row2])]
 
                 fig.legend(loc="upper center", bbox_to_anchor=(0.75, 0.3))
                 break
@@ -917,10 +928,40 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
                 geopsy_downloadable = f'data:text/plain;base64,{encoded}'
                 geopsy_name = filename.split('.miniseed')[0] + '_geopsy.hv'
 
+        table_label_style = {"margin-top": "0.5em", "margin-bottom": "0.25em"}
+
         if rejection_bool:
-            return out_url, (html.H6("Window Information:"), dbc.Table(window_information_table_body, bordered=True, hover=True)), (html.H6("Statistics Before Rejection:"), table_before_rejection), (html.H6("Statistics After Rejection:"), table_after_rejection), out_url, fig_name, hvsrpy_downloadable, hvsrpy_name, geopsy_downloadable, geopsy_name, False
+            return (out_url,
+                    (html.H6("Window Information:"), dbc.Table(window_table,
+                                                               bordered=True,
+                                                               hover=True)),
+                    (html.H6("Statistics Before Rejection:",
+                             style=table_label_style),
+                     table_before_rejection),
+                    (html.H6("Statistics After Rejection:",
+                             style=table_label_style),
+                     table_after_rejection),
+                    out_url,
+                    fig_name,
+                    hvsrpy_downloadable,
+                    hvsrpy_name,
+                    geopsy_downloadable,
+                    geopsy_name,
+                    False)
         else:
-            return out_url, (html.H6("Window Information:"), dbc.Table(window_information_table_body, bordered=True)), (html.H6("Statistics:"), table_no_rejection), ([]), out_url, fig_name, hvsrpy_downloadable, hvsrpy_name, geopsy_downloadable, geopsy_name, False
+            return (out_url,
+                    (html.H6("Window Information:"), dbc.Table(window_table,
+                                                               bordered=True)),
+                    (html.H6("Statistics:", style=table_label_style),
+                     table_no_rejection),
+                    ([]),
+                    out_url,
+                    fig_name,
+                    hvsrpy_downloadable,
+                    hvsrpy_name,
+                    geopsy_downloadable,
+                    geopsy_name,
+                    False)
     else:
         raise PreventUpdate
 
