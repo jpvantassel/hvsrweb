@@ -402,6 +402,9 @@ results_tab = dbc.Card(
             # html.P(""),
             html.Div(id='after-rejection-table',
                      style={"font-size": "12px"}),
+
+            html.Div(id="tooltips"),
+
             html.Div([
                 html.P("Want more functionailty? See the ", style={"display":"inline"}),
                 html.A("full Python package.", href="https://github.com/jpvantassel/hvsrpy")
@@ -590,16 +593,16 @@ def generate_table(hv, distribution_f0):
         row0 = html.Tr([
             html.Td(""),
             html.Td(html.Div(["LM"]),
-                    id="log_median", title="Log-Normal Median"),
+                    id="med"),
                     # style=td_style),
             html.Td(html.Div([u"\u03c3", html.Sub('ln')]),
-                    id="log_std", title="Log-Normal Standard Deviation"),
+                    id="std"),
                     # style=td_style),
         ], style=head_style)
 
         row1 = html.Tr([
             html.Td(html.Div(['f', html.Sub('0')]),
-                    id="f0_lognormal", title="Fundamental Site Frequency"),
+                    id="f0", style={"padding-left":"5px", "padding-right":"5px"}),
                     # style=td_style),
             html.Td(str(hv.mean_f0_frq(distribution_f0))[:4]+" Hz"),
                     # style=td_style),
@@ -609,7 +612,7 @@ def generate_table(hv, distribution_f0):
 
         row2 = html.Tr([
             html.Td(html.Div(['T', html.Sub('0')]),
-                    id="T0_lognormal", title="Fundamental Site Period"),
+                    id="T0"),
                     # style=td_style),
             html.Td(str((1/hv.mean_f0_frq(distribution_f0)))[:4]+" s"),
                     # style=td_style),
@@ -621,21 +624,21 @@ def generate_table(hv, distribution_f0):
         row0 = html.Tr([
             html.Td(""),
             html.Td(html.Div([u"\u03bc"]),
-                    id="mean", title="Mean"),
+                    id="med"),
             html.Td(html.Div([u"\u03c3"]),
-                    id="std", title="Standard Deviation"),
+                    id="std"),
         ], style=head_style)
 
         row1 = html.Tr([
             html.Td(html.Div(['f', html.Sub('0')]),
-                    id="f0_normal", title="Fundamental Site Frequency"),
+                    id="f0"),
             html.Td(str(hv.mean_f0_frq(distribution_f0))[:4]+" Hz"),
             html.Td(str(hv.std_f0_frq(distribution_f0))[:4]),
         ], style=row_style)
 
         row2 = html.Tr([
             html.Td(html.Div(['T', html.Sub('0')]),
-                    id="T0_normal", title="Fundamental Site Period - Noncomputable"),
+                    id="T0"),
             html.Td("-"),
             html.Td("-"),
         ], style=row_style)
@@ -658,7 +661,8 @@ def generate_table(hv, distribution_f0):
      Output('hv-download', 'download'),
      Output('geopsy-download', 'href'),
      Output('geopsy-download', 'download'),
-     Output('results-tab', 'disabled')],
+     Output('results-tab', 'disabled'),
+     Output('tooltips', 'children'),],
     [Input('calculate-button', 'n_clicks')],
     [State('filename-reference', 'children'),
      State('hidden-file-contents', 'children'),
@@ -918,6 +922,29 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
 
         table_label_style = {"margin-top": "0.5em", "margin-bottom": "0.25em"}
 
+        if distribution_f0 == "log-normal":
+            med_title = "Log-Normal Median"
+            std_title = "Log-Normal Standard Deviation"
+        else:
+            med_title = "Mean"
+            std_title = "Standard Deviation"
+        tooltips = [dbc.Tooltip(
+                        "Fundamental Site Frequency",
+                        id="fund_site_freq_tooltip",
+                        target="f0",),
+                    dbc.Tooltip(
+                        "Fundamental Site Period",
+                        id="fund_site_period_tooltip",
+                        target="T0"),
+                    dbc.Tooltip(
+                        med_title,
+                        id="med_tooltip",
+                        target="med"),
+                    dbc.Tooltip(
+                        std_title,
+                        id="std_tooltip",
+                        target="std")]
+
         if rejection_bool:
             return (out_url,
                     (html.H6("Window Information:"), dbc.Table(window_table,
@@ -935,7 +962,8 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
                     hvsrpy_name,
                     geopsy_downloadable,
                     geopsy_name,
-                    False)
+                    False,
+                    tooltips)
         else:
             return (out_url,
                     (html.H6("Window Information:"), dbc.Table(window_table,
@@ -949,7 +977,8 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
                     hvsrpy_name,
                     geopsy_downloadable,
                     geopsy_name,
-                    False)
+                    False,
+                    tooltips)
     else:
         raise PreventUpdate
 
