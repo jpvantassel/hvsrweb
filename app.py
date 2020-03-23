@@ -8,6 +8,7 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
+import dash_table
 from dash.exceptions import PreventUpdate
 from dash.dependencies import Input, Output, State
 from flask import Flask
@@ -585,75 +586,60 @@ def generate_table(hv, distribution_f0):
         row0 = html.Tr([
             html.Td(""),
             html.Td(html.Div(["LM"]),
-                    id="log_median"),
+                    id="log_median", title="Log-Normal Median"),
                     # style=td_style),
             html.Td(html.Div([u"\u03c3", html.Sub('ln')]),
-                    id="log_std"),
+                    id="log_std", title="Log-Normal Standard Deviation"),
                     # style=td_style),
-            dbc.Tooltip("Log-Normal Median",
-                        target="log_median"),
-            dbc.Tooltip("Log-Normal Standard Deviation",
-                        target="log_std"),
         ], style=head_style)
 
         row1 = html.Tr([
             html.Td(html.Div(['f', html.Sub('0')]),
-                    id="f0_lognormal"),
+                    id="f0_lognormal", title="Fundamental Site Frequency"),
                     # style=td_style),
             html.Td(str(hv.mean_f0_frq(distribution_f0))[:4]+" Hz"),
                     # style=td_style),
             html.Td(str(hv.std_f0_frq(distribution_f0))[:4]),
                     # style=td_style),
-            dbc.Tooltip("Fundamental Site Frequency",
-                        target="f0_lognormal"),
         ], style=row_style)
 
         row2 = html.Tr([
             html.Td(html.Div(['T', html.Sub('0')]),
-                    id="T0_lognormal"),
+                    id="T0_lognormal", title="Fundamental Site Period"),
                     # style=td_style),
             html.Td(str((1/hv.mean_f0_frq(distribution_f0)))[:4]+" s"),
                     # style=td_style),
             html.Td(str(hv.std_f0_frq(distribution_f0))[:4]),
                     # style=td_style),
-            dbc.Tooltip("Fundamental Site Period",
-                        target="T0_lognormal"),
         ], style=row_style)
 
     elif distribution_f0 == "normal":
         row0 = html.Tr([
             html.Td(""),
             html.Td(html.Div([u"\u03bc"]),
-                    id="mean"),
+                    id="mean", title="Mean"),
             html.Td(html.Div([u"\u03c3"]),
-                    id="std"),
-            dbc.Tooltip("Mean",
-                        target="mean"),
-            dbc.Tooltip("Standard Deviation",
-                        target="std"),
+                    id="std", title="Standard Deviation"),
         ], style=head_style)
 
         row1 = html.Tr([
             html.Td(html.Div(['f', html.Sub('0')]),
-                    id="f0_normal"),
+                    id="f0_normal", title="Fundamental Site Frequency"),
             html.Td(str(hv.mean_f0_frq(distribution_f0))[:4]+" Hz"),
             html.Td(str(hv.std_f0_frq(distribution_f0))[:4]),
-            dbc.Tooltip("Fundamental Site Frequency",
-                        target="f0_normal"),
         ], style=row_style)
 
         row2 = html.Tr([
             html.Td(html.Div(['T', html.Sub('0')]),
-                    id="T0_normal"),
+                    id="T0_normal", title="Fundamental Site Period - Noncomputable"),
             html.Td("-"),
             html.Td("-"),
-            dbc.Tooltip("Fundamental Site Period - Noncomputable",
-                        target="T0_normal"),
         ], style=row_style)
 
     table_body = [html.Tbody([row1, row2])]
     table = dbc.Table([html.Thead(row0)] + table_body, bordered=True,
                       hover=True, className="mb-0", style={"padding":"0"})
+
     return table
 
 
