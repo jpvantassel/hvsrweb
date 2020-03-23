@@ -371,7 +371,7 @@ results_tab = dbc.Card(
                 dbc.Col([
                     html.A(
                         dbc.Button("Save Figure", color="primary",
-                                   id="save_figure-button", style=button_style),
+                                   id="save_figure-button", style={"padding-top":"17px", "padding-bottom":"17px", "width":"100%"}),
                         id='figure-download', download="", href="", target="_blank"),
                 ]),
                 dbc.Col([
@@ -402,6 +402,10 @@ results_tab = dbc.Card(
             # html.P(""),
             html.Div(id='after-rejection-table',
                      style={"font-size": "12px"}),
+            html.Div([
+                html.P("Want more functionailty? See the ", style={"display":"inline"}),
+                html.A("full Python package.", href="https://github.com/jpvantassel/hvsrpy")
+            ]),
         ]),
     className="mt-3",
 )
@@ -498,7 +502,7 @@ app.layout = html.Div(
         html.Div(
             id="banner",
             className="banner",
-            children=[html.Img(src=app.get_asset_url("hvsr_app_logo.png"))],
+            children=[html.Img(src=app.get_asset_url("hvsr_app_header.png"))],
         ),
         body,
         html.Footer("© 2019-2020 Dana M. Brannon & Joseph P. Vantassel")
@@ -841,6 +845,7 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
                                     html.Td(str(windowlength)+"s")], style={"font-size": "16px"})
                     row2 = html.Tr([html.Td("No. of iterations"), html.Td(
                         str(c_iter)+" of "+str(n_iteration)+" allowed.")], style={"font-size": "16px"})
+                    f0mc_before = hv.mc_peak_frq(distribution_mc)
 
                 elif title == "After Rejection":
                     table_after_rejection = generate_table(hv, distribution_f0)
@@ -849,6 +854,7 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
                     row3 = html.Tr([html.Td("No. of rejected windows"), html.Td(
                         str(len(hv.rejected_window_indices)) + " of " + str(sensor.ns.n_windows))], style={"font-size": "16px"})
                     window_table = [html.Tbody([row1, row2, row3])]
+                    f0mc_after = hv.mc_peak_frq(distribution_mc)
             else:
                 table_no_rejection = generate_table(hv, distribution_f0)
                 # Create Window Information Table
@@ -859,6 +865,7 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
                 window_table = [html.Tbody([row1, row2])]
 
                 fig.legend(loc="upper center", bbox_to_anchor=(0.75, 0.3))
+                f0mc = hv.mc_peak_frq(distribution_mc)
                 break
             ax.set_title(title)
 
@@ -918,10 +925,10 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
                                                                hover=True)),
                     (html.H6("Statistics Before Rejection:",
                              style=table_label_style),
-                     table_before_rejection),
+                     table_before_rejection, html.P("Frequency of peak mean H/V curve: " + str(f0mc_before)[:4])),
                     (html.H6("Statistics After Rejection:",
                              style=table_label_style),
-                     table_after_rejection),
+                     table_after_rejection, html.P("Frequency of peak mean H/V curve: " + str(f0mc_after)[:4])),
                     out_url,
                     fig_name,
                     hvsrpy_downloadable,
@@ -934,7 +941,7 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
                     (html.H6("Window Information:"), dbc.Table(window_table,
                                                                bordered=True)),
                     (html.H6("Statistics:", style=table_label_style),
-                     table_no_rejection),
+                     table_no_rejection, html.P("Frequency of peak mean H/V curve: " + str(f0mc)[:4])),
                     ([]),
                     out_url,
                     fig_name,
@@ -948,5 +955,5 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
 
 
 if __name__ == "__main__":
-    # app.run_server(debug=True)#, port=8888)
-    server.run("0.0.0.0")
+    app.run_server(debug=True)#, port=8888)
+    # server.run("0.0.0.0")
