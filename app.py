@@ -432,7 +432,7 @@ body = dbc.Container([
                     ),
                     ],
                     md=10,
-                    style={"padding-bottom": "20px", }),
+                    style={"padding-bottom": "10px", }),
             # Column2_2
             dbc.Col([
                     dbc.Button("Calculate", id="calculate-button", color="primary",
@@ -474,13 +474,13 @@ body = dbc.Container([
         dbc.Col([
             dbc.Row([
                 html.Div([html.Img(id='cur_plot', src='', style={
-                         "width": "83%"})], id='plot_div')
+                         "width": "95%"})], id='plot_div')
             ]),
         ], md=5),
     ]),
 
     html.Div(id='hidden-file-contents', style={"display": "none"}),
-], className="mt-4 mr-0", fluid=True)
+], className="mt-4 mr-0", style={"margin-top":"0"}, fluid=True)
 
 server = Flask(__name__)
 app = dash.Dash(server=server, external_stylesheets=[dbc.themes.BOOTSTRAP])
@@ -500,12 +500,7 @@ app.layout = html.Div(
             children=[html.Img(src=app.get_asset_url("hvsr_app_logo.png"))],
         ),
         body,
-        html.Footer([
-        # html.Div([
-            html.Li("© 2019-2020 Dana M. Brannon & Joseph P. Vantassel",
-                    style={"color": "gray"})
-        ])
-            # ])
+        html.Footer("© 2019-2020 Dana M. Brannon & Joseph P. Vantassel")
     ],
 )
 
@@ -584,17 +579,17 @@ def generate_table(hv, distribution_f0):
     """Generate output tables depending on user specifications."""
     head_style = {"font-size": "16px", "padding":"0.5px"}
     row_style = {"font-size": "16px", "padding":"0.5px"}
-    td_style = {"padding":"0px"}
+    # td_style = {"padding":"0px"}
 
     if distribution_f0 == "log-normal":
         row0 = html.Tr([
             html.Td(""),
             html.Td(html.Div(["LM"]),
-                    id="log_median",
-                    style=td_style),
+                    id="log_median"),
+                    # style=td_style),
             html.Td(html.Div([u"\u03c3", html.Sub('ln')]),
-                    id="log_std",
-                    style=td_style),
+                    id="log_std"),
+                    # style=td_style),
             dbc.Tooltip("Log-Normal Median",
                         target="log_median"),
             dbc.Tooltip("Log-Normal Standard Deviation",
@@ -603,24 +598,24 @@ def generate_table(hv, distribution_f0):
 
         row1 = html.Tr([
             html.Td(html.Div(['f', html.Sub('0')]),
-                    id="f0_lognormal",
-                    style=td_style),
-            html.Td(str(hv.mean_f0_frq(distribution_f0))[:4]+" Hz",
-                    style=td_style),
-            html.Td(str(hv.std_f0_frq(distribution_f0))[:4],
-                    style=td_style),
+                    id="f0_lognormal"),
+                    # style=td_style),
+            html.Td(str(hv.mean_f0_frq(distribution_f0))[:4]+" Hz"),
+                    # style=td_style),
+            html.Td(str(hv.std_f0_frq(distribution_f0))[:4]),
+                    # style=td_style),
             dbc.Tooltip("Fundamental Site Frequency",
                         target="f0_lognormal"),
         ], style=row_style)
 
         row2 = html.Tr([
             html.Td(html.Div(['T', html.Sub('0')]),
-                    id="T0_lognormal",
-                    style=td_style),
-            html.Td(str((1/hv.mean_f0_frq(distribution_f0)))[:4]+" s",
-                    style=td_style),
-            html.Td(str(hv.std_f0_frq(distribution_f0))[:4],
-                    style=td_style),
+                    id="T0_lognormal"),
+                    # style=td_style),
+            html.Td(str((1/hv.mean_f0_frq(distribution_f0)))[:4]+" s"),
+                    # style=td_style),
+            html.Td(str(hv.std_f0_frq(distribution_f0))[:4]),
+                    # style=td_style),
             dbc.Tooltip("Fundamental Site Period",
                         target="T0_lognormal"),
         ], style=row_style)
