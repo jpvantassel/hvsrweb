@@ -162,7 +162,7 @@ frequency_tab = dbc.Card(
                     target="minf-tooltip-target",
                 ),
                 dbc.Input(id="minf-input", type="number",
-                          value=0.2, min=0.01, max=30, step=0.1),
+                          value=0.2, min=0.01, max=30, step=0.01),
 
                 # Resampling: Maximum Frequency
                 html.P([
