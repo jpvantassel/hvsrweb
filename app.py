@@ -41,7 +41,6 @@ time_tab = dbc.Card(
             ),
             dbc.Input(id="windowlength-input", type="number",
                       value=60, min=0, max=600, step=1),
-            # html.P(""),
 
             # Width of cosine taper
             html.P([
@@ -58,7 +57,6 @@ time_tab = dbc.Card(
             ),
             dbc.Input(id="width-input", type="number",
                       value=0.1, min=0., max=1.0, step=0.1),
-            # html.P(""),
 
             # Butterworth Filter
             html.P([
@@ -79,7 +77,6 @@ time_tab = dbc.Card(
                     {"label": "Yes", "value": "True"},
                     {"label": "No", "value": "False"},
                 ], value="False"),
-            # html.P(""),
 
             dbc.Container([
                 # Butterworth Filter: Low Frequency
@@ -96,7 +93,6 @@ time_tab = dbc.Card(
                 ),
                 dbc.Input(id="flow-input", type="number",
                           value=0.1, min=0, max=1000, step=0.01),
-                # html.P(""),
 
                 # Butterworth Filter: High Frequency
                 html.P([
@@ -112,7 +108,6 @@ time_tab = dbc.Card(
                 ),
                 dbc.Input(id="fhigh-input", type="number",
                           value=30, min=0, max=600, step=1),
-                # html.P(""),
 
                 # Butterworth Filter: Filter Order
                 html.P([
@@ -128,8 +123,6 @@ time_tab = dbc.Card(
                 ),
                 dbc.Input(id="forder-input", type="number",
                           value=5, min=0, max=600, step=1),
-                # html.P(""),
-                # html.Hr(style={"border-top": "0.5px solid #bababa"}),
             ], className="ml-2 mr-0", id="bandpass-options"),
         ]),
     className="mt-3",
@@ -153,8 +146,6 @@ frequency_tab = dbc.Card(
             ),
             dbc.Input(id="bandwidth-input", type="number",
                       value=40, min=0, max=600, step=1),
-            # html.P(""),
-            # html.Hr(style={"border-top": "1px solid #bababa"}),
 
             html.P("Resampling:"),
             dbc.Container([
@@ -171,8 +162,7 @@ frequency_tab = dbc.Card(
                     target="minf-tooltip-target",
                 ),
                 dbc.Input(id="minf-input", type="number",
-                          value=0.2, min=0.2, max=10, step=0.1),
-                # html.P(""),
+                          value=0.2, min=0.01, max=30, step=0.1),
 
                 # Resampling: Maximum Frequency
                 html.P([
@@ -188,7 +178,6 @@ frequency_tab = dbc.Card(
                 ),
                 dbc.Input(id="maxf-input", type="number",
                           value=20, min=1, max=100, step=1),
-                # html.P(""),
 
                 # Resampling: Number of Frequencies
                 html.P([
@@ -203,8 +192,7 @@ frequency_tab = dbc.Card(
                     target="nf-tooltip-target",
                 ),
                 dbc.Input(id="nf-input", type="number",
-                          value=512, min=2, max=10000, step=1),
-                # html.P(""),
+                          value=128, min=32, max=4096, step=1),
 
                 # Resampling: Type
                 html.P([
@@ -255,7 +243,6 @@ hv_tab = dbc.Card(
                 ],
                 value="geometric-mean",
             ),
-            # html.P(" "),
 
             # Distribution of f0
             html.P([
@@ -277,7 +264,6 @@ hv_tab = dbc.Card(
                     {"label": "Lognormal", "value": "log-normal"},
                     {"label": "Normal", "value": "normal"},
                 ], value='log-normal'),
-            # html.P(""),
 
             # Distribution of Median Curve
             html.P([
@@ -298,7 +284,6 @@ hv_tab = dbc.Card(
                     {"label": "Lognormal", "value": "log-normal"},
                     {"label": "Normal", "value": "normal"},
                 ], value="log-normal"),
-            # html.P(""),
 
             # Frequency-Domain Window-Rejection Algorithm
             html.P([
@@ -319,7 +304,6 @@ hv_tab = dbc.Card(
                     {"label": "Yes", "value": "True"},
                     {"label": "No", "value": "False"},
                 ], value="True"),
-            # html.P(""),
 
             dbc.Container([
                 # Number of Standard Deviations
@@ -338,7 +322,6 @@ hv_tab = dbc.Card(
                 ),
                 dbc.Input(id="n-input", type="number",
                           value=2, min=1, max=4, step=0.5),
-                # html.P(""),
 
                 # Maximum Number of Iterations
                 html.P([
@@ -355,7 +338,6 @@ hv_tab = dbc.Card(
                 ),
                 dbc.Input(id="n_iteration-input", type="number",
                           value=50, min=5, max=75, step=1),
-                # html.P(""),
             ],
                 className="ml-2 mr-0",
                 id="rejection-options"),
@@ -371,7 +353,7 @@ results_tab = dbc.Card(
                 dbc.Col([
                     html.A(
                         dbc.Button("Save Figure", color="primary",
-                                   id="save_figure-button", style={"padding-top":"17px", "padding-bottom":"17px", "width":"100%"}),
+                                   id="save_figure-button", style={"padding-top": "17px", "padding-bottom": "17px", "width": "100%"}),
                         id='figure-download', download="", href="", target="_blank"),
                 ]),
                 dbc.Col([
@@ -394,20 +376,20 @@ results_tab = dbc.Card(
                 ]),
             ]),
 
-            # html.P(""),
             html.Div(id='window-information-table',
                      style={"font-size": "12px"}),
             html.Div(id='before-rejection-table',
                      style={"font-size": "12px"}),
-            # html.P(""),
             html.Div(id='after-rejection-table',
                      style={"font-size": "12px"}),
 
             html.Div(id="tooltips"),
 
             html.Div([
-                html.P("Want more functionailty? See the ", style={"display":"inline"}),
-                html.A("full Python package.", href="https://github.com/jpvantassel/hvsrpy")
+                html.P("Looking for more? See the ",
+                       style={"display": "inline"}),
+                html.A("full Python package.",
+                       href="https://github.com/jpvantassel/hvsrpy")
             ]),
         ]),
     className="mt-3",
@@ -488,7 +470,7 @@ body = dbc.Container([
     ]),
 
     html.Div(id='hidden-file-contents', style={"display": "none"}),
-], className="mt-4 mr-0", style={"margin-top":"0"}, fluid=True)
+], className="mt-4 mr-0", style={"margin-top": "0"}, fluid=True)
 
 server = Flask(__name__)
 app = dash.Dash(server=server, external_stylesheets=[dbc.themes.BOOTSTRAP])
@@ -585,39 +567,30 @@ def fig_to_uri(in_fig, close_all=True, **save_args):
 
 def generate_table(hv, distribution_f0):
     """Generate output tables depending on user specifications."""
-    head_style = {"font-size": "16px", "padding":"0.5px"}
-    row_style = {"font-size": "16px", "padding":"0.5px"}
-    # td_style = {"padding":"0px"}
+    head_style = {"font-size": "16px", "padding": "0.5px"}
+    row_style = {"font-size": "16px", "padding": "0.5px"}
 
     if distribution_f0 == "log-normal":
         row0 = html.Tr([
             html.Td(""),
             html.Td(html.Div(["LM"]),
                     id="med"),
-                    # style=td_style),
             html.Td(html.Div([u"\u03c3", html.Sub('ln')]),
                     id="std"),
-                    # style=td_style),
         ], style=head_style)
 
         row1 = html.Tr([
             html.Td(html.Div(['f', html.Sub('0')]),
-                    id="f0", style={"padding-left":"5px", "padding-right":"5px"}),
-                    # style=td_style),
+                    id="f0", style={"padding-left": "5px", "padding-right": "5px"}),
             html.Td(str(hv.mean_f0_frq(distribution_f0))[:4]+" Hz"),
-                    # style=td_style),
             html.Td(str(hv.std_f0_frq(distribution_f0))[:4]),
-                    # style=td_style),
         ], style=row_style)
 
         row2 = html.Tr([
             html.Td(html.Div(['T', html.Sub('0')]),
                     id="T0"),
-                    # style=td_style),
             html.Td(str((1/hv.mean_f0_frq(distribution_f0)))[:4]+" s"),
-                    # style=td_style),
             html.Td(str(hv.std_f0_frq(distribution_f0))[:4]),
-                    # style=td_style),
         ], style=row_style)
 
     elif distribution_f0 == "normal":
@@ -645,7 +618,7 @@ def generate_table(hv, distribution_f0):
 
     table_body = [html.Tbody([row1, row2])]
     table = dbc.Table([html.Thead(row0)] + table_body, bordered=True,
-                      hover=True, className="mb-0", style={"padding":"0"})
+                      hover=True, className="mb-0", style={"padding": "0"})
 
     return table
 
@@ -662,7 +635,7 @@ def generate_table(hv, distribution_f0):
      Output('geopsy-download', 'href'),
      Output('geopsy-download', 'download'),
      Output('results-tab', 'disabled'),
-     Output('tooltips', 'children'),],
+     Output('tooltips', 'children'), ],
     [Input('calculate-button', 'n_clicks')],
     [State('filename-reference', 'children'),
      State('hidden-file-contents', 'children'),
@@ -929,21 +902,27 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
             med_title = "Mean"
             std_title = "Standard Deviation"
         tooltips = [dbc.Tooltip(
-                        "Fundamental Site Frequency",
-                        id="fund_site_freq_tooltip",
-                        target="f0",),
-                    dbc.Tooltip(
-                        "Fundamental Site Period",
-                        id="fund_site_period_tooltip",
-                        target="T0"),
-                    dbc.Tooltip(
-                        med_title,
-                        id="med_tooltip",
-                        target="med"),
-                    dbc.Tooltip(
-                        std_title,
-                        id="std_tooltip",
-                        target="std")]
+            "Fundamental Site Frequency",
+            id="fund_site_freq_tooltip",
+            target="f0",),
+            dbc.Tooltip(
+            "Fundamental Site Period",
+            id="fund_site_period_tooltip",
+            target="T0"),
+            dbc.Tooltip(
+            med_title,
+            id="med_tooltip",
+            target="med"),
+            dbc.Tooltip(
+            std_title,
+            id="std_tooltip",
+            target="std")]
+
+        mc_style = {"font-size": "14px"}
+        if distribution_mc == "normal":
+            fmc_txt = "Peak frequency of mean curve, f"
+        else:
+            fmc_txt = "Peak frequency of median curve, f"
 
         if rejection_bool:
             return (out_url,
@@ -952,10 +931,12 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
                                                                hover=True)),
                     (html.H6("Statistics Before Rejection:",
                              style=table_label_style),
-                     table_before_rejection, html.P("Frequency of peak mean H/V curve: " + str(f0mc_before)[:4])),
+                     table_before_rejection,
+                     html.Div([fmc_txt, html.Sub("0,mc"), ": ", str(f0mc_before)[:4]], style=mc_style)),
                     (html.H6("Statistics After Rejection:",
                              style=table_label_style),
-                     table_after_rejection, html.P("Frequency of peak mean H/V curve: " + str(f0mc_after)[:4])),
+                     table_after_rejection,
+                     html.Div([fmc_txt, html.Sub("0,mc"),  ": ", str(f0mc_after)[:4]], style=mc_style)),
                     out_url,
                     fig_name,
                     hvsrpy_downloadable,
@@ -969,7 +950,8 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
                     (html.H6("Window Information:"), dbc.Table(window_table,
                                                                bordered=True)),
                     (html.H6("Statistics:", style=table_label_style),
-                     table_no_rejection, html.P("Frequency of peak mean H/V curve: " + str(f0mc)[:4])),
+                     table_no_rejection,
+                     html.Div([fmc_txt, html.Sub("0,mc"),  ": ", str(f0mc_before)[:4]], style=mc_style)),
                     ([]),
                     out_url,
                     fig_name,
@@ -984,5 +966,5 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
 
 
 if __name__ == "__main__":
-    app.run_server(debug=True)#, port=8888)
+    app.run_server(debug=True)  # , port=8888)
     # server.run("0.0.0.0")
