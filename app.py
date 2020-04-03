@@ -240,9 +240,30 @@ hv_tab = dbc.Card(
                 options=[
                     {"label": "Squared-Average", "value": "squared-average"},
                     {"label": "Geometric-Mean", "value": "geometric-mean"},
+                    {"label": "Azimuth", "value": "azimuth"},
                 ],
                 value="geometric-mean",
             ),
+
+            dbc.Container([
+                # Azimuth degrees
+                html.P([
+                    html.Span(
+                        "Azimuth:",
+                        id="azimuth-tooltip-target",
+                        style=default_span_style,
+                    ),
+                ], style=default_p_style),
+                dbc.Tooltip(
+                    "Azimuth measured in degrees clockwise from North "
+                    "(sensor is assumed to be oriented due North).",
+                    target="azimuth-tooltip-target",
+                ),
+                dbc.Input(id="azimuth-input", type="number",
+                          value=90, min=0, max=179, step=1),
+            ],
+            className="ml-2 mr-0",
+            id="azimuth-options"),
 
             # Distribution of f0
             html.P([
@@ -539,6 +560,14 @@ def set_rejection_options_style(value):
     elif value == "False":
         return {'display': 'none'}
 
+@app.callback(Output('azimuth-options', 'style'),
+              [Input('method-input', 'value')])
+def set_azimuth_options_style(value):
+    """Show/hide Azimuth options depending on user input."""
+    if value == "azimuth":
+        return {'display': 'block'}
+    else:
+        return {'display': 'none'}
 
 def parse_data(contents, filename):
     """Parse uploaded data and return a Sensor3c object."""
@@ -655,10 +684,11 @@ def generate_table(hv, distribution_f0):
      State('rejection_bool-input', 'value'),
      State('n-input', 'value'),
      State('distribution_f0-input', 'value'),
-     State('n_iteration-input', 'value')]
+     State('n_iteration-input', 'value'),
+     State('azimuth-input', 'value')]
 )
 def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, fhigh, forder, minf, maxf, nf, res_type,
-                           windowlength, width, bandwidth, method, distribution_mc, rejection_bool, n, distribution_f0, n_iteration):
+                           windowlength, width, bandwidth, method, distribution_mc, rejection_bool, n, distribution_f0, n_iteration, azimuth_degrees):
     """Create figure and tables from user-uploaded file.
 
     Determine if user is requesting a demo or uploading a file. Run calculation and create figure and
