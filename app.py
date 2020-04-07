@@ -21,6 +21,7 @@ matplotlib.use('Agg')
 default_span_style = {"cursor": "context-menu",
                       "padding": "1px", "margin-top": "0em"}
 default_p_style = {"margin-top": "1em", "margin-bottom": 0}
+default_card_style = {"height":"65vh"}
 
 # Bootstrap Layout:
 time_tab = dbc.Card(
@@ -125,7 +126,7 @@ time_tab = dbc.Card(
                           value=5, min=0, max=600, step=1),
             ], className="ml-2 mr-0", id="bandpass-options"),
         ]),
-    className="mt-3",
+    className="mt-3", style=default_card_style
 )
 
 frequency_tab = dbc.Card(
@@ -216,7 +217,7 @@ frequency_tab = dbc.Card(
                 )],
                 className="ml-2 mr-0"),
         ]),
-    className="mt-3",
+    className="mt-3", style=default_card_style
 )
 
 hv_tab = dbc.Card(
@@ -363,7 +364,7 @@ hv_tab = dbc.Card(
                 className="ml-2 mr-0",
                 id="rejection-options"),
         ]),
-    className="mt-3",
+    className="mt-3", style=default_card_style
 )
 
 button_style = {"width": "100%"}
@@ -413,7 +414,7 @@ results_tab = dbc.Card(
                        href="https://github.com/jpvantassel/hvsrpy")
             ]),
         ]),
-    className="mt-3",
+    className="mt-3", style=default_card_style
 )
 
 body = dbc.Container([
@@ -477,7 +478,7 @@ body = dbc.Container([
                     dbc.Tab(hv_tab, label="H/V"),
                     dbc.Tab(results_tab, label="Results",
                             id="results-tab", disabled=True),
-                ]),
+                ], ),
             ],
             md=4,
         ),
