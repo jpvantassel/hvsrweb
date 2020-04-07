@@ -20,7 +20,7 @@ matplotlib.use('Agg')
 # Style Settings
 default_span_style = {"cursor": "context-menu",
                       "padding": "1px", "margin-top": "0em"}
-default_p_style = {"margin-top": "1em", "margin-bottom": 0}
+default_p_style = {"margin-top": "0.5em", "margin-bottom": "0em"}
 default_card_style = {"height":"65vh"}
 
 # Bootstrap Layout:
@@ -129,6 +129,8 @@ time_tab = dbc.Card(
     className="mt-3", style=default_card_style
 )
 
+mod_span_style = dict(default_span_style)
+mod_span_style["padding"] = "0"
 frequency_tab = dbc.Card(
     dbc.CardBody(
         [
@@ -148,14 +150,14 @@ frequency_tab = dbc.Card(
             dbc.Input(id="bandwidth-input", type="number",
                       value=40, min=0, max=600, step=1),
 
-            html.P("Resampling:"),
+            html.P("Resampling:", style=default_p_style),
             dbc.Container([
                 # Resampling: Minumum Frequency
                 html.P([
                     html.Span(
                         "Minimum Frequency (Hz):",
                         id="minf-tooltip-target",
-                        style=default_span_style,
+                        style=mod_span_style,
                     ),
                 ], style=default_p_style),
                 dbc.Tooltip(
@@ -367,7 +369,8 @@ hv_tab = dbc.Card(
     className="mt-3", style=default_card_style
 )
 
-button_style = {"width": "100%"}
+button_style = {"padding": "5px", "width": "100%"}
+col_style = {"padding":"5px"}
 results_tab = dbc.Card(
     dbc.CardBody(
         [
@@ -375,9 +378,9 @@ results_tab = dbc.Card(
                 dbc.Col([
                     html.A(
                         dbc.Button("Save Figure", color="primary",
-                                   id="save_figure-button", style={"padding-top": "17px", "padding-bottom": "17px", "width": "100%"}),
+                                   id="save_figure-button", style=button_style),
                         id='figure-download', download="", href="", target="_blank"),
-                ]),
+                ], style=col_style),
                 dbc.Col([
                     html.A(
                         dbc.Button("Save as hvsrpy", color="primary",
@@ -386,7 +389,7 @@ results_tab = dbc.Card(
                     dbc.Tooltip(
                         "Save results in the hvsrpy-style text format.",
                         target="save_hvsrpy-button"),
-                ]),
+                ], style=col_style),
                 dbc.Col([
                     html.A(
                         dbc.Button("Save as geopsy", color="primary",
@@ -395,7 +398,7 @@ results_tab = dbc.Card(
                     dbc.Tooltip(
                         "Save results in the geopsy-style text format.",
                         target="save_geopsy-button"),
-                ]),
+                ], style=col_style),
             ]),
 
             html.Div(id='window-information-table',
@@ -409,7 +412,7 @@ results_tab = dbc.Card(
 
             html.Div([
                 html.P("Looking for more? See the ",
-                       style={"display": "inline"}),
+                       style=dict(**default_p_style, **{"display": "inline"})),
                 html.A("full Python package.",
                        href="https://github.com/jpvantassel/hvsrpy")
             ]),
@@ -497,7 +500,7 @@ body = dbc.Container([
 server = Flask(__name__)
 app = dash.Dash(server=server, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
-app.title = 'hvsrpy-app'
+app.title = 'Spectral: A web-interface to hvsrpy'
 app.layout = html.Div(
     [
         html.Div([
@@ -780,7 +783,7 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
         resampling = {"minf": minf, "maxf": maxf,
                       "nf": nf, "res_type": res_type}
         hv = sensor.hv(windowlength, bp_filter, width,
-                       bandwidth, resampling, method)
+                       bandwidth, resampling, method, azimuth=azimuth_degrees)
         # TODO (dmb): Fix this so it doesn't need a monkey patch
         hv.meta["File Name"] = filename
 
@@ -949,7 +952,7 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
             id="std_tooltip",
             target="std")]
 
-        mc_style = {"font-size": "14px"}
+        mc_style = {"font-size": "16px"}
         if distribution_mc == "normal":
             fmc_txt = "Peak frequency of mean curve, f"
         else:
