@@ -420,7 +420,25 @@ results_tab = dbc.Card(
 body = dbc.Container([
     # Row for Upload Bar and Calc/Demo Buttons
     dbc.Row([
-            # Column1_1
+            # Cemo/Calc Buttons Column
+            dbc.Col([
+                    dbc.Button("Demo", id="demo-button", color="secondary",
+                               size="lg", style={"padding-left":"30px", "padding-right":"30px"}),
+                    dbc.Tooltip(
+                        "Load a file supplied by us!",
+                        target="demo-button",
+                    ),
+                    ], md=1, ),
+            dbc.Col([
+                    dbc.Button("Calculate", id="calculate-button", color="primary",
+                               size="lg"),
+                    dbc.Tooltip(
+                        "Perform HVSR calculation with the current file and settings",
+                        target="calculate-button",
+                    ),
+                    ], md=1, ),
+
+            # Upload Bar Column
             dbc.Col([
                     dcc.Upload(
                         id="upload-bar",
@@ -444,24 +462,7 @@ body = dbc.Container([
                     ),
                     ],
                     md=10,
-                    style={"padding-bottom": "10px", }),
-            # Column2_2
-            dbc.Col([
-                    dbc.Button("Calculate", id="calculate-button", color="primary",
-                               size="lg"),
-                    dbc.Tooltip(
-                        "Perform HVSR calculation with the current file and settings",
-                        target="calculate-button",
-                    ),
-                    ], md=1, ),
-            dbc.Col([
-                    dbc.Button("Demo", id="demo-button", color="secondary",
-                               size="lg", className="ml-1"),
-                    dbc.Tooltip(
-                        "Load a file supplied by us!",
-                        target="demo-button",
-                    ),
-                    ], md=1, ),
+                    style={"padding-bottom": "10px"}),
             ]),
     # Row for Current File, Settings, and Figure
     dbc.Row([
@@ -539,7 +540,7 @@ def store_filename(contents, filename, n_clicks):
     if filename:
         return [filename, {"color": "#34a1eb", "padding": "4px", "margin-left": "4px", "display": "inline"}, contents]
     if n_clicks != None:
-        return ["Demo file loaded, press calculate to continue!", {"color": "#34a1eb", "padding": "4px", "margin-left": "4px", "display": "inline"}, "data/UT.STN12.A2_C150.miniseed"]
+        return ["File loaded, press calculate to continue!", {"color": "#34a1eb", "padding": "4px", "margin-left": "4px", "display": "inline", "font-weight": "bold"}, "data/UT.STN12.A2_C150.miniseed"]
     else:
         return ["No file has been uploaded.", {"color": "gray", "padding": "4px", "margin-left": "4px", "display": "inline"}, "No contents."]
 
@@ -792,7 +793,7 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
             ax3 = fig.add_subplot(gs[1:4, 3:6])
             ax4 = False
 
-        if filename == "Demo file loaded, press calculate to continue!":
+        if filename == "File loaded, press calculate to continue!":
             sensor = hvsrpy.Sensor3c.from_mseed(contents)
             filename = "Demo file"
         else:
