@@ -21,7 +21,7 @@ matplotlib.use('Agg')
 default_span_style = {"cursor": "context-menu",
                       "padding": "1px", "margin-top": "0em"}
 default_p_style = {"margin-top": "0.5em", "margin-bottom": "0em"}
-default_cardbody_style = {"min-height":"65vh"}
+default_cardbody_style = {"min-height": "65vh"}
 
 # Bootstrap Layout:
 time_tab = dbc.Card(
@@ -126,7 +126,7 @@ time_tab = dbc.Card(
                           value=5, min=0, max=600, step=1),
             ], className="ml-2 mr-0", id="bandpass-options",),
         ], style=default_cardbody_style),
-    className="mt-3", #
+    className="mt-3",
 )
 
 mod_span_style = dict(default_span_style)
@@ -219,7 +219,7 @@ frequency_tab = dbc.Card(
                 )],
                 className="ml-2 mr-0"),
         ], style=default_cardbody_style),
-    className="mt-3", #style=default_card_style
+    className="mt-3",  # style=default_card_style
 )
 
 hv_tab = dbc.Card(
@@ -265,8 +265,8 @@ hv_tab = dbc.Card(
                 dbc.Input(id="azimuth-input", type="number",
                           value=90, min=0, max=179, step=1),
             ],
-            className="ml-2 mr-0",
-            id="azimuth-options"),
+                className="ml-2 mr-0",
+                id="azimuth-options"),
 
             # Distribution of f0
             html.P([
@@ -366,11 +366,11 @@ hv_tab = dbc.Card(
                 className="ml-2 mr-0",
                 id="rejection-options"),
         ], style=default_cardbody_style),
-    className="mt-3", #style=default_card_style
+    className="mt-3",  # style=default_card_style
 )
 
 button_style = {"padding": "5px", "width": "100%"}
-col_style = {"padding":"5px"}
+col_style = {"padding": "5px"}
 results_tab = dbc.Card(
     dbc.CardBody(
         [
@@ -409,12 +409,12 @@ results_tab = dbc.Card(
 
             html.Div([
                 html.P("Looking for more? See the ",
-                       style=dict(**default_p_style, **{"display": "inline", "color":"#495057"})),
+                       style=dict(**default_p_style, **{"display": "inline", "color": "#495057"})),
                 html.A("full Python package.",
                        href="https://github.com/jpvantassel/hvsrpy")
             ], ),
         ], style=default_cardbody_style),
-    className="mt-3", #style=default_card_style
+    className="mt-3",  # style=default_card_style
 )
 
 body = dbc.Container([
@@ -423,7 +423,7 @@ body = dbc.Container([
             # Cemo/Calc Buttons Column
             dbc.Col([
                     dbc.Button("Demo", id="demo-button", color="secondary",
-                               size="lg", style={"padding-left":"30px", "padding-right":"30px"}),
+                               size="lg", style={"padding-left": "30px", "padding-right": "30px"}),
                     dbc.Tooltip(
                         "Load a file supplied by us!",
                         target="demo-button",
@@ -479,15 +479,15 @@ body = dbc.Container([
                     dbc.Tab(hv_tab, label="H/V"),
                     dbc.Tab(results_tab, label="Results",
                             id="results-tab", disabled=True),
-                ], ),#style=tabs_style),
+                ], ),  # style=tabs_style),
             ],
             md=4,
         ),
         # FIGURE
         dbc.Col([
             dbc.Row([
-                html.Div([html.Img(id='cur_plot', src='', style={
-                         "width": "95%"})], id='plot_div')
+                html.Div([html.Img(id='cur_plot', src='', style={"width":"90%", "text-align":"center"})],
+                         id='plot_div')
             ]),
         ], md=5),
     ]),
@@ -513,7 +513,8 @@ app.layout = html.Div(
             children=[html.Img(src=app.get_asset_url("spectral_header.png"))],
         ),
         body,
-        html.Footer(dbc.Container(html.Span("© 2019-2020 Dana M. Brannon & Joseph P. Vantassel", className="text-muted")), className="footer")
+        html.Footer(dbc.Container(html.Span(
+            "© 2019-2020 Dana M. Brannon & Joseph P. Vantassel", className="text-muted")), className="footer")
     ],
 )
 
@@ -570,6 +571,7 @@ def set_azimuth_options_style(value):
         return {'display': 'block'}
     else:
         return {'display': 'none'}
+
 
 def parse_data(contents, filename):
     """Parse uploaded data and return a Sensor3c object."""
@@ -649,9 +651,10 @@ def generate_table(hv, distribution_f0):
 
     table_body = [html.Tbody([row1, row2])]
     table = dbc.Table([html.Thead(row0)] + table_body, bordered=True,
-                      hover=True, className="mb-0", style={"padding": "0", "color":"#495057"})
+                      hover=True, className="mb-0", style={"padding": "0", "color": "#495057"})
 
     return table
+
 
 def create_hrefs(hv, distribution_f0, distribution_mc, filename):
     """Generate hrefs to be put inside hv-download and geopsy-download."""
@@ -675,6 +678,7 @@ def create_hrefs(hv, distribution_f0, distribution_mc, filename):
             geopsy_downloadable = f'data:text/plain;base64,{encoded}'
             geopsy_name = filename.split('.miniseed')[0] + '_geopsy.hv'
     return hvsrpy_downloadable, hvsrpy_name, geopsy_downloadable, geopsy_name
+
 
 @app.callback(
     [Output('cur_plot', 'src'),
@@ -927,7 +931,8 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
         fig_name = filename.split('.miniseed')[0] + '.png'
 
         # Create hrefs to send to html.A links for download
-        hvsrpy_downloadable, hvsrpy_name, geopsy_downloadable, geopsy_name = create_hrefs(hv, distribution_f0, distribution_mc, filename)
+        hvsrpy_downloadable, hvsrpy_name, geopsy_downloadable, geopsy_name = create_hrefs(
+            hv, distribution_f0, distribution_mc, filename)
 
         # table_label_style = {"margin-top": "0.5em", "margin-bottom": "0.25em"}
 
@@ -963,7 +968,7 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
         if rejection_bool:
             return (out_url,
                     (html.P("Window Information:", className="mb-1"),
-                    dbc.Table(window_table, bordered=True, hover=True, style={"color": "#495057"})),
+                     dbc.Table(window_table, bordered=True, hover=True, style={"color": "#495057"})),
                     (html.P("Statistics Before Rejection:", className="mb-1"),
                      table_before_rejection,
                      html.Div([fmc_txt, html.Sub("0,mc"), ": ", str(f0mc_before)[:4]], style=mc_style, className="mb-2")),
@@ -980,7 +985,8 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
                     tooltips)
         else:
             return (out_url,
-                    (html.P("Window Information:", className="mb-1"), dbc.Table(window_table, bordered=True, style={"color": "#495057"})),
+                    (html.P("Window Information:", className="mb-1"),
+                     dbc.Table(window_table, bordered=True, style={"color": "#495057"})),
                     (html.P("Statistics:", className="mb-1"),
                      table_no_rejection,
                      html.Div([fmc_txt, html.Sub("0,mc"),  ": ", str(f0mc_before)[:4]], style=mc_style, className="mb-2")),
