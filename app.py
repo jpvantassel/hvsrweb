@@ -512,7 +512,7 @@ app.layout = html.Div(
             children=[html.Img(src=app.get_asset_url("spectral_header.png"))],
         ),
         body,
-        html.Footer("© 2019-2020 Dana M. Brannon & Joseph P. Vantassel")
+        html.Footer(dbc.Container(html.Span("© 2019-2020 Dana M. Brannon & Joseph P. Vantassel", className="text-muted")), className="footer")
     ],
 )
 
