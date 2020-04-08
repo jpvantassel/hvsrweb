@@ -399,20 +399,17 @@ results_tab = dbc.Card(
                         "Save results in the geopsy-style text format.",
                         target="save_geopsy-button"),
                 ], style=col_style),
-            ]),
+            ], className="mb-2"),
 
-            html.Div(id='window-information-table',
-                     style={"font-size": "12px"}),
-            html.Div(id='before-rejection-table',
-                     style={"font-size": "12px"}),
-            html.Div(id='after-rejection-table',
-                     style={"font-size": "12px"}),
+            html.Div(id='window-information-table'),
+            html.Div(id='before-rejection-table'),
+            html.Div(id='after-rejection-table'),
 
             html.Div(id="tooltips"),
 
             html.Div([
                 html.P("Looking for more? See the ",
-                       style=dict(**default_p_style, **{"display": "inline"})),
+                       style=dict(**default_p_style, **{"display": "inline", "color":"#495057"})),
                 html.A("full Python package.",
                        href="https://github.com/jpvantassel/hvsrpy")
             ]),
@@ -512,7 +509,7 @@ app.layout = html.Div(
         html.Div(
             id="banner",
             className="banner",
-            children=[html.Img(src=app.get_asset_url("hvsr_app_header.png"))],
+            children=[html.Img(src=app.get_asset_url("spectral_header.png"))],
         ),
         body,
         html.Footer("© 2019-2020 Dana M. Brannon & Joseph P. Vantassel")
@@ -651,7 +648,7 @@ def generate_table(hv, distribution_f0):
 
     table_body = [html.Tbody([row1, row2])]
     table = dbc.Table([html.Thead(row0)] + table_body, bordered=True,
-                      hover=True, className="mb-0", style={"padding": "0"})
+                      hover=True, className="mb-0", style={"padding": "0", "color":"#495057"})
 
     return table
 
@@ -952,7 +949,7 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
             id="std_tooltip",
             target="std")]
 
-        mc_style = {"font-size": "16px"}
+        mc_style = {"font-size": "16px", "color": "#495057"}
         if distribution_mc == "normal":
             fmc_txt = "Peak frequency of mean curve, f"
         else:
@@ -960,17 +957,14 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
 
         if rejection_bool:
             return (out_url,
-                    (html.H6("Window Information:"), dbc.Table(window_table,
-                                                               bordered=True,
-                                                               hover=True)),
-                    (html.H6("Statistics Before Rejection:",
-                             style=table_label_style),
+                    (html.P("Window Information:", className="mb-1"),
+                    dbc.Table(window_table, bordered=True, hover=True, style={"color": "#495057"})),
+                    (html.P("Statistics Before Rejection:", className="mb-1"),
                      table_before_rejection,
-                     html.Div([fmc_txt, html.Sub("0,mc"), ": ", str(f0mc_before)[:4]], style=mc_style)),
-                    (html.H6("Statistics After Rejection:",
-                             style=table_label_style),
+                     html.Div([fmc_txt, html.Sub("0,mc"), ": ", str(f0mc_before)[:4]], style=mc_style, className="mb-2")),
+                    (html.P("Statistics After Rejection:", className="mb-1"),
                      table_after_rejection,
-                     html.Div([fmc_txt, html.Sub("0,mc"),  ": ", str(f0mc_after)[:4]], style=mc_style)),
+                     html.Div([fmc_txt, html.Sub("0,mc"),  ": ", str(f0mc_after)[:4]], style=mc_style, className="mb-2")),
                     out_url,
                     fig_name,
                     hvsrpy_downloadable,
