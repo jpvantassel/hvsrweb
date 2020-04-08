@@ -21,7 +21,7 @@ matplotlib.use('Agg')
 default_span_style = {"cursor": "context-menu",
                       "padding": "1px", "margin-top": "0em"}
 default_p_style = {"margin-top": "0.5em", "margin-bottom": "0em"}
-default_card_style = {"height":"65vh"}
+default_cardbody_style = {"min-height":"65vh"}
 
 # Bootstrap Layout:
 time_tab = dbc.Card(
@@ -124,9 +124,9 @@ time_tab = dbc.Card(
                 ),
                 dbc.Input(id="forder-input", type="number",
                           value=5, min=0, max=600, step=1),
-            ], className="ml-2 mr-0", id="bandpass-options"),
-        ]),
-    className="mt-3", style=default_card_style
+            ], className="ml-2 mr-0", id="bandpass-options",),
+        ], style=default_cardbody_style),
+    className="mt-3", #
 )
 
 mod_span_style = dict(default_span_style)
@@ -218,8 +218,8 @@ frequency_tab = dbc.Card(
                     value="log",
                 )],
                 className="ml-2 mr-0"),
-        ]),
-    className="mt-3", style=default_card_style
+        ], style=default_cardbody_style),
+    className="mt-3", #style=default_card_style
 )
 
 hv_tab = dbc.Card(
@@ -365,8 +365,8 @@ hv_tab = dbc.Card(
             ],
                 className="ml-2 mr-0",
                 id="rejection-options"),
-        ]),
-    className="mt-3", style=default_card_style
+        ], style=default_cardbody_style),
+    className="mt-3", #style=default_card_style
 )
 
 button_style = {"padding": "5px", "width": "100%"}
@@ -412,9 +412,9 @@ results_tab = dbc.Card(
                        style=dict(**default_p_style, **{"display": "inline", "color":"#495057"})),
                 html.A("full Python package.",
                        href="https://github.com/jpvantassel/hvsrpy")
-            ]),
-        ]),
-    className="mt-3", style=default_card_style
+            ], ),
+        ], style=default_cardbody_style),
+    className="mt-3", #style=default_card_style
 )
 
 body = dbc.Container([
@@ -478,7 +478,7 @@ body = dbc.Container([
                     dbc.Tab(hv_tab, label="H/V"),
                     dbc.Tab(results_tab, label="Results",
                             id="results-tab", disabled=True),
-                ], ),
+                ], ),#style=tabs_style),
             ],
             md=4,
         ),
@@ -652,6 +652,28 @@ def generate_table(hv, distribution_f0):
 
     return table
 
+def create_hrefs(hv, distribution_f0, distribution_mc, filename):
+    """Generate hrefs to be put inside hv-download and geopsy-download."""
+    for filetype in ["hvsrpy", "geopsy"]:
+        if filetype == "hvsrpy":
+            data = "".join(hv._hvsrpy_style_lines(
+                distribution_f0, distribution_mc))
+        else:
+            data = "".join(hv._geopsy_style_lines(
+                distribution_f0, distribution_mc))
+        bytesIO = io.BytesIO()
+        bytesIO.write(bytearray(data, 'utf-8'))
+        bytesIO.seek(0)
+        encoded = base64.b64encode(bytesIO.read()).decode(
+            "utf-8").replace("\n", "")
+        bytesIO.close()
+        if filetype == "hvsrpy":
+            hvsrpy_downloadable = f'data:text/plain;base64,{encoded}'
+            hvsrpy_name = filename.split('.miniseed')[0] + '.hv'
+        else:
+            geopsy_downloadable = f'data:text/plain;base64,{encoded}'
+            geopsy_name = filename.split('.miniseed')[0] + '_geopsy.hv'
+    return hvsrpy_downloadable, hvsrpy_name, geopsy_downloadable, geopsy_name
 
 @app.callback(
     [Output('cur_plot', 'src'),
@@ -904,27 +926,9 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
         fig_name = filename.split('.miniseed')[0] + '.png'
 
         # Create hrefs to send to html.A links for download
-        for filetype in ["hvsrpy", "geopsy"]:
-            if filetype == "hvsrpy":
-                data = "".join(hv._hvsrpy_style_lines(
-                    distribution_f0, distribution_mc))
-            else:
-                data = "".join(hv._geopsy_style_lines(
-                    distribution_f0, distribution_mc))
-            bytesIO = io.BytesIO()
-            bytesIO.write(bytearray(data, 'utf-8'))
-            bytesIO.seek(0)
-            encoded = base64.b64encode(bytesIO.read()).decode(
-                "utf-8").replace("\n", "")
-            bytesIO.close()
-            if filetype == "hvsrpy":
-                hvsrpy_downloadable = f'data:text/plain;base64,{encoded}'
-                hvsrpy_name = filename.split('.miniseed')[0] + '.hv'
-            else:
-                geopsy_downloadable = f'data:text/plain;base64,{encoded}'
-                geopsy_name = filename.split('.miniseed')[0] + '_geopsy.hv'
+        hvsrpy_downloadable, hvsrpy_name, geopsy_downloadable, geopsy_name = create_hrefs(hv, distribution_f0, distribution_mc, filename)
 
-        table_label_style = {"margin-top": "0.5em", "margin-bottom": "0.25em"}
+        # table_label_style = {"margin-top": "0.5em", "margin-bottom": "0.25em"}
 
         if distribution_f0 == "log-normal":
             med_title = "Log-Normal Median"
@@ -975,11 +979,10 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
                     tooltips)
         else:
             return (out_url,
-                    (html.H6("Window Information:"), dbc.Table(window_table,
-                                                               bordered=True)),
-                    (html.H6("Statistics:", style=table_label_style),
+                    (html.P("Window Information:", className="mb-1"), dbc.Table(window_table, bordered=True, style={"color": "#495057"})),
+                    (html.P("Statistics:", className="mb-1"),
                      table_no_rejection,
-                     html.Div([fmc_txt, html.Sub("0,mc"),  ": ", str(f0mc_before)[:4]], style=mc_style)),
+                     html.Div([fmc_txt, html.Sub("0,mc"),  ": ", str(f0mc_before)[:4]], style=mc_style, className="mb-2")),
                     ([]),
                     out_url,
                     fig_name,
