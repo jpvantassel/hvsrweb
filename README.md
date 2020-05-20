@@ -1,11 +1,14 @@
-# HVSR_app
+# _Spectral_ - A web application for horizontal-to-vertical spectral ratio processing
+
+> Dana M. Brannon and Joseph P. Vantassel, The University of Texas at Austin
 
 ## Running the Application
-To run the application, Git Bash in the same directory as calculate.py. Then, run the command `python calculate.py`\
-The Bash window should show a http url that you can copy and paste into your browser. You should then see the app interface.
+To run the application, you can either:
+- Visit the [live website](https://hvsrpy.cb-geo.com/)
+- Run locally by cloning this repository, installing the requirements, then run `python app.py` in the project directory. Your command line/terminal should show a local host url that you can copy and paste into your browser to view the app interface.
 
-## Notes about this Application
-* The "Calculate" and "Save Figure" buttons **do not work right now**. That has to do with "Sharing Data Between Callbacks." 
-* The Settings inputs also have a parameter for min/max values, which is why some are highlighted red for certain values. I wanted to get your feedback on if we even want to use that functionality (to guide users to utilize realistic values) or not.
-* I put default values for all the Settings inputs. We can change those at any time, or leave the fields entirely blank for people to fill in on their own.
-* I put an "elapsed time" output right underneath the Settings panel that populates after all the graphs and tables come up. It consistently reads around 45 seconds.
+## About _Spectral_
+_Spectral_ is an open-source, web-based application for performing HVSR calculations in a convenient, reliable, and statistically-consistent manner. _Spectral_ allows the user to upload three-component ambient noise records and perform the HVSR calculation in the cloud, with no installation required. The calculations in this application are performed using the Python package `hvsrpy`, which was developed by Joseph Vantassel. If you would like to know more about `hvsrpy`, please visit the [project repository](https://github.com/jpvantassel/hvsrpy).
+
+### Example Output from the Supplied Demo File
+![screenshot](img/results_screenshot.JPG)
