@@ -3,6 +3,7 @@ import os
 import base64
 import time
 
+import numpy as np
 import hvsrpy
 import dash
 import dash_core_components as dcc
@@ -15,7 +16,10 @@ from flask import Flask
 import matplotlib
 import matplotlib.pyplot as plt
 matplotlib.use('Agg')
-
+from matplotlib import cm
+from mpl_toolkits.mplot3d.axes3d import get_test_data
+from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 # Style Settings
 default_span_style = {"cursor": "context-menu",
@@ -241,9 +245,12 @@ hv_tab = dbc.Card(
             dbc.Select(
                 id="method-input",
                 options=[
-                    {"label": "Squared-Average", "value": "squared-average"},
-                    {"label": "Geometric-Mean", "value": "geometric-mean"},
+                    {"label": "Squared-Average (i.e., LMf"+u"\u2080" + \
+                     ",SA after Cox et al. 2020)", "value": "squared-average"},
+                    {"label": "Geometric-Mean (i.e., LMf"+u"\u2080" + \
+                     ",GM after Cox et al. 2020)", "value": "geometric-mean"},
                     {"label": "Azimuth", "value": "azimuth"},
+                    {"label": "Rotate", "value": "rotate"},
                 ],
                 value="geometric-mean",
             ),
@@ -267,6 +274,26 @@ hv_tab = dbc.Card(
             ],
                 className="ml-2 mr-0",
                 id="azimuth-options"),
+
+            dbc.Container([
+                # Rotate degrees
+                html.P([
+                    html.Span(
+                        "Azimuthal Interval:",
+                        id="rotate-tooltip-target",
+                        style=default_span_style,
+                    ),
+                ], style=default_p_style),
+                dbc.Tooltip(
+                    "azimuthal_inverval defines the spacing in degrees between considered azimuths. "
+                    "15 is recommended.",
+                    target="rotate-tooltip-target",
+                ),
+                dbc.Input(id="rotate-input", type="number",
+                          value=15, min=0, max=45, step=1),
+            ],
+                className="ml-2 mr-0",
+                id="rotate-options"),
 
             # Distribution of f0
             html.P([
@@ -395,9 +422,7 @@ results_tab = dbc.Card(
                         dbc.Button("Save as geopsy", color="primary",
                                    id="save_geopsy-button", style=button_style),
                         id="geopsy-download", download="", href="", target="_blank"),
-                    dbc.Tooltip(
-                        "Save results in the geopsy-style text format.",
-                        target="save_geopsy-button"),
+                    html.Div(id="geopsy-button-tooltip"),
                 ], style=col_style),
             ], className="mb-2"),
 
@@ -486,7 +511,7 @@ body = dbc.Container([
         # FIGURE
         dbc.Col([
             dbc.Row([
-                html.Div([html.Img(id='cur_plot', src='', style={"width":"90%", "text-align":"center"})],
+                html.Div([html.Img(id='cur_plot', src='', style={"width": "90%", "text-align": "center"})],
                          id='plot_div')
             ]),
         ], md=5),
@@ -527,7 +552,6 @@ def display_no_file_warn(n_clicks, filename):
     if (filename == "No file has been uploaded.") and (n_clicks):
         return True
     return False
-
 
 @app.callback(
     [Output('filename-reference', 'children'),
@@ -572,6 +596,15 @@ def set_azimuth_options_style(value):
     else:
         return {'display': 'none'}
 
+@app.callback(Output('rotate-options', 'style'),
+              [Input('method-input', 'value')])
+def set_azimuth_options_style(value):
+    """Show/hide Rotate options depending on user input."""
+    if value == "rotate":
+        return {'display': 'block'}
+    else:
+        return {'display': 'none'}
+
 
 def parse_data(contents, filename):
     """Parse uploaded data and return a Sensor3c object."""
@@ -598,7 +631,7 @@ def fig_to_uri(in_fig, close_all=True, **save_args):
     return "data:image/png;base64,{}".format(encoded), encoded
 
 
-def generate_table(hv, distribution_f0):
+def generate_table(hv, distribution_f0, method):
     """Generate output tables depending on user specifications."""
     head_style = {"font-size": "16px", "padding": "0.5px"}
     row_style = {"font-size": "16px", "padding": "0.5px"}
@@ -612,19 +645,34 @@ def generate_table(hv, distribution_f0):
                     id="std"),
         ], style=head_style)
 
-        row1 = html.Tr([
-            html.Td(html.Div(['f', html.Sub('0')]),
-                    id="f0", style={"padding-left": "5px", "padding-right": "5px"}),
-            html.Td(str(hv.mean_f0_frq(distribution_f0))[:4]+" Hz"),
-            html.Td(str(hv.std_f0_frq(distribution_f0))[:4]),
-        ], style=row_style)
+        if method == "rotate":
+            row1 = html.Tr([
+                html.Td(html.Div(['f', html.Sub('0,AZ')]),
+                        id="f0", style={"padding-left": "5px", "padding-right": "5px"}),
+                html.Td(str(hv.mean_f0_frq(distribution_f0))[:4]+" Hz"),
+                html.Td(str(hv.std_f0_frq(distribution_f0))[:4]),
+            ], style=row_style)
 
-        row2 = html.Tr([
-            html.Td(html.Div(['T', html.Sub('0')]),
-                    id="T0"),
-            html.Td(str((1/hv.mean_f0_frq(distribution_f0)))[:4]+" s"),
-            html.Td(str(hv.std_f0_frq(distribution_f0))[:4]),
-        ], style=row_style)
+            row2 = html.Tr([
+                html.Td(html.Div(['T', html.Sub('0,AZ')]),
+                        id="T0"),
+                html.Td(str((1/hv.mean_f0_frq(distribution_f0)))[:4]+" s"),
+                html.Td(str(hv.std_f0_frq(distribution_f0))[:4]),
+            ], style=row_style)
+        else:
+            row1 = html.Tr([
+                html.Td(html.Div(['f', html.Sub('0')]),
+                        id="f0", style={"padding-left": "5px", "padding-right": "5px"}),
+                html.Td(str(hv.mean_f0_frq(distribution_f0))[:4]+" Hz"),
+                html.Td(str(hv.std_f0_frq(distribution_f0))[:4]),
+            ], style=row_style)
+
+            row2 = html.Tr([
+                html.Td(html.Div(['T', html.Sub('0')]),
+                        id="T0"),
+                html.Td(str((1/hv.mean_f0_frq(distribution_f0)))[:4]+" s"),
+                html.Td(str(hv.std_f0_frq(distribution_f0))[:4]),
+            ], style=row_style)
 
     elif distribution_f0 == "normal":
         row0 = html.Tr([
@@ -652,19 +700,21 @@ def generate_table(hv, distribution_f0):
     table_body = [html.Tbody([row1, row2])]
     table = dbc.Table([html.Thead(row0)] + table_body, bordered=True,
                       hover=True, className="mb-0", style={"padding": "0", "color": "#495057"})
-
     return table
 
 
-def create_hrefs(hv, distribution_f0, distribution_mc, filename):
+def create_hrefs(hv, distribution_f0, distribution_mc, filename, rotate_flag):
     """Generate hrefs to be put inside hv-download and geopsy-download."""
     for filetype in ["hvsrpy", "geopsy"]:
         if filetype == "hvsrpy":
             data = "".join(hv._hvsrpy_style_lines(
                 distribution_f0, distribution_mc))
         else:
-            data = "".join(hv._geopsy_style_lines(
-                distribution_f0, distribution_mc))
+            if rotate_flag:
+                pass
+            else:
+                data = "".join(hv._geopsy_style_lines(
+                    distribution_f0, distribution_mc))
         bytesIO = io.BytesIO()
         bytesIO.write(bytearray(data, 'utf-8'))
         bytesIO.seek(0)
@@ -675,8 +725,12 @@ def create_hrefs(hv, distribution_f0, distribution_mc, filename):
             hvsrpy_downloadable = f'data:text/plain;base64,{encoded}'
             hvsrpy_name = filename.split('.miniseed')[0] + '.hv'
         else:
-            geopsy_downloadable = f'data:text/plain;base64,{encoded}'
-            geopsy_name = filename.split('.miniseed')[0] + '_geopsy.hv'
+            if rotate_flag:
+                geopsy_downloadable = "#"
+                geopsy_name = "null.hv"
+            else:
+                geopsy_downloadable = f'data:text/plain;base64,{encoded}'
+                geopsy_name = filename.split('.miniseed')[0] + '_geopsy.hv'
     return hvsrpy_downloadable, hvsrpy_name, geopsy_downloadable, geopsy_name
 
 
@@ -692,7 +746,9 @@ def create_hrefs(hv, distribution_f0, distribution_mc, filename):
      Output('geopsy-download', 'href'),
      Output('geopsy-download', 'download'),
      Output('results-tab', 'disabled'),
-     Output('tooltips', 'children'), ],
+     Output('tooltips', 'children'),
+     Output('geopsy-button-tooltip', 'children'),
+     Output('save_geopsy-button', 'disabled') ],
     [Input('calculate-button', 'n_clicks')],
     [State('filename-reference', 'children'),
      State('hidden-file-contents', 'children'),
@@ -713,10 +769,11 @@ def create_hrefs(hv, distribution_f0, distribution_mc, filename):
      State('n-input', 'value'),
      State('distribution_f0-input', 'value'),
      State('n_iteration-input', 'value'),
-     State('azimuth-input', 'value')]
+     State('azimuth-input', 'value'),
+     State('rotate-input', 'value')]
 )
 def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, fhigh, forder, minf, maxf, nf, res_type,
-                           windowlength, width, bandwidth, method, distribution_mc, rejection_bool, n, distribution_f0, n_iteration, azimuth_degrees):
+                           windowlength, width, bandwidth, method, distribution_mc, rejection_bool, n, distribution_f0, n_iteration, azimuth_degrees, azimuthal_interval):
     """Create figure and tables from user-uploaded file.
 
     Determine if user is requesting a demo or uploading a file. Run calculation and create figure and
@@ -777,26 +834,19 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
 
     """
 
+    if method == "rotate":
+        azimuth = np.arange(0, 180+azimuthal_interval, azimuthal_interval)
+    elif method == "azimuth":
+        azimuth = azimuth_degrees
+    else:
+        azimuth = None
+
     filter_bool = True if filter_bool == "True" else False
     rejection_bool = True if rejection_bool == "True" else False
 
     start = time.time()
 
     if (contents) and (contents != "No contents."):
-        fig = plt.figure(figsize=(6, 6), dpi=150)
-        gs = fig.add_gridspec(nrows=6, ncols=6)
-
-        ax0 = fig.add_subplot(gs[0:2, 0:3])
-        ax1 = fig.add_subplot(gs[2:4, 0:3])
-        ax2 = fig.add_subplot(gs[4:6, 0:3])
-
-        if rejection_bool:
-            ax3 = fig.add_subplot(gs[0:3, 3:6])
-            ax4 = fig.add_subplot(gs[3:6, 3:6])
-        else:
-            ax3 = fig.add_subplot(gs[1:4, 3:6])
-            ax4 = False
-
         if filename == "File loaded, press calculate to continue!":
             sensor = hvsrpy.Sensor3c.from_mseed(contents)
             filename = "Demo file"
@@ -807,198 +857,447 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
         resampling = {"minf": minf, "maxf": maxf,
                       "nf": nf, "res_type": res_type}
         hv = sensor.hv(windowlength, bp_filter, width,
-                       bandwidth, resampling, method, azimuth=azimuth_degrees)
+                       bandwidth, resampling, method, azimuth=azimuth)
         # TODO (dmb): Fix this so it doesn't need a monkey patch
-        hv.meta["File Name"] = filename
+        # hv.meta["File Name"] = filename
+        # AttributeError: 'HvsrRotated' object has no attribute 'meta'
 
         individual_width = 0.3
         median_width = 1.3
 
-        for ax, title in zip([ax3, ax4], ["Before Rejection", "After Rejection"]):
-            # Rejected Windows
-            if title == "After Rejection":
-                if hv.rejected_window_indices.size > 0:
-                    label = "Rejected"
-                    for amp in hv.amp[hv.rejected_window_indices]:
-                        ax.plot(hv.frq, amp, color='#00ffff',
-                                linewidth=individual_width, zorder=2, label=label)
-                        label = None
+        '''
+        Azimuth Code
+        '''
+        if method == "rotate":
+            if rejection_bool:
+                hv.reject_windows(n=n, max_iterations=n_iteration, distribution_f0=distribution_f0, distribution_mc=distribution_mc)
+                table_after_rejection = generate_table(hv, distribution_f0, method)
+                f0mc_after = hv.mc_peak_frq(distribution_mc)
+
+            mesh_frq, mesh_azi = np.meshgrid(hv.frq, hv.azimuths)
+            mesh_amp = hv.mean_curves(distribution=distribution_mc)
+            end = time.time()
+            print(f"Elapsed Time: {str(end-start)[0:4]} seconds")
+
+            # Layout
+            fig = plt.figure(figsize=(6,5), dpi=150)
+            gs = fig.add_gridspec(nrows=2, ncols=2, wspace=0.3, hspace=0.1, width_ratios=(1.2,0.8))
+            ax0 = fig.add_subplot(gs[0:2, 0:1], projection='3d')
+            ax1 = fig.add_subplot(gs[0:1, 1:2])
+            ax2 = fig.add_subplot(gs[1:2, 1:2])
+            fig.subplots_adjust(bottom=0.21)
+
+            # Settings
+            individual_width = 0.3
+            median_width = 1.3
+
+            ## 3D Median Curve
+            ax = ax0
+            ax.plot_surface(np.log10(mesh_frq), mesh_azi, mesh_amp, rstride=1, cstride=1, cmap=cm.plasma, linewidth=0, antialiased=False)
+            for coord in list("xyz"):
+                getattr(ax, f"w_{coord}axis").set_pane_color((1, 1,1))
+            ax.set_xticks(np.log10(np.array([0.01, 0.1, 1, 10, 100])))
+            ax.set_xticklabels(["$10^{"+str(x)+"}$" for x in range(-2, 3)])
+            ax.set_xlim(np.log10((0.1, 30)))
+            ax.view_init(elev=30, azim=245)
+            ax.dist=12
+            ax.set_yticks(np.arange(0,180+45, 45))
+            ax.set_ylim(0,180)
+            ax.set_xlabel("Frequency (Hz)")
+            ax.set_ylabel("Azimuth (deg)")
+            ax.set_zlabel("HVSR Amplitude")
+            pfrqs, pamps = hv.mean_curves_peak(distribution=distribution_mc)
+            ax.scatter(np.log10(pfrqs), hv.azimuths, pamps*1.01, marker="s", c="w", edgecolors="k", s=9)
+
+            ## 2D Median Curve
+            ax = ax1
+            contour = ax.contourf(mesh_frq, mesh_azi, mesh_amp, cmap=cm.plasma, levels=10)
+            ax.set_xscale("log")
+            ax.set_xticklabels([])
+            ax.set_ylabel("Azimuth (deg)")
+            ax.set_yticks(np.arange(0,180+30, 30))
+            ax.set_ylim(0,180)
+            divider = make_axes_locatable(ax)
+            cax = divider.append_axes("top", size="5%", pad=0.05)
+            fig.colorbar(contour, cax=cax, orientation="horizontal")
+            cax.xaxis.set_ticks_position("top")
+
+            ax.plot(pfrqs, hv.azimuths, marker="s", color="w", linestyle="", markersize=3, markeredgecolor="k",
+                    label=r"$f_{0,mc,\alpha}$")
+
+            ## 2D Median Curve
+            ax = ax2
 
             # Accepted Windows
-            label = "Accepted"
-            for amp in hv.amp[hv.valid_window_indices]:
-                ax.plot(hv.frq, amp, color='#888888', linewidth=individual_width,
-                        label=label if title == "Before Rejection" else "")
-                label = None
-
-            # Window Peaks
-            ax.plot(hv.peak_frq, hv.peak_amp, linestyle="", zorder=2,
-                    marker='o', markersize=2.5, markerfacecolor="#ffffff", markeredgewidth=0.5, markeredgecolor='k',
-                    label="" if title == "Before Rejection" and rejection_bool else r"$f_{0,i}$")
-
-            # Peak Mean Curve
-            ax.plot(hv.mc_peak_frq(distribution_mc), hv.mc_peak_amp(distribution_mc), linestyle="", zorder=4,
-                    marker='D', markersize=4, markerfacecolor='#66ff33', markeredgewidth=1, markeredgecolor='k',
-                    label="" if title == "Before Rejection" and rejection_bool else r"$f_{0,mc}$")
+            label="Accepted"
+            for amps in hv.amp:
+                for amp in amps:
+                    ax.plot(hv.frq, amp, color="#888888", linewidth=individual_width, zorder=2, label=label)
+                    label=None
 
             # Mean Curve
-            label = r"$LM_{curve}$" if distribution_mc == "log-normal" else "Mean Curve"
-            ax.plot(hv.frq, hv.mean_curve(distribution_mc), color='k', linewidth=median_width,
-                    label="" if title == "Before Rejection" and rejection_bool else label)
+            label = r"$LM_{curve,AZ}$" if distribution_mc=="log-normal" else r"$Mean_{curve,AZ}$"
+            ax.plot(hv.frq, hv.mean_curve(distribution_mc), color='k', label=label, linewidth=median_width, zorder=4)
 
             # Mean +/- Curve
-            label = r"$LM_{curve}$" + \
-                " ± 1 STD" if distribution_mc == "log-normal" else "Mean ± 1 STD"
-            ax.plot(hv.frq, hv.nstd_curve(-1, distribution_mc),
-                    color='k', linestyle='--', linewidth=median_width, zorder=3,
-                    label="" if title == "Before Rejection" and rejection_bool else label)
-            ax.plot(hv.frq, hv.nstd_curve(+1, distribution_mc),
-                    color='k', linestyle='--', linewidth=median_width, zorder=3)
+            label = r"$LM_{curve,AZ}$"+" ± 1 STD" if distribution_mc=="log-normal" else r"$Mean_{curve,AZ}$"+" ± 1 STD"
+            ax.plot(hv.frq, hv.nstd_curve(-1, distribution=distribution_mc), color="k", linestyle="--",
+                    linewidth=median_width, zorder=4, label=label)
+            ax.plot(hv.frq, hv.nstd_curve(+1, distribution=distribution_mc), color="k", linestyle="--",
+                    linewidth=median_width, zorder=4)
 
-            label = r"$LM_{f0}$" + \
-                " ± 1 STD" if distribution_f0 == "log-normal" else "Mean f0 ± 1 STD"
+            # Window Peaks
+            label = r"$f_{0,i,\alpha}$"
+            for frq, amp in zip(hv.peak_frq, hv.peak_amp):
+                ax.plot(frq, amp, linestyle="", zorder=3, marker='o', markersize=2.5, markerfacecolor="#ffffff",
+                        markeredgewidth=0.5, markeredgecolor='k', label=label)
+                label=None
+
+            # Peak Mean Curve
+            ax.plot(hv.mc_peak_frq(distribution_mc), hv.mc_peak_amp(distribution_mc), linestyle="", zorder=5,
+                    marker='D', markersize=4, markerfacecolor='#66ff33', markeredgewidth=1, markeredgecolor='k',
+                    label = r"$f_{0,mc,AZ}$")
+
+            # f0,az
+            label = r"$LM_{f0,AZ}$"+" ± 1 STD" if distribution_f0=="log-normal" else "Mean "+r"$f_{0,AZ}$"+" ± 1 STD"
             ymin, ymax = ax.get_ylim()
-            ax.plot([hv.mean_f0_frq(distribution_f0)]*2,
-                    [ymin, ymax], linestyle="-.", color="#000000")
+            ax.plot([hv.mean_f0_frq(distribution_f0)]*2, [ymin, ymax], linestyle="-.", color="#000000", zorder=6)
             ax.fill([hv.nstd_f0_frq(-1, distribution_f0)]*2 + [hv.nstd_f0_frq(+1, distribution_f0)]*2, [ymin, ymax, ymax, ymin],
-                    color="#ff8080",
-                    label="" if title == "Before Rejection" and rejection_bool else label)
-
+                    color = "#ff8080", label=label, zorder=1)
             ax.set_ylim((ymin, ymax))
-            ax.set_xscale('log')
+
+            # Limits and labels
+            ax.set_xscale("log")
             ax.set_xlabel("Frequency (Hz)")
-            ax.set_ylabel("HVSR Ampltidue")
+            ax.set_ylabel("HVSR Amplitude")
+            for spine in ["top", "right"]:
+                ax.spines[spine].set_visible(False)
+
+            # Lettering
+            xs, ys = [0.45, 0.85, 0.85], [0.81, 0.81, 0.47]
+            for x, y, letter in zip(xs, ys, list("abc")):
+                fig.text(x, y, f"({letter})", fontsize=12)
+
+            # Legend
+            handles, labels = [], []
+            for ax in [ax2, ax1, ax0]:
+                    _handles, _labels = ax.get_legend_handles_labels()
+                    handles += _handles
+                    labels += _labels
+            new_handles, new_labels = [], []
+            for index in [0, 5, 1, 2, 3, 4, 6]:
+                new_handles.append(handles[index])
+                new_labels.append(labels[index])
+            fig.legend(new_handles, new_labels, loc="lower center", bbox_to_anchor=(0.47, 0), ncol=4, columnspacing=0.5,
+                      handletextpad=0.4)
+
+            save_figure = fig
+            #fig.tight_layout(h_pad=1, w_pad=2, rect=(0, 0.08, 1, 1))
+            #save_figure.tight_layout(h_pad=1, w_pad=2, rect=(0, 0.08, 1, 1))
+            end = time.time()
+
+            # User is attempting to download the demo file
+            if (filename == "Demo file"):
+                filename = "hvsrpy_demo"
+            out_url, encoded_image = fig_to_uri(fig)
+            fig_name = filename.split('.miniseed')[0] + '.png'
+
+            # Create hrefs to send to html.A links for download
+            rotate_flag = True
+            hvsrpy_downloadable, hvsrpy_name, geopsy_downloadable, geopsy_name = create_hrefs(
+                hv, distribution_f0, distribution_mc, filename, rotate_flag)
+
+            # table_label_style = {"margin-top": "0.5em", "margin-bottom": "0.25em"}
+
+            if distribution_f0 == "log-normal":
+                med_title = "Log-Normal Median"
+                std_title = "Log-Normal Standard Deviation"
+            else:
+                med_title = "Mean"
+                std_title = "Standard Deviation"
+            tooltips = [dbc.Tooltip(
+                "Fundamental Site Frequency",
+                id="fund_site_freq_tooltip",
+                target="f0",),
+                dbc.Tooltip(
+                "Fundamental Site Period",
+                id="fund_site_period_tooltip",
+                target="T0"),
+                dbc.Tooltip(
+                med_title,
+                id="med_tooltip",
+                target="med"),
+                dbc.Tooltip(
+                std_title,
+                id="std_tooltip",
+                target="std")]
+
+            mc_style = {"font-size": "16px", "color": "#495057"}
+            if distribution_mc == "normal":
+                fmc_txt = "Peak frequency of mean curve, f"
+            else:
+                fmc_txt = "Peak frequency of median curve, f"
 
             if rejection_bool:
-                if title == "Before Rejection":
-                    table_before_rejection = generate_table(
-                        hv, distribution_f0)
-                    c_iter = hv.reject_windows(n, max_iterations=n_iteration,
-                                               distribution_f0=distribution_f0, distribution_mc=distribution_mc)
+                before_rejection_content = ""
+                return (out_url,
+                        ([]),
+                        ([]),
+                        (html.P("Statistics After Rejection:", className="mb-1"),
+                         table_after_rejection,
+                         html.Div([fmc_txt, html.Sub("0,AZ"),  ": ", str(f0mc_after)[:4]], style=mc_style, className="mb-2")),
+                        out_url,
+                        fig_name,
+                        hvsrpy_downloadable,
+                        hvsrpy_name,
+                        geopsy_downloadable,
+                        geopsy_name,
+                        False,
+                        tooltips,
+                        dbc.Tooltip(
+                            "Geopsy does not implement a rotational calculation.",
+                            target="save_geopsy-button"),
+                        True)
+            else:
+                return (out_url,
+                        (html.P("Window Information:", className="mb-1"),
+                         dbc.Table(window_table, bordered=True, style={"color": "#495057"})),
+                        (html.P("Statistics:", className="mb-1"),
+                         table_no_rejection,
+                         html.Div([fmc_txt, html.Sub("0,mc"),  ": ", str(f0mc_before)[:4]], style=mc_style, className="mb-2")),
+                        ([]),
+                        out_url,
+                        fig_name,
+                        hvsrpy_downloadable,
+                        hvsrpy_name,
+                        geopsy_downloadable,
+                        geopsy_name,
+                        False,
+                        tooltips)
+        else:
+            '''
+            Original Code
+            '''
+            fig = plt.figure(figsize=(6, 6), dpi=150)
+            gs = fig.add_gridspec(nrows=6, ncols=6)
+
+            ax0 = fig.add_subplot(gs[0:2, 0:3])
+            ax1 = fig.add_subplot(gs[2:4, 0:3])
+            ax2 = fig.add_subplot(gs[4:6, 0:3])
+
+            if rejection_bool:
+                ax3 = fig.add_subplot(gs[0:3, 3:6])
+                ax4 = fig.add_subplot(gs[3:6, 3:6])
+            else:
+                ax3 = fig.add_subplot(gs[1:4, 3:6])
+                ax4 = False
+
+            individual_width = 0.3
+            median_width = 1.3
+            for ax, title in zip([ax3, ax4], ["Before Rejection", "After Rejection"]):
+                # Rejected Windows
+                if title == "After Rejection":
+                    if len(hv.rejected_window_indices):
+                        label = "Rejected"
+                        for amp in hv.amp[hv.rejected_window_indices]:
+                            ax.plot(hv.frq, amp, color='#00ffff',
+                                    linewidth=individual_width, zorder=2, label=label)
+                            label = None
+
+                # Accepted Windows
+                label = "Accepted"
+                for amp in hv.amp[hv.valid_window_indices]:
+                    ax.plot(hv.frq, amp, color='#888888', linewidth=individual_width,
+                            label=label if title == "Before Rejection" else "")
+                    label = None
+
+                # Window Peaks
+                ax.plot(hv.peak_frq, hv.peak_amp, linestyle="", zorder=2,
+                        marker='o', markersize=2.5, markerfacecolor="#ffffff", markeredgewidth=0.5, markeredgecolor='k',
+                        label="" if title == "Before Rejection" and rejection_bool else r"$f_{0,i}$")
+
+                # Peak Mean Curve
+                ax.plot(hv.mc_peak_frq(distribution_mc), hv.mc_peak_amp(distribution_mc), linestyle="", zorder=4,
+                        marker='D', markersize=4, markerfacecolor='#66ff33', markeredgewidth=1, markeredgecolor='k',
+                        label="" if title == "Before Rejection" and rejection_bool else r"$f_{0,mc}$")
+
+                # Mean Curve
+                label = r"$LM_{curve}$" if distribution_mc == "log-normal" else "Mean Curve"
+                ax.plot(hv.frq, hv.mean_curve(distribution_mc), color='k', linewidth=median_width,
+                        label="" if title == "Before Rejection" and rejection_bool else label)
+
+                # Mean +/- Curve
+                label = r"$LM_{curve}$" + \
+                    " ± 1 STD" if distribution_mc == "log-normal" else "Mean ± 1 STD"
+                ax.plot(hv.frq, hv.nstd_curve(-1, distribution_mc),
+                        color='k', linestyle='--', linewidth=median_width, zorder=3,
+                        label="" if title == "Before Rejection" and rejection_bool else label)
+                ax.plot(hv.frq, hv.nstd_curve(+1, distribution_mc),
+                        color='k', linestyle='--', linewidth=median_width, zorder=3)
+
+                label = r"$LM_{f0}$" + \
+                    " ± 1 STD" if distribution_f0 == "log-normal" else "Mean f0 ± 1 STD"
+                ymin, ymax = ax.get_ylim()
+                ax.plot([hv.mean_f0_frq(distribution_f0)]*2,
+                        [ymin, ymax], linestyle="-.", color="#000000")
+                ax.fill([hv.nstd_f0_frq(-1, distribution_f0)]*2 + [hv.nstd_f0_frq(+1, distribution_f0)]*2, [ymin, ymax, ymax, ymin],
+                        color="#ff8080",
+                        label="" if title == "Before Rejection" and rejection_bool else label)
+
+                ax.set_ylim((ymin, ymax))
+                ax.set_xscale('log')
+                ax.set_xlabel("Frequency (Hz)")
+                ax.set_ylabel("HVSR Ampltidue")
+
+                if rejection_bool:
+                    if title == "Before Rejection":
+                        table_before_rejection = generate_table(
+                            hv, distribution_f0, method)
+                        c_iter = hv.reject_windows(n, max_iterations=n_iteration,
+                                                   distribution_f0=distribution_f0, distribution_mc=distribution_mc)
+                        # Create Window Information Table
+                        row1 = html.Tr([html.Td("Window length"),
+                                        html.Td(str(windowlength)+"s")], style={"font-size": "16px"})
+                        row2 = html.Tr([html.Td("No. of iterations"), html.Td(
+                            str(c_iter)+" of "+str(n_iteration)+" allowed.")], style={"font-size": "16px"})
+                        f0mc_before = hv.mc_peak_frq(distribution_mc)
+
+                    elif title == "After Rejection":
+                        table_after_rejection = generate_table(hv, distribution_f0, method)
+                        fig.legend(ncol=4, loc='lower center',
+                                   bbox_to_anchor=(0.51, 0), columnspacing=2)
+                        row3 = html.Tr([html.Td("No. of rejected windows"), html.Td(
+                            str(len(hv.rejected_window_indices)) + " of " + str(sensor.ns.n_windows))], style={"font-size": "16px"})
+                        window_table = [html.Tbody([row1, row2, row3])]
+                        f0mc_after = hv.mc_peak_frq(distribution_mc)
+                else:
+                    table_no_rejection = generate_table(hv, distribution_f0, method)
                     # Create Window Information Table
                     row1 = html.Tr([html.Td("Window length"),
-                                    html.Td(str(windowlength)+"s")], style={"font-size": "16px"})
-                    row2 = html.Tr([html.Td("No. of iterations"), html.Td(
-                        str(c_iter)+" of "+str(n_iteration)+" allowed.")], style={"font-size": "16px"})
-                    f0mc_before = hv.mc_peak_frq(distribution_mc)
+                                    html.Td(str(windowlength)+"s")])
+                    row2 = html.Tr([html.Td("No. of windows"),
+                                    html.Td(str(sensor.ns.n_windows))])
+                    window_table = [html.Tbody([row1, row2])]
 
-                elif title == "After Rejection":
-                    table_after_rejection = generate_table(hv, distribution_f0)
-                    fig.legend(ncol=4, loc='lower center',
-                               bbox_to_anchor=(0.51, 0), columnspacing=2)
-                    row3 = html.Tr([html.Td("No. of rejected windows"), html.Td(
-                        str(len(hv.rejected_window_indices)) + " of " + str(sensor.ns.n_windows))], style={"font-size": "16px"})
-                    window_table = [html.Tbody([row1, row2, row3])]
-                    f0mc_after = hv.mc_peak_frq(distribution_mc)
+                    fig.legend(loc="upper center", bbox_to_anchor=(0.77, 0.4))
+                    # f0mc = hv.mc_peak_frq(distribution_mc)
+                    break
+                ax.set_title(title)
+
+            norm_factor = sensor.normalization_factor
+            for ax, timerecord, name in zip([ax0, ax1, ax2], [sensor.ns, sensor.ew, sensor.vt], ["NS", "EW", "VT"]):
+                ctime = timerecord.time
+                amp = timerecord.amp/norm_factor
+                ax.plot(ctime.T, amp.T, linewidth=0.2, color='#888888')
+                ax.set_title(f"Time Records ({name})")
+                ax.set_yticks([-1, -0.5, 0, 0.5, 1])
+                ax.set_xlim(0, windowlength*timerecord.n_windows)
+                ax.set_ylim(-1, 1)
+                ax.set_xlabel('Time (s)')
+                ax.set_ylabel('Normalized Amplitude')
+                for window_index in hv.rejected_window_indices:
+                    ax.plot(ctime[window_index], amp[window_index],
+                            linewidth=0.2, color="cyan")
+
+            if rejection_bool:
+                axs = [ax0, ax3, ax1, ax4, ax2]
             else:
-                table_no_rejection = generate_table(hv, distribution_f0)
-                # Create Window Information Table
-                row1 = html.Tr([html.Td("Window length"),
-                                html.Td(str(windowlength)+"s")])
-                row2 = html.Tr([html.Td("No. of windows"),
-                                html.Td(str(sensor.ns.n_windows))])
-                window_table = [html.Tbody([row1, row2])]
+                axs = [ax0, ax3, ax1, ax2]
 
-                fig.legend(loc="upper center", bbox_to_anchor=(0.75, 0.3))
-                f0mc = hv.mc_peak_frq(distribution_mc)
-                break
-            ax.set_title(title)
+            for ax, letter in zip(axs, list("abcde")):
+                ax.text(0.97, 0.97, f"({letter})", ha="right", va="top", transform=ax.transAxes, fontsize=12)
+                for spine in ["top", "right"]:
+                    ax.spines[spine].set_visible(False)
+            save_figure = fig
+            fig.tight_layout(h_pad=1, w_pad=2, rect=(0, 0.08, 1, 1))
+            save_figure.tight_layout(h_pad=1, w_pad=2, rect=(0, 0.08, 1, 1))
+            end = time.time()
 
-        norm_factor = sensor.normalization_factor
-        for ax, timerecord, name in zip([ax0, ax1, ax2], [sensor.ns, sensor.ew, sensor.vt], ["NS", "EW", "VT"]):
-            ctime = timerecord.time
-            amp = timerecord.amp/norm_factor
-            ax.plot(ctime.T, amp.T, linewidth=0.2, color='#888888')
-            ax.set_title(f"Time Records ({name})")
-            ax.set_yticks([-1, -0.5, 0, 0.5, 1])
-            ax.set_xlim(0, windowlength*timerecord.n_windows)
-            ax.set_ylim(-1, 1)
-            ax.set_xlabel('Time (s)')
-            ax.set_ylabel('Normalized Amplitude')
-            for window_index in hv.rejected_window_indices:
-                ax.plot(ctime[window_index], amp[window_index],
-                        linewidth=0.2, color="cyan")
+            # User is attempting to download the demo file
+            if (filename == "Demo file"):
+                filename = "hvsrpy_demo"
+            out_url, encoded_image = fig_to_uri(fig)
+            fig_name = filename.split('.miniseed')[0] + '.png'
 
-        save_figure = fig
-        fig.tight_layout(h_pad=1, w_pad=2, rect=(0, 0.08, 1, 1))
-        save_figure.tight_layout(h_pad=1, w_pad=2, rect=(0, 0.08, 1, 1))
-        end = time.time()
+            # Create hrefs to send to html.A links for download
+            rotate_flag = False
+            hvsrpy_downloadable, hvsrpy_name, geopsy_downloadable, geopsy_name = create_hrefs(
+                hv, distribution_f0, distribution_mc, filename, rotate_flag)
 
-        # User is attempting to download the demo file
-        if (filename == "Demo file"):
-            filename = "hvsrpy_demo"
-        out_url, encoded_image = fig_to_uri(fig)
-        fig_name = filename.split('.miniseed')[0] + '.png'
+            # table_label_style = {"margin-top": "0.5em", "margin-bottom": "0.25em"}
 
-        # Create hrefs to send to html.A links for download
-        hvsrpy_downloadable, hvsrpy_name, geopsy_downloadable, geopsy_name = create_hrefs(
-            hv, distribution_f0, distribution_mc, filename)
+            if distribution_f0 == "log-normal":
+                med_title = "Log-Normal Median"
+                std_title = "Log-Normal Standard Deviation"
+            else:
+                med_title = "Mean"
+                std_title = "Standard Deviation"
+            tooltips = [dbc.Tooltip(
+                "Fundamental Site Frequency",
+                id="fund_site_freq_tooltip",
+                target="f0",),
+                dbc.Tooltip(
+                "Fundamental Site Period",
+                id="fund_site_period_tooltip",
+                target="T0"),
+                dbc.Tooltip(
+                med_title,
+                id="med_tooltip",
+                target="med"),
+                dbc.Tooltip(
+                std_title,
+                id="std_tooltip",
+                target="std")]
 
-        # table_label_style = {"margin-top": "0.5em", "margin-bottom": "0.25em"}
+            mc_style = {"font-size": "16px", "color": "#495057"}
+            if distribution_mc == "normal":
+                fmc_txt = "Peak frequency of mean curve, f"
+            else:
+                fmc_txt = "Peak frequency of median curve, f"
 
-        if distribution_f0 == "log-normal":
-            med_title = "Log-Normal Median"
-            std_title = "Log-Normal Standard Deviation"
-        else:
-            med_title = "Mean"
-            std_title = "Standard Deviation"
-        tooltips = [dbc.Tooltip(
-            "Fundamental Site Frequency",
-            id="fund_site_freq_tooltip",
-            target="f0",),
-            dbc.Tooltip(
-            "Fundamental Site Period",
-            id="fund_site_period_tooltip",
-            target="T0"),
-            dbc.Tooltip(
-            med_title,
-            id="med_tooltip",
-            target="med"),
-            dbc.Tooltip(
-            std_title,
-            id="std_tooltip",
-            target="std")]
-
-        mc_style = {"font-size": "16px", "color": "#495057"}
-        if distribution_mc == "normal":
-            fmc_txt = "Peak frequency of mean curve, f"
-        else:
-            fmc_txt = "Peak frequency of median curve, f"
-
-        if rejection_bool:
-            return (out_url,
-                    (html.P("Window Information:", className="mb-1"),
-                     dbc.Table(window_table, bordered=True, hover=True, style={"color": "#495057"})),
-                    (html.P("Statistics Before Rejection:", className="mb-1"),
-                     table_before_rejection,
-                     html.Div([fmc_txt, html.Sub("0,mc"), ": ", str(f0mc_before)[:4]], style=mc_style, className="mb-2")),
-                    (html.P("Statistics After Rejection:", className="mb-1"),
-                     table_after_rejection,
-                     html.Div([fmc_txt, html.Sub("0,mc"),  ": ", str(f0mc_after)[:4]], style=mc_style, className="mb-2")),
-                    out_url,
-                    fig_name,
-                    hvsrpy_downloadable,
-                    hvsrpy_name,
-                    geopsy_downloadable,
-                    geopsy_name,
-                    False,
-                    tooltips)
-        else:
-            return (out_url,
-                    (html.P("Window Information:", className="mb-1"),
-                     dbc.Table(window_table, bordered=True, style={"color": "#495057"})),
-                    (html.P("Statistics:", className="mb-1"),
-                     table_no_rejection,
-                     html.Div([fmc_txt, html.Sub("0,mc"),  ": ", str(f0mc_before)[:4]], style=mc_style, className="mb-2")),
-                    ([]),
-                    out_url,
-                    fig_name,
-                    hvsrpy_downloadable,
-                    hvsrpy_name,
-                    geopsy_downloadable,
-                    geopsy_name,
-                    False,
-                    tooltips)
+            if rejection_bool:
+                before_rejection_content = ""
+                return (out_url,
+                        (html.P("Window Information:", className="mb-1"),
+                         dbc.Table(window_table, bordered=True, hover=True, style={"color": "#495057"})),
+                        (html.P("Statistics Before Rejection:", className="mb-1"),
+                         table_before_rejection,
+                         html.Div([fmc_txt, html.Sub("0,mc"), ": ", str(f0mc_before)[:4]], style=mc_style, className="mb-2")),
+                        (html.P("Statistics After Rejection:", className="mb-1"),
+                         table_after_rejection,
+                         html.Div([fmc_txt, html.Sub("0,mc"),  ": ", str(f0mc_after)[:4]], style=mc_style, className="mb-2")),
+                        out_url,
+                        fig_name,
+                        hvsrpy_downloadable,
+                        hvsrpy_name,
+                        geopsy_downloadable,
+                        geopsy_name,
+                        False,
+                        tooltips,
+                        dbc.Tooltip(
+                            "Save results in the geopsy-style text format.",
+                            target="save_geopsy-button"),
+                        False)
+            else:
+                return (out_url,
+                        (html.P("Window Information:", className="mb-1"),
+                         dbc.Table(window_table, bordered=True, style={"color": "#495057"})),
+                        (html.P("Statistics:", className="mb-1"),
+                         table_no_rejection,
+                         html.Div([fmc_txt, html.Sub("0,mc"),  ": ", str(f0mc_before)[:4]], style=mc_style, className="mb-2")),
+                        ([]),
+                        out_url,
+                        fig_name,
+                        hvsrpy_downloadable,
+                        hvsrpy_name,
+                        geopsy_downloadable,
+                        geopsy_name,
+                        False,
+                        tooltips,
+                        dbc.Tooltip(
+                            "Save results in the geopsy-style text format.",
+                            target="save_geopsy-button"),
+                        False)
     else:
         raise PreventUpdate
 
