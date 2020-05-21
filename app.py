@@ -871,9 +871,11 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
         if method == "rotate":
             if rejection_bool:
                 hv.reject_windows(n=n, max_iterations=n_iteration, distribution_f0=distribution_f0, distribution_mc=distribution_mc)
-                table_after_rejection = generate_table(hv, distribution_f0, method)
                 f0mc_after = hv.mc_peak_frq(distribution_mc)
-
+                table_after_rejection = generate_table(hv, distribution_f0, method)
+            else:
+                table_before_rejection = generate_table(hv, distribution_f0, method)
+                f0mc_before = hv.mc_peak_frq(distribution_mc)
             mesh_frq, mesh_azi = np.meshgrid(hv.frq, hv.azimuths)
             mesh_amp = hv.mean_curves(distribution=distribution_mc)
             end = time.time()
@@ -1060,12 +1062,11 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
                         True)
             else:
                 return (out_url,
-                        (html.P("Window Information:", className="mb-1"),
-                         dbc.Table(window_table, bordered=True, style={"color": "#495057"})),
-                        (html.P("Statistics:", className="mb-1"),
-                         table_no_rejection,
-                         html.Div([fmc_txt, html.Sub("0,mc"),  ": ", str(f0mc_before)[:4]], style=mc_style, className="mb-2")),
                         ([]),
+                        ([]),
+                        (html.P("Statistics Without Rejection:", className="mb-1"),
+                         table_before_rejection,
+                         html.Div([fmc_txt, html.Sub("0,mc"),  ": ", str(f0mc_before)[:4]], style=mc_style, className="mb-2")),
                         out_url,
                         fig_name,
                         hvsrpy_downloadable,
@@ -1073,7 +1074,11 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
                         geopsy_downloadable,
                         geopsy_name,
                         False,
-                        tooltips)
+                        tooltips,
+                        dbc.Tooltip(
+                            "Geopsy does not implement a rotational calculation.",
+                            target="save_geopsy-button"),
+                        True)
         else:
             '''
             Original Code
@@ -1171,6 +1176,7 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
                         window_table = [html.Tbody([row1, row2, row3])]
                         f0mc_after = hv.mc_peak_frq(distribution_mc)
                 else:
+                    f0mc_before = hv.mc_peak_frq(distribution_mc)
                     table_no_rejection = generate_table(hv, distribution_f0, method)
                     # Create Window Information Table
                     row1 = html.Tr([html.Td("Window length"),
