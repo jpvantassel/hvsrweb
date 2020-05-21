@@ -6,8 +6,9 @@
 
 To run the application, you can either:
 - Visit the [live website](https://hvsrpy.cb-geo.com/), or
-- Run locally by cloning this repository, installing the requirements, then run
-  `python app.py` in the project directory. Your command line/terminal should
+- Run locally by cloning this repository using `git clone https://github.com/dmbrannon/HVSR_app.git`. Then, install the necessary 
+  requirements by running `pip install -r requirements.txt`. You can now run the command
+  `python app.py` inside the project directory. Your command line/terminal should
   show a local host url that you can copy and paste into your browser to view
   the app interface.
 
