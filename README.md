@@ -24,6 +24,10 @@ Joseph P. Vantassel under the supervision of Professor Brady R. Cox at
 The University of Texas at Austin. More information about `hvsrpy` can be found
 on its [GitHub](https://github.com/jpvantassel/hvsrpy).
 
-### Example Results
+### Example Results: Horizontal component defined with geometric-mean
 
 ![screenshot](img/results_screenshot.JPG)
+
+### Example Results: Horizontal component defined rotationally
+
+![screenshot](img/azimuth_results_screenshot.JPG)
