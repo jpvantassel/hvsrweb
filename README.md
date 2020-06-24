@@ -5,12 +5,12 @@
 ## Running the Application
 
 To run the application, you can either:
-- Visit the [live website](https://hvsrpy.cb-geo.com/), or
-- Run locally by cloning this repository using `git clone https://github.com/dmbrannon/HVSR_app.git`. Then, install the necessary 
-  requirements by running `pip install -r requirements.txt`. You can now run the command
-  `python app.py` inside the project directory. Your command line/terminal should
-  show a local host url that you can copy and paste into your browser to view
-  the app interface.
+- Visit the [live website](https://hvsrpy.cb-geo.com/) (_recommended_), or
+- Run locally by
+  - Cloning this repository using `git clone https://github.com/dmbrannon/HVSR_app.git`,
+  - Installing the necessary dependencies with `pip install -r requirements.txt`,
+  - Running the module with `python app.py` from inside the project directory, and
+  - Accessing the specified local host url using your favorite web browser.
 
 ## About _Spectral_
 
@@ -18,16 +18,16 @@ _Spectral_ is an open-source, web-based application for performing
 horizontal-to-vertical spectral ratio (HVSR) calculations in a convenient,
 reliable, and statistically-consistent manner. _Spectral_ allows the user to
 upload three-component ambient noise records and perform the HVSR calculation in
-the cloud, with no installation required. The calculations in this application
-are performed using the Python package `hvsrpy`, which was developed by
-Joseph P. Vantassel under the supervision of Professor Brady R. Cox at
-The University of Texas at Austin. More information about `hvsrpy` can be found
-on its [GitHub](https://github.com/jpvantassel/hvsrpy).
+the cloud, with no installation required. For the calculation details,
+_Spectral_ relies on the open-source Python package `hvsrpy` developed by
+Joseph P. Vantassel under the supervision of Professor Brady R. Cox at The
+University of Texas at Austin. More information about `hvsrpy` can be found
+on [GitHub](https://github.com/jpvantassel/hvsrpy).
 
-### Example Results: Horizontal component defined with geometric-mean
+### Processing using the _geometric mean_ of the horizontal components
 
 ![screenshot](img/results_screenshot.JPG)
 
-### Example Results: Horizontal component defined rotationally
+### Processing using the _rotated_ horizontal components
 
 ![screenshot](img/azimuth_results_screenshot.JPG)
