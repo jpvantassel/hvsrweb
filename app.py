@@ -1,14 +1,9 @@
-from matplotlib import cm
-from mpl_toolkits.mplot3d.axes3d import get_test_data
-from mpl_toolkits.mplot3d import Axes3D
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 import io
 import os
 import base64
 import time
 
 import numpy as np
-import hvsrpy
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
@@ -18,7 +13,14 @@ from dash.exceptions import PreventUpdate
 from dash.dependencies import Input, Output, State
 from flask import Flask
 import matplotlib
+from matplotlib import cm
+from mpl_toolkits.mplot3d.axes3d import get_test_data
+from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.pyplot as plt
+
+import hvsrpy
+
 matplotlib.use('Agg')
 
 # Style Settings
@@ -156,7 +158,7 @@ frequency_tab = dbc.Card(
 
             html.P("Resampling:", style=default_p_style),
             dbc.Container([
-                # Resampling: Minumum Frequency
+                # Resampling: Minimum Frequency
                 html.P([
                     html.Span(
                         "Minimum Frequency (Hz):",
@@ -245,8 +247,8 @@ hv_tab = dbc.Card(
             dbc.Select(
                 id="method-input",
                 options=[
-                    {"label": "Squared-Average", "value": "squared-average"},
                     {"label": "Geometric-Mean", "value": "geometric-mean"},
+                    {"label": "Squared-Average", "value": "squared-average"},
                     {"label": "Azimuth", "value": "azimuth"},
                     {"label": "Rotate", "value": "rotate"}
                 ],
@@ -283,7 +285,7 @@ hv_tab = dbc.Card(
                     ),
                 ], style=default_p_style),
                 dbc.Tooltip(
-                    "azimuthal_inverval defines the spacing in degrees between considered azimuths. "
+                    "Spacing in degrees between considered azimuths. "
                     "15 is recommended.",
                     target="rotate-tooltip-target",
                 ),
@@ -391,7 +393,7 @@ hv_tab = dbc.Card(
                 className="ml-2 mr-0",
                 id="rejection-options"),
         ], style=default_cardbody_style),
-    className="mt-3",  # style=default_card_style
+    className="mt-3",
 )
 
 button_style = {"padding": "5px", "width": "100%"}
@@ -437,18 +439,17 @@ results_tab = dbc.Card(
                        href="https://github.com/jpvantassel/hvsrpy")
             ], ),
         ], style=default_cardbody_style),
-    className="mt-3",  # style=default_card_style
+    className="mt-3",
 )
 
 body = dbc.Container([
-    # Row for Upload Bar and Calc/Demo Buttons
     dbc.Row([
-            # Cemo/Calc Buttons Column
+            # Demo and Calculate buttons
             dbc.Col([
                     dbc.Button("Demo", id="demo-button", color="secondary",
                                size="lg", style={"padding-left": "30px", "padding-right": "30px"}),
                     dbc.Tooltip(
-                        "Load a file supplied by us!",
+                        "Load a file supplied by us.",
                         target="demo-button",
                     ),
                     ], md=1, ),
@@ -456,12 +457,12 @@ body = dbc.Container([
                     dbc.Button("Calculate", id="calculate-button", color="primary",
                                size="lg"),
                     dbc.Tooltip(
-                        "Perform HVSR calculation with the current file and settings",
+                        "Perform HVSR calculation with the current file and settings.",
                         target="calculate-button",
                     ),
                     ], md=1, ),
 
-            # Upload Bar Column
+            # Upload bar
             dbc.Col([
                     dcc.Upload(
                         id="upload-bar",
@@ -477,19 +478,16 @@ body = dbc.Container([
                             "color": "black",
                             "border": "1px solid #dedede",
                             "border-radius": "8px",
-
                         },
-                        # Allow multiple files to be uploaded
-                        # TODO (jpv): Changing from True to False will change back to True at some point.
                         multiple=False,
                     ),
                     ],
                     md=10,
                     style={"padding-bottom": "10px"}),
             ]),
-    # Row for Current File, Settings, and Figure
+    # Row for Settings and Figure
     dbc.Row([
-        # SETTINGS
+        # Settings
         dbc.Col(
             [
                 html.Div([
@@ -502,11 +500,11 @@ body = dbc.Container([
                     dbc.Tab(hv_tab, label="H/V"),
                     dbc.Tab(results_tab, label="Results",
                             id="results-tab", disabled=True),
-                ], ),  # style=tabs_style),
+                ], ),
             ],
             md=4,
         ),
-        # FIGURE
+        # Figure
         dbc.Col([
             dbc.Row([
                 html.Div([html.Img(id='cur_plot', src='', style={"width": "90%", "text-align": "center"})],
@@ -546,8 +544,8 @@ app.layout = html.Div(
               [Input('calculate-button', 'n_clicks'),
                Input('filename-reference', 'children')])
 def display_no_file_warn(n_clicks, filename):
-    """Warn user if they click CALCULATE without having uploaded a data file."""
-    if (filename == "No file has been uploaded.") and (n_clicks):
+    """Warn user if they click Calculate without a data file."""
+    if filename == "No file has been uploaded." and n_clicks:
         return True
     return False
 
@@ -561,12 +559,16 @@ def display_no_file_warn(n_clicks, filename):
      Input('demo-button', 'n_clicks')])
 def store_filename(contents, filename, n_clicks):
     """Display the uploaded filename and store its contents."""
+    defaults = {"color": "gray", "padding": "4px",
+                "margin-left": "4px", "display": "inline"}
     if filename:
-        return [filename, {"color": "#34a1eb", "padding": "4px", "margin-left": "4px", "display": "inline"}, contents]
+        return [filename, {**defaults, "color": "#34a1eb"}, contents]
     if n_clicks != None:
-        return ["File loaded, press calculate to continue!", {"color": "#34a1eb", "padding": "4px", "margin-left": "4px", "display": "inline", "font-weight": "bold"}, "data/UT.STN11.A2_C150.miniseed"]
+        return ["File loaded, press calculate to continue.",
+                {**defaults, "color": "#34a1eb", "font-weight": "bold"},
+                "data/UT.STN11.A2_C150.miniseed"]
     else:
-        return ["No file has been uploaded.", {"color": "gray", "padding": "4px", "margin-left": "4px", "display": "inline"}, "No contents."]
+        return ["No file has been uploaded.", {**defaults}, "No contents."]
 
 @app.callback(Output('bandpass-options', 'style'),
               [Input('butterworth-input', 'value')])
@@ -634,14 +636,13 @@ def generate_table(hv, distribution_f0, method):
     """Generate output tables depending on user specifications."""
     head_style = {"font-size": "16px", "padding": "0.5px"}
     row_style = {"font-size": "16px", "padding": "0.5px"}
-    label_style = {"padding-left": "5px", "padding-right": "5px"}
 
     def prep(x): return str(np.round(x, decimals=2))
 
     if method == "rotate":
         sub_letters = "AZ"
     elif method == "azimuth":
-        sub_letters = u"\u0391"
+        sub_letters = u"\u03B1"
     elif method == "geometric-mean":
         sub_letters = "GM"
     elif method == "squared-average":
@@ -650,7 +651,7 @@ def generate_table(hv, distribution_f0, method):
         sub_letters = ""
 
     f0 = hv.mean_f0_frq(distribution_f0)
-    t0 = prep(1/f0)
+    t0 = prep(1/f0) + "s"
     f0 = prep(f0)
     f0_std = prep(hv.std_f0_frq(distribution_f0))
     t0_std = f0_std
@@ -660,7 +661,6 @@ def generate_table(hv, distribution_f0, method):
                         html.Td(html.Div(["LM"]), id="med"),
                         html.Td(html.Div([u"\u03c3", html.Sub('ln')]), id="std")],
                        style=head_style)
-
     elif distribution_f0 == "normal":
         row0 = html.Tr([html.Td(""),
                         html.Td(html.Div([u"\u03bc"]), id="med"),
@@ -668,19 +668,17 @@ def generate_table(hv, distribution_f0, method):
                        style=head_style)
         t0 = "-"
         t0_std = "-"
-
     else:
         raise ValueError
 
-    row1 = html.Tr([html.Td(html.Div(["f", html.Sub(f"0,{sub_letters}")]),
-                            id="f0", style=label_style),
+    sub = f"0,{sub_letters}"
+    row1 = html.Tr([html.Td(html.Div(["f", html.Sub(sub)]), id="f0"),
                     html.Td(f"{f0} Hz"),
                     html.Td(f0_std)],
                    style=row_style)
 
-    row2 = html.Tr([html.Td(html.Div(["T", html.Sub(f"0,{sub_letters}")]),
-                            id="T0"),
-                    html.Td(f"{t0} s"),
+    row2 = html.Tr([html.Td(html.Div(["T", html.Sub(sub)]), id="t0"),
+                    html.Td(f"{t0}"),
                     html.Td(t0_std)],
                    style=row_style)
 
@@ -694,14 +692,14 @@ def create_hrefs(hv, distribution_f0, distribution_mc, filename, rotate_flag):
     """Generate hrefs to be put inside hv-download and geopsy-download."""
     for filetype in ["hvsrpy", "geopsy"]:
         if filetype == "hvsrpy":
-            data = "".join(hv._hvsrpy_style_lines(
-                distribution_f0, distribution_mc))
+            data = "".join(hv._hvsrpy_style_lines(distribution_f0,
+                                                  distribution_mc))
         else:
             if rotate_flag:
                 pass
             else:
-                data = "".join(hv._geopsy_style_lines(
-                    distribution_f0, distribution_mc))
+                data = "".join(hv._geopsy_style_lines(distribution_f0,
+                                                      distribution_mc))
         bytesIO = io.BytesIO()
         bytesIO.write(bytearray(data, 'utf-8'))
         bytesIO.seek(0)
@@ -718,7 +716,7 @@ def create_hrefs(hv, distribution_f0, distribution_mc, filename, rotate_flag):
             else:
                 geopsy_downloadable = f'data:text/plain;base64,{encoded}'
                 geopsy_name = filename.split('.miniseed')[0] + '_geopsy.hv'
-    return hvsrpy_downloadable, hvsrpy_name, geopsy_downloadable, geopsy_name
+    return (hvsrpy_downloadable, hvsrpy_name, geopsy_downloadable, geopsy_name)
 
 
 @app.callback(
@@ -834,7 +832,7 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
     start = time.time()
 
     if (contents) and (contents != "No contents."):
-        if filename == "File loaded, press calculate to continue!":
+        if filename == "File loaded, press calculate to continue.":
             sensor = hvsrpy.Sensor3c.from_mseed(contents)
             filename = "Demo file"
         else:
@@ -852,19 +850,18 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
         individual_width = 0.3
         median_width = 1.3
 
-        '''
-        Azimuth Code
-        '''
+        # Azimuth Code
         if method == "rotate":
             if rejection_bool:
                 hv.reject_windows(n=n, max_iterations=n_iteration,
-                                  distribution_f0=distribution_f0, distribution_mc=distribution_mc)
+                                  distribution_f0=distribution_f0,
+                                  distribution_mc=distribution_mc)
                 f0mc_after = hv.mc_peak_frq(distribution_mc)
-                table_after_rejection = generate_table(
-                    hv, distribution_f0, method)
+                table_after_rejection = generate_table(hv, distribution_f0,
+                                                       method)
             else:
-                table_before_rejection = generate_table(
-                    hv, distribution_f0, method)
+                table_before_rejection = generate_table(hv, distribution_f0,
+                                                        method)
                 f0mc_before = hv.mc_peak_frq(distribution_mc)
             mesh_frq, mesh_azi = np.meshgrid(hv.frq, hv.azimuths)
             mesh_amp = hv.mean_curves(distribution=distribution_mc)
@@ -991,10 +988,6 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
                 new_labels.append(labels[index])
             fig.legend(new_handles, new_labels, loc="lower center", bbox_to_anchor=(0.47, 0), ncol=4, columnspacing=0.5,
                        handletextpad=0.4)
-
-            save_figure = fig
-            # fig.tight_layout(h_pad=1, w_pad=2, rect=(0, 0.08, 1, 1))
-            # save_figure.tight_layout(h_pad=1, w_pad=2, rect=(0, 0.08, 1, 1))
             end = time.time()
 
             # User is attempting to download the demo file
@@ -1008,30 +1001,18 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
             hvsrpy_downloadable, hvsrpy_name, geopsy_downloadable, geopsy_name = create_hrefs(
                 hv, distribution_f0, distribution_mc, filename, rotate_flag)
 
-            # table_label_style = {"margin-top": "0.5em", "margin-bottom": "0.25em"}
-
             if distribution_f0 == "log-normal":
                 med_title = "Log-Normal Median"
                 std_title = "Log-Normal Standard Deviation"
             else:
                 med_title = "Mean"
                 std_title = "Standard Deviation"
-            tooltips = [dbc.Tooltip(
-                "Fundamental Site Frequency",
-                id="fund_site_freq_tooltip",
-                target="f0",),
-                dbc.Tooltip(
-                "Fundamental Site Period",
-                id="fund_site_period_tooltip",
-                target="T0"),
-                dbc.Tooltip(
-                med_title,
-                id="med_tooltip",
-                target="med"),
-                dbc.Tooltip(
-                std_title,
-                id="std_tooltip",
-                target="std")]
+            tooltips = [dbc.Tooltip("Fundamental Site Frequency",
+                                    id="f0_tt", target="f0"),
+                        dbc.Tooltip("Fundamental Site Period",
+                                    id="t0_tt", target="t0"),
+                        dbc.Tooltip(med_title, id="med_tt", target="med"),
+                        dbc.Tooltip(std_title, id="std_tt", target="std")]
 
             mc_style = {"font-size": "16px", "color": "#495057"}
             if distribution_mc == "normal":
@@ -1078,10 +1059,8 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
                             "Geopsy does not implement a rotational calculation.",
                             target="save_geopsy-button"),
                         True)
+        # No rotate
         else:
-            '''
-            Original Code
-            '''
             fig = plt.figure(figsize=(6, 6), dpi=150)
             gs = fig.add_gridspec(nrows=6, ncols=6)
 
@@ -1171,8 +1150,10 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
                             hv, distribution_f0, method)
                         fig.legend(ncol=4, loc='lower center',
                                    bbox_to_anchor=(0.51, 0), columnspacing=2)
-                        row3 = html.Tr([html.Td("No. of rejected windows"), html.Td(
-                            str(len(hv.rejected_window_indices)) + " of " + str(sensor.ns.n_windows))], style={"font-size": "16px"})
+                        rej_str = f"{len(hv.rejected_window_indices)} of {sensor.ns.n_windows}"
+                        row3 = html.Tr([html.Td("No. of rejected windows"),
+                                        html.Td(rej_str)],
+                                       style={"font-size": "16px"})
                         window_table = [html.Tbody([row1, row2, row3])]
                         f0mc_after = hv.mc_peak_frq(distribution_mc)
                 else:
@@ -1187,7 +1168,6 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
                     window_table = [html.Tbody([row1, row2])]
 
                     fig.legend(loc="upper center", bbox_to_anchor=(0.77, 0.4))
-                    # f0mc = hv.mc_peak_frq(distribution_mc)
                     break
                 ax.set_title(title)
 
@@ -1216,9 +1196,7 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
                         va="top", transform=ax.transAxes, fontsize=12)
                 for spine in ["top", "right"]:
                     ax.spines[spine].set_visible(False)
-            save_figure = fig
             fig.tight_layout(h_pad=1, w_pad=2, rect=(0, 0.08, 1, 1))
-            save_figure.tight_layout(h_pad=1, w_pad=2, rect=(0, 0.08, 1, 1))
             end = time.time()
 
             # User is attempting to download the demo file
@@ -1232,30 +1210,19 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
             hvsrpy_downloadable, hvsrpy_name, geopsy_downloadable, geopsy_name = create_hrefs(
                 hv, distribution_f0, distribution_mc, filename, rotate_flag)
 
-            # table_label_style = {"margin-top": "0.5em", "margin-bottom": "0.25em"}
-
             if distribution_f0 == "log-normal":
                 med_title = "Log-Normal Median"
                 std_title = "Log-Normal Standard Deviation"
             else:
                 med_title = "Mean"
                 std_title = "Standard Deviation"
-            tooltips = [dbc.Tooltip(
-                "Fundamental Site Frequency",
-                id="fund_site_freq_tooltip",
-                target="f0",),
-                dbc.Tooltip(
-                "Fundamental Site Period",
-                id="fund_site_period_tooltip",
-                target="T0"),
-                dbc.Tooltip(
-                med_title,
-                id="med_tooltip",
-                target="med"),
-                dbc.Tooltip(
-                std_title,
-                id="std_tooltip",
-                target="std")]
+            tooltips = [dbc.Tooltip("Fundamental Site Frequency",
+                                    id="f0_tt", target="f0"),
+                        dbc.Tooltip("Fundamental Site Period",
+                                    id="t0_tt", target="t0"),
+                        dbc.Tooltip(med_title, id="med_tt", target="med"),
+                        dbc.Tooltip(std_title, id="std_tt", target="std")
+                        ]
 
             mc_style = {"font-size": "16px", "color": "#495057"}
             if distribution_mc == "normal":
