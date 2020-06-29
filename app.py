@@ -225,7 +225,7 @@ frequency_tab = dbc.Card(
                 )],
                 className="ml-2 mr-0"),
         ], style=default_cardbody_style),
-    className="mt-3",  # style=default_card_style
+    className="mt-3",
 )
 
 hv_tab = dbc.Card(
@@ -241,7 +241,7 @@ hv_tab = dbc.Card(
             ], style=default_p_style),
             dbc.Tooltip(
                 "Geometric-Mean is recommended. "
-                "Geopsy uses the Squared-Average. ",
+                "Geopsy uses the Squared-Average by default. ",
                 target="method-tooltip-target",
             ),
             dbc.Select(
@@ -612,7 +612,7 @@ def parse_data(contents, filename):
     content_type, content_string = contents.split(',')
     decoded = base64.b64decode(content_string)
     try:
-        if 'miniseed' in filename:
+        if filename.endswith("miniseed") or filename.endswith("mseed"):
             bytesio_obj = io.BytesIO(decoded)
             return hvsrpy.Sensor3c.from_mseed(bytesio_obj)
     except Exception as e:
@@ -757,8 +757,12 @@ def create_hrefs(hv, distribution_f0, distribution_mc, filename, rotate_flag):
      State('azimuth-input', 'value'),
      State('rotate-input', 'value')]
 )
-def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, fhigh, forder, minf, maxf, nf, res_type,
-                           windowlength, width, bandwidth, method, distribution_mc, rejection_bool, n, distribution_f0, n_iteration, azimuth_degrees, azimuthal_interval):
+def update_timerecord_plot(calc_clicked, filename, contents,
+                           filter_bool, flow, fhigh, forder,
+                           minf, maxf, nf, res_type,
+                           windowlength, width, bandwidth, method,
+                           distribution_mc, rejection_bool, n, distribution_f0,
+                           n_iteration, azimuth_degrees, azimuthal_interval):
     """Create figure and tables from user-uploaded file.
 
     Determine if user is requesting a demo or uploading a file. Run calculation and create figure and
@@ -843,9 +847,7 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
                       "nf": nf, "res_type": res_type}
         hv = sensor.hv(windowlength, bp_filter, width,
                        bandwidth, resampling, method, azimuth=azimuth)
-        # TODO (dmb): Fix this so it doesn't need a monkey patch
-        # hv.meta["File Name"] = filename
-        # AttributeError: 'HvsrRotated' object has no attribute 'meta'
+        hv.meta["File Name"] = filename
 
         individual_width = 0.3
         median_width = 1.3
@@ -997,9 +999,8 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
             fig_name = filename.split('.miniseed')[0] + '.png'
 
             # Create hrefs to send to html.A links for download
-            rotate_flag = True
-            hvsrpy_downloadable, hvsrpy_name, geopsy_downloadable, geopsy_name = create_hrefs(
-                hv, distribution_f0, distribution_mc, filename, rotate_flag)
+            hrefs = create_hrefs(hv, distribution_f0, distribution_mc,
+                                 filename, rotate_flag=True)
 
             if distribution_f0 == "log-normal":
                 med_title = "Log-Normal Median"
@@ -1021,44 +1022,28 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
                 fmc_txt = "Peak frequency of median curve, f"
 
             if rejection_bool:
-                before_rejection_content = ""
-                return (out_url,
-                        ([]),
-                        ([]),
-                        (html.P("Statistics After Rejection:", className="mb-1"),
+                stats = (html.P("Statistics After Rejection:", className="mb-1"),
                          table_after_rejection,
-                         html.Div([fmc_txt, html.Sub("0,AZ"),  ": ", str(f0mc_after)[:4]], style=mc_style, className="mb-2")),
-                        out_url,
-                        fig_name,
-                        hvsrpy_downloadable,
-                        hvsrpy_name,
-                        geopsy_downloadable,
-                        geopsy_name,
-                        False,
-                        tooltips,
-                        dbc.Tooltip(
-                            "Geopsy does not implement a rotational calculation.",
-                            target="save_geopsy-button"),
-                        True)
+                         html.Div([fmc_txt, html.Sub("0,AZ"),  ": ", str(f0mc_after)[:4]], style=mc_style, className="mb-2"))
             else:
-                return (out_url,
-                        ([]),
-                        ([]),
-                        (html.P("Statistics Without Rejection:", className="mb-1"),
+                stats = (html.P("Statistics Without Rejection:", className="mb-1"),
                          table_before_rejection,
-                         html.Div([fmc_txt, html.Sub("0,mc"),  ": ", str(f0mc_before)[:4]], style=mc_style, className="mb-2")),
-                        out_url,
-                        fig_name,
-                        hvsrpy_downloadable,
-                        hvsrpy_name,
-                        geopsy_downloadable,
-                        geopsy_name,
-                        False,
-                        tooltips,
-                        dbc.Tooltip(
-                            "Geopsy does not implement a rotational calculation.",
-                            target="save_geopsy-button"),
-                        True)
+                         html.Div([fmc_txt, html.Sub("0,mc"),  ": ", str(f0mc_before)[:4]], style=mc_style, className="mb-2"))
+
+            return (out_url,
+                    ([]),
+                    ([]),
+                    stats,
+                    out_url,
+                    fig_name,
+                    *hrefs,
+                    False,
+                    tooltips,
+                    dbc.Tooltip(
+                        "Geopsy does not implement a rotational calculation.",
+                        target="save_geopsy-button"),
+                    True)
+
         # No rotate
         else:
             fig = plt.figure(figsize=(6, 6), dpi=150)
@@ -1206,9 +1191,8 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
             fig_name = filename.split('.miniseed')[0] + '.png'
 
             # Create hrefs to send to html.A links for download
-            rotate_flag = False
-            hvsrpy_downloadable, hvsrpy_name, geopsy_downloadable, geopsy_name = create_hrefs(
-                hv, distribution_f0, distribution_mc, filename, rotate_flag)
+            hrefs = create_hrefs(hv, distribution_f0, distribution_mc,
+                                 filename, rotate_flag=False)
 
             if distribution_f0 == "log-normal":
                 med_title = "Log-Normal Median"
@@ -1231,48 +1215,33 @@ def update_timerecord_plot(calc_clicked, filename, contents, filter_bool, flow, 
                 fmc_txt = "Peak frequency of median curve, f"
 
             if rejection_bool:
-                before_rejection_content = ""
-                return (out_url,
-                        (html.P("Window Information:", className="mb-1"),
-                         dbc.Table(window_table, bordered=True, hover=True, style={"color": "#495057"})),
-                        (html.P("Statistics Before Rejection:", className="mb-1"),
-                         table_before_rejection,
-                         html.Div([fmc_txt, html.Sub("0,mc"), ": ", str(f0mc_before)[:4]], style=mc_style, className="mb-2")),
-                        (html.P("Statistics After Rejection:", className="mb-1"),
-                         table_after_rejection,
-                         html.Div([fmc_txt, html.Sub("0,mc"),  ": ", str(f0mc_after)[:4]], style=mc_style, className="mb-2")),
-                        out_url,
-                        fig_name,
-                        hvsrpy_downloadable,
-                        hvsrpy_name,
-                        geopsy_downloadable,
-                        geopsy_name,
-                        False,
-                        tooltips,
-                        dbc.Tooltip(
-                            "Save results in the geopsy-style text format.",
-                            target="save_geopsy-button"),
-                        False)
+                stats = ((html.P("Statistics Before Rejection:", className="mb-1"),
+                          table_before_rejection,
+                          html.Div([fmc_txt, html.Sub("0,mc"), ": ", str(f0mc_before)[:4]], style=mc_style, className="mb-2")),
+                         (html.P("Statistics After Rejection:", className="mb-1"),
+                          table_after_rejection,
+                          html.Div([fmc_txt, html.Sub("0,mc"),  ": ", str(f0mc_after)[:4]], style=mc_style, className="mb-2")),
+                         )
             else:
-                return (out_url,
-                        (html.P("Window Information:", className="mb-1"),
-                         dbc.Table(window_table, bordered=True, style={"color": "#495057"})),
-                        (html.P("Statistics:", className="mb-1"),
-                         table_no_rejection,
-                         html.Div([fmc_txt, html.Sub("0,mc"),  ": ", str(f0mc_before)[:4]], style=mc_style, className="mb-2")),
-                        ([]),
-                        out_url,
-                        fig_name,
-                        hvsrpy_downloadable,
-                        hvsrpy_name,
-                        geopsy_downloadable,
-                        geopsy_name,
-                        False,
-                        tooltips,
-                        dbc.Tooltip(
-                            "Save results in the geopsy-style text format.",
-                            target="save_geopsy-button"),
-                        False)
+                stats = ((html.P("Statistics:", className="mb-1"),
+                          table_no_rejection,
+                          html.Div([fmc_txt, html.Sub("0,mc"),  ": ", str(f0mc_before)[:4]], style=mc_style, className="mb-2")),
+                         ([]))
+
+            return (out_url,
+                    (html.P("Window Information:", className="mb-1"),
+                     dbc.Table(window_table, bordered=True, hover=True, style={"color": "#495057"})),
+                    *stats,
+                    out_url,
+                    fig_name,
+                    *hrefs,
+                    False,
+                    tooltips,
+                    dbc.Tooltip(
+                        "Save results in the geopsy-style text format.",
+                        target="save_geopsy-button"),
+                    False)
+
     else:
         raise PreventUpdate
 
