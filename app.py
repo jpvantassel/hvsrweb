@@ -59,7 +59,7 @@ time_tab = dbc.Card(
             ], style=default_p_style),
             dbc.Tooltip(
                 "Fraction of each time window to be cosine tapered. "
-                "0.1 is recommended.",
+                "0.1 (i.e., 5% off either end) is recommended.",
                 target="width-tooltip-target",
             ),
             dbc.Input(id="width-input", type="number",
@@ -249,8 +249,8 @@ hv_tab = dbc.Card(
                 options=[
                     {"label": "Geometric-Mean", "value": "geometric-mean"},
                     {"label": "Squared-Average", "value": "squared-average"},
-                    {"label": "Azimuth", "value": "azimuth"},
-                    {"label": "Rotate", "value": "rotate"}
+                    {"label": "Single-Azimuth", "value": "azimuth"},
+                    {"label": "Multiple-Azimuths", "value": "rotate"}
                 ],
                 value="geometric-mean",
             ),
@@ -467,7 +467,7 @@ body = dbc.Container([
                     dcc.Upload(
                         id="upload-bar",
                         children=html.Div(
-                            ["Drag and drop or click to select a file to upload."]
+                            ["Drag and drop or click to select a 3-component miniseed (*.miniseed or *.mseed) file to upload."]
                         ),
                         style={
                             "height": "50px",
