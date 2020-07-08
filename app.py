@@ -52,7 +52,7 @@ time_tab = dbc.Card(
             # Width of cosine taper
             html.P([
                 html.Span(
-                    "Width of Cosine Taper:",
+                    "Cosine Taper Width:",
                     id="width-tooltip-target",
                     style=default_span_style,
                 ),
