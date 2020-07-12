@@ -29,7 +29,39 @@ default_span_style = {"cursor": "context-menu",
 default_p_style = {"margin-top": "0.5em", "margin-bottom": "0em"}
 default_cardbody_style = {"min-height": "65vh"}
 
-# Bootstrap Layout:
+intro_tab = dbc.Card(
+    dbc.CardBody(
+        dcc.Markdown("""
+            #### What is HVSRweb
+
+            HVSRweb is a web application for horizontal-to-vertical spectral 
+            ratio (HVSR) processing. HVSRweb utilizes _hvsrpy_
+            (Vantassel, 2020) behind Dash (Plotly, 2017) to allow
+            processing of ambient noise data in the cloud, with no
+            installation required.
+
+            #### Getting Started
+
+            1. Load your own ambient noise data using the upload bar or press __Demo__ to load a data file provided by us.
+            2. Explore the processing settings tabs (Time, Frequency, and H/V) and make any desired changes.
+            3. When done, press __Calculate__ and go to the Results tab for more information.
+
+            #### Where can I learn more
+            
+            For more information about HVSRweb, refer to:
+
+            > Vantassel, J.P., Cox, B.R., Brannon, D.M., 2021. HVSRweb: An
+            > Open-Source, Web-Based Application for Horizontal-to-Vertical
+            > Spectral Ratio Processing. (Submitted).
+
+            For more information about the details of the HVSR processing
+            refer to the _hvsrpy_
+            [GitHub](https://github.com/jpvantassel/hvsrpy).
+            """),
+        style=default_cardbody_style),
+    className="mt-3",
+)
+
 time_tab = dbc.Card(
     dbc.CardBody(
         [
@@ -41,13 +73,15 @@ time_tab = dbc.Card(
                     style=default_span_style,
                 ),
             ], style=default_p_style),
-            dbc.Tooltip(
-                "Length of each time window in seconds. "
-                "For specific guidance on an appropriate window length refer to the SESAME (2004) guidelines.",
-                target="windowlength-tooltip-target",
-            ),
+            dbc.Tooltip("""
+                        Length of each time window in seconds. For specific
+                        guidance on an appropriate window length refer to the
+                        SESAME (2004) guidelines.
+                        """,
+                        target="windowlength-tooltip-target",
+                        ),
             dbc.Input(id="windowlength-input", type="number",
-                      value=60, min=0, max=600, step=1),
+                      value=60, min=30, max=600, step=1),
 
             # Width of cosine taper
             html.P([
@@ -57,11 +91,12 @@ time_tab = dbc.Card(
                     style=default_span_style,
                 ),
             ], style=default_p_style),
-            dbc.Tooltip(
-                "Fraction of each time window to be cosine tapered. "
-                "0.1 (i.e., 5% off either end) is recommended.",
-                target="width-tooltip-target",
-            ),
+            dbc.Tooltip("""
+                        Fraction of each time window to be cosine tapered.
+                        0.1 (i.e., 5% off either end) is recommended.
+                        """,
+                        target="width-tooltip-target",
+                        ),
             dbc.Input(id="width-input", type="number",
                       value=0.1, min=0., max=1.0, step=0.1),
 
@@ -73,11 +108,13 @@ time_tab = dbc.Card(
                     style=default_span_style,
                 ),
             ], style=default_p_style),
-            dbc.Tooltip(
-                "Select whether a Butterworth bandpass filter is applied to the time-domain singal. "
-                "Geopsy does not apply a bandpass filter.",
-                target="butterworth-tooltip-target",
-            ),
+            dbc.Tooltip("""
+                        Select whether a Butterworth bandpass filter is applied
+                        to the time-domain singal. Geopsy does not apply a
+                        bandpass filter.
+                        """,
+                        target="butterworth-tooltip-target",
+                        ),
             dbc.Select(
                 id="butterworth-input",
                 options=[
@@ -148,13 +185,14 @@ frequency_tab = dbc.Card(
                     style=default_span_style,
                 ),
             ], style=default_p_style),
-            dbc.Tooltip(
-                "Bandwidth coefficient (b) for Konno and Ohmachi (1998) smoothing, "
-                "40 is recommended.",
-                target="bandwidth-tooltip-target",
-            ),
+            dbc.Tooltip("""
+                        Bandwidth coefficient (b) for Konno and Ohmachi (1998)
+                        smoothing a value of 40 is recommended.
+                        """,
+                        target="bandwidth-tooltip-target",
+                        ),
             dbc.Input(id="bandwidth-input", type="number",
-                      value=40, min=0, max=600, step=1),
+                      value=40, min=10, max=100, step=5),
 
             html.P("Resampling:", style=default_p_style),
             dbc.Container([
@@ -449,7 +487,7 @@ body = dbc.Container([
                     dbc.Button("Demo", id="demo-button", color="secondary",
                                size="lg", style={"padding-left": "30px", "padding-right": "30px"}),
                     dbc.Tooltip(
-                        "Load a file supplied by us.",
+                        "Load ambient noise data provided by us.",
                         target="demo-button",
                     ),
                     ], md=1, ),
@@ -495,6 +533,7 @@ body = dbc.Container([
                          html.P(id="filename-reference"),
                          ], className="mb-2"),
                 dbc.Tabs([
+                    dbc.Tab(intro_tab, label="Intro"),
                     dbc.Tab(time_tab, label="Time"),
                     dbc.Tab(frequency_tab, label="Frequency"),
                     dbc.Tab(hv_tab, label="H/V"),
@@ -519,7 +558,7 @@ body = dbc.Container([
 server = Flask(__name__)
 app = dash.Dash(server=server, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
-app.title = 'Spectral: A web-interface to hvsrpy'
+app.title = 'HVSRweb: A web application for HVSR processsing'
 app.layout = html.Div(
     [
         html.Div([
@@ -531,11 +570,12 @@ app.layout = html.Div(
         html.Div(
             id="banner",
             className="banner",
-            children=[html.Img(src=app.get_asset_url("spectral_header.png"))],
+            children=[html.Img(src=app.get_asset_url("hvsrweb_logo.png")),
+                      html.H2("HVSRweb: A web application for HVSR processing")]
         ),
         body,
         html.Footer(dbc.Container(html.Span(
-            "© 2019-2020 Dana M. Brannon & Joseph P. Vantassel", className="text-muted")), className="footer")
+            "HVSRweb v0.1.0 © 2019-2020 Dana M. Brannon & Joseph P. Vantassel", className="text-muted")), className="footer")
     ],
 )
 
