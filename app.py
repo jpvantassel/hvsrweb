@@ -471,11 +471,19 @@ results_tab = dbc.Card(
             html.Div(id="tooltips"),
 
             html.Div([
-                html.P("Looking for more? See the ",
+                html.P("Looking for more functionality? Checkout ",
                        style=dict(**default_p_style, **{"display": "inline", "color": "#495057"})),
-                html.A("full Python package.",
+                html.A("hvsrpy.",
                        href="https://github.com/jpvantassel/hvsrpy")
-            ], ),
+            ]),
+
+            html.Div([
+                html.P("Want to access an earlier version of HVSRweb? Find instructions ",
+                       style=dict(**default_p_style, **{"display": "inline", "color": "#495057"})),
+                html.A("here.",
+                       href="https://github.com/jpvantassel/hvsrweb")
+            ]),
+
         ], style=default_cardbody_style),
     className="mt-3",
 )
@@ -551,7 +559,6 @@ body = dbc.Container([
             ]),
         ], md=5),
     ]),
-
     html.Div(id='hidden-file-contents', style={"display": "none"}),
 ], className="mt-4 mr-0", style={"margin-top": "0"}, fluid=True)
 
@@ -1064,11 +1071,11 @@ def update_timerecord_plot(calc_clicked, filename, contents,
             if rejection_bool:
                 stats = (html.P("Statistics After Rejection:", className="mb-1"),
                          table_after_rejection,
-                         html.Div([fmc_txt, html.Sub("0,AZ"),  ": ", str(f0mc_after)[:4]], style=mc_style, className="mb-2"))
+                         html.Div([fmc_txt, html.Sub("0,mc,AZ"),  ": ", str(f0mc_after)[:4]], style=mc_style, className="mb-2"))
             else:
                 stats = (html.P("Statistics Without Rejection:", className="mb-1"),
                          table_before_rejection,
-                         html.Div([fmc_txt, html.Sub("0,mc"),  ": ", str(f0mc_before)[:4]], style=mc_style, className="mb-2"))
+                         html.Div([fmc_txt, html.Sub("0,mc,AZ"),  ": ", str(f0mc_before)[:4]], style=mc_style, className="mb-2"))
 
             return (out_url,
                     ([]),
@@ -1080,7 +1087,7 @@ def update_timerecord_plot(calc_clicked, filename, contents,
                     False,
                     tooltips,
                     dbc.Tooltip(
-                        "Geopsy does not implement a rotational calculation.",
+                        "Geopsy does not offer a multi-azimuth output file.",
                         target="save_geopsy-button"),
                     True)
 
