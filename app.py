@@ -32,7 +32,7 @@ default_cardbody_style = {"min-height": "65vh"}
 intro_tab = dbc.Card(
     dbc.CardBody(
         dcc.Markdown("""
-            #### What is HVSRweb
+            #### Welcome to HVSRweb
 
             HVSRweb is a web application for horizontal-to-vertical spectral 
             ratio (HVSR) processing. HVSRweb utilizes _hvsrpy_
@@ -46,17 +46,15 @@ intro_tab = dbc.Card(
             2. Explore the processing settings tabs (Time, Frequency, and H/V) and make any desired changes.
             3. When done, press __Calculate__ and go to the Results tab for more information.
 
-            #### Where can I learn more
-            
-            For more information about HVSRweb, refer to:
+            #### Citation
+
+            If you use HVSRweb in your research or consulting we ask you 
+            please cite the following:
 
             > Vantassel, J.P., Cox, B.R., Brannon, D.M., 2021. HVSRweb: An
             > Open-Source, Web-Based Application for Horizontal-to-Vertical
             > Spectral Ratio Processing. (Submitted).
 
-            For more information about the details of the HVSR processing
-            refer to the _hvsrpy_
-            [GitHub](https://github.com/jpvantassel/hvsrpy).
             """),
         style=default_cardbody_style),
     className="mt-3",
@@ -277,11 +275,12 @@ hv_tab = dbc.Card(
                     style=default_span_style,
                 ),
             ], style=default_p_style),
-            dbc.Tooltip(
-                "Geometric-Mean is recommended. "
-                "Geopsy uses the Squared-Average by default. ",
-                target="method-tooltip-target",
-            ),
+            dbc.Tooltip("""
+                        Geometric-Mean is recommended.
+                        Geopsy uses the Squared-Average by default.
+                        """,
+                        target="method-tooltip-target",
+                        ),
             dbc.Select(
                 id="method-input",
                 options=[
@@ -302,11 +301,12 @@ hv_tab = dbc.Card(
                         style=default_span_style,
                     ),
                 ], style=default_p_style),
-                dbc.Tooltip(
-                    "Azimuth measured in degrees clockwise from North "
-                    "(sensor is assumed to be oriented due North).",
-                    target="azimuth-tooltip-target",
-                ),
+                dbc.Tooltip("""
+                            Azimuth measured in degrees clockwise from North
+                            (sensor is assumed to be oriented due North).
+                            """,
+                            target="azimuth-tooltip-target",
+                            ),
                 dbc.Input(id="azimuth-input", type="number",
                           value=90, min=0, max=179, step=1),
             ],
@@ -322,11 +322,12 @@ hv_tab = dbc.Card(
                         style=default_span_style,
                     ),
                 ], style=default_p_style),
-                dbc.Tooltip(
-                    "Spacing in degrees between considered azimuths. "
-                    "15 is recommended.",
-                    target="rotate-tooltip-target",
-                ),
+                dbc.Tooltip("""
+                            Spacing in degrees between considered azimuths.
+                            15 is recommended.
+                            """,
+                            target="rotate-tooltip-target",
+                            ),
                 dbc.Input(id="rotate-input", type="number",
                           value=15, min=0, max=45, step=1),
             ],
@@ -342,11 +343,12 @@ hv_tab = dbc.Card(
                     style=default_span_style,
                 ),
             ], style=default_p_style),
-            dbc.Tooltip(
-                "Lognormal is recommended. "
-                "Geopsy uses Normal.",
-                target="distribution_f0-tooltip-target",
-            ),
+            dbc.Tooltip("""
+                        Lognormal is recommended.
+                        Geopsy uses Normal.
+                        """,
+                        target="distribution_f0-tooltip-target",
+                        ),
             dbc.Select(
                 id="distribution_f0-input",
                 options=[
@@ -362,11 +364,12 @@ hv_tab = dbc.Card(
                     style=default_span_style,
                 ),
             ], style=default_p_style),
-            dbc.Tooltip(
-                "Lognormal is recommended. "
-                "Geopsy uses Lognormal",
-                target="distribution_mc-tooltip-target",
-            ),
+            dbc.Tooltip("""
+                        Lognormal is recommended.
+                        Geopsy uses Lognormal
+                        """,
+                        target="distribution_mc-tooltip-target",
+                        ),
             dbc.Select(
                 id="distribution_mc-input",
                 options=[
@@ -382,11 +385,13 @@ hv_tab = dbc.Card(
                     style=default_span_style,
                 ),
             ], style=default_p_style),
-            dbc.Tooltip(
-                "Select whether the frequency-domain window-rejection algorithm proposed "
-                "by Cox et al. (2020) is applied. Geopsy does not offer this functionality.",
-                target="rejection_bool-tooltip-target",
-            ),
+            dbc.Tooltip("""
+                        Select whether the frequency-domain window-rejection
+                        algorithm proposed by Cox et al. (2020) is applied.
+                        Geopsy does not offer this functionality.
+                        """,
+                        target="rejection_bool-tooltip-target",
+                        ),
             dbc.Select(
                 id="rejection_bool-input",
                 options=[
@@ -403,12 +408,13 @@ hv_tab = dbc.Card(
                         style=default_span_style,
                     ),
                 ], style=default_p_style),
-                dbc.Tooltip(
-                    "Number of standard deviations to consider during rejection. "
-                    "Smaller values will tend to reject more windows than larger values. "
-                    "2 is recommended.",
-                    target="n-tooltip-target",
-                ),
+                dbc.Tooltip("""
+                            Number of standard deviations to consider during
+                            rejection. Smaller values will tend to reject more
+                            windows than larger values. 2 is recommended.
+                            """,
+                            target="n-tooltip-target",
+                            ),
                 dbc.Input(id="n-input", type="number",
                           value=2, min=1, max=4, step=0.5),
 
@@ -420,10 +426,11 @@ hv_tab = dbc.Card(
                         style=default_span_style,
                     ),
                 ], style=default_p_style),
-                dbc.Tooltip(
-                    "Maximum number of iterations of the rejection algorithm. "
-                    "50 is recommended.",
-                    target="n_iteration-tooltip-target",
+                dbc.Tooltip("""
+                            Maximum number of iterations of the rejection
+                            algorithm. 50 is recommended.
+                            """,
+                            target="n_iteration-tooltip-target",
                 ),
                 dbc.Input(id="n_iteration-input", type="number",
                           value=50, min=5, max=75, step=1),
@@ -463,27 +470,22 @@ results_tab = dbc.Card(
                     html.Div(id="geopsy-button-tooltip"),
                 ], style=col_style),
             ], className="mb-2"),
-
             html.Div(id='window-information-table'),
             html.Div(id='before-rejection-table'),
             html.Div(id='after-rejection-table'),
-
             html.Div(id="tooltips"),
-
             html.Div([
                 html.P("Looking for more functionality? Checkout ",
                        style=dict(**default_p_style, **{"display": "inline", "color": "#495057"})),
                 html.A("hvsrpy.",
                        href="https://github.com/jpvantassel/hvsrpy")
             ]),
-
             html.Div([
                 html.P("Want to access an earlier version of HVSRweb? Find instructions ",
                        style=dict(**default_p_style, **{"display": "inline", "color": "#495057"})),
                 html.A("here.",
                        href="https://github.com/jpvantassel/hvsrweb")
             ]),
-
         ], style=default_cardbody_style),
     className="mt-3",
 )
@@ -674,8 +676,7 @@ def fig_to_uri(in_fig, close_all=True, **save_args):
         in_fig.clf()
         plt.close('all')
     out_img.seek(0)
-    encoded = base64.b64encode(out_img.read()).decode(
-        "ascii").replace("\n", "")
+    encoded = base64.b64encode(out_img.read()).decode("ascii").replace("\n", "")
     return "data:image/png;base64,{}".format(encoded), encoded
 
 
@@ -933,7 +934,8 @@ def update_timerecord_plot(calc_clicked, filename, contents,
             # 3D Median Curve
             ax = ax0
             ax.plot_surface(np.log10(mesh_frq), mesh_azi, mesh_amp, rstride=1,
-                            cstride=1, cmap=cm.plasma, linewidth=0, antialiased=False)
+                            cstride=1, cmap=cm.plasma, linewidth=0, 
+                            antialiased=False)
             for coord in list("xyz"):
                 getattr(ax, f"w_{coord}axis").set_pane_color((1, 1, 1))
             ax.set_xticks(np.log10(np.array([0.01, 0.1, 1, 10, 100])))
@@ -964,7 +966,8 @@ def update_timerecord_plot(calc_clicked, filename, contents,
             fig.colorbar(contour, cax=cax, orientation="horizontal")
             cax.xaxis.set_ticks_position("top")
 
-            ax.plot(pfrqs, hv.azimuths, marker="s", color="w", linestyle="", markersize=3, markeredgecolor="k",
+            ax.plot(pfrqs, hv.azimuths, marker="s", color="w", linestyle="",
+                    markersize=3, markeredgecolor="k",
                     label=r"$f_{0,mc,\alpha}$")
 
             # 2D Median Curve
@@ -986,21 +989,26 @@ def update_timerecord_plot(calc_clicked, filename, contents,
             # Mean +/- Curve
             label = r"$LM_{curve,AZ}$" + \
                 " ± 1 STD" if distribution_mc == "log-normal" else r"$Mean_{curve,AZ}$"+" ± 1 STD"
-            ax.plot(hv.frq, hv.nstd_curve(-1, distribution=distribution_mc), color="k", linestyle="--",
-                    linewidth=median_width, zorder=4, label=label)
-            ax.plot(hv.frq, hv.nstd_curve(+1, distribution=distribution_mc), color="k", linestyle="--",
-                    linewidth=median_width, zorder=4)
+            ax.plot(hv.frq, hv.nstd_curve(-1, distribution=distribution_mc),
+                    color="k", linestyle="--", linewidth=median_width,
+                    zorder=4, label=label)
+            ax.plot(hv.frq, hv.nstd_curve(+1, distribution=distribution_mc),
+                    color="k", linestyle="--", linewidth=median_width,
+                    zorder=4)
 
             # Window Peaks
             label = r"$f_{0,i,\alpha}$"
             for frq, amp in zip(hv.peak_frq, hv.peak_amp):
-                ax.plot(frq, amp, linestyle="", zorder=3, marker='o', markersize=2.5, markerfacecolor="#ffffff",
+                ax.plot(frq, amp, linestyle="", zorder=3, marker='o',
+                        markersize=2.5, markerfacecolor="#ffffff",
                         markeredgewidth=0.5, markeredgecolor='k', label=label)
                 label = None
 
             # Peak Mean Curve
-            ax.plot(hv.mc_peak_frq(distribution_mc), hv.mc_peak_amp(distribution_mc), linestyle="", zorder=5,
-                    marker='D', markersize=4, markerfacecolor='#66ff33', markeredgewidth=1, markeredgecolor='k',
+            ax.plot(hv.mc_peak_frq(distribution_mc),
+                    hv.mc_peak_amp(distribution_mc), linestyle="", zorder=5,
+                    marker='D', markersize=4, markerfacecolor='#66ff33',
+                    markeredgewidth=1, markeredgecolor='k',
                     label=r"$f_{0,mc,AZ}$")
 
             # f0,az
@@ -1035,7 +1043,8 @@ def update_timerecord_plot(calc_clicked, filename, contents,
             for index in [0, 5, 1, 2, 3, 4, 6]:
                 new_handles.append(handles[index])
                 new_labels.append(labels[index])
-            fig.legend(new_handles, new_labels, loc="lower center", bbox_to_anchor=(0.47, 0), ncol=4, columnspacing=0.5,
+            fig.legend(new_handles, new_labels, loc="lower center",
+                        bbox_to_anchor=(0.47, 0), ncol=4, columnspacing=0.5,
                        handletextpad=0.4)
             end = time.time()
 
@@ -1128,17 +1137,22 @@ def update_timerecord_plot(calc_clicked, filename, contents,
 
                 # Window Peaks
                 ax.plot(hv.peak_frq, hv.peak_amp, linestyle="", zorder=2,
-                        marker='o', markersize=2.5, markerfacecolor="#ffffff", markeredgewidth=0.5, markeredgecolor='k',
+                        marker='o', markersize=2.5, markerfacecolor="#ffffff",
+                        markeredgewidth=0.5, markeredgecolor='k',
                         label="" if title == "Before Rejection" and rejection_bool else r"$f_{0,i}$")
 
                 # Peak Mean Curve
-                ax.plot(hv.mc_peak_frq(distribution_mc), hv.mc_peak_amp(distribution_mc), linestyle="", zorder=4,
-                        marker='D', markersize=4, markerfacecolor='#66ff33', markeredgewidth=1, markeredgecolor='k',
+                ax.plot(hv.mc_peak_frq(distribution_mc),
+                        hv.mc_peak_amp(distribution_mc), linestyle="",
+                        zorder=4, marker='D', markersize=4,
+                        markerfacecolor='#66ff33', markeredgewidth=1,
+                        markeredgecolor='k',
                         label="" if title == "Before Rejection" and rejection_bool else r"$f_{0,mc}$")
 
                 # Mean Curve
                 label = r"$LM_{curve}$" if distribution_mc == "log-normal" else "Mean Curve"
-                ax.plot(hv.frq, hv.mean_curve(distribution_mc), color='k', linewidth=median_width,
+                ax.plot(hv.frq, hv.mean_curve(distribution_mc), color='k',
+                        linewidth=median_width,
                         label="" if title == "Before Rejection" and rejection_bool else label)
 
                 # Mean +/- Curve
@@ -1294,5 +1308,4 @@ def update_timerecord_plot(calc_clicked, filename, contents,
 
 
 if __name__ == "__main__":
-    app.run_server(debug=True)  # , port=8888)
-    # server.run("0.0.0.0")
+    app.run_server(debug=True)
