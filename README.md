@@ -17,6 +17,7 @@ on its [GitHub repository](https://github.com/jpvantassel/hvsrpy).
 ## Running the Application
 
 To run the application, you can either:
+
 - Visit the [live website](https://hvsrpy.cb-geo.com/) (_recommended_), or
 - Run locally
 
