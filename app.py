@@ -42,9 +42,12 @@ intro_tab = dbc.Card(
 
             #### Getting Started
 
-            1. Load your own ambient noise data using the upload bar or press __Demo__ to load a data file provided by us.
-            2. Explore the processing settings tabs (Time, Frequency, and H/V) and make any desired changes.
-            3. When done, press __Calculate__ and go to the Results tab for more information.
+            1. Load your own ambient noise data using the upload bar or press
+            __Demo__ to load a data file provided by us.
+            2. Explore the processing settings tabs (Time, Frequency,
+            and H/V) and make any desired changes.
+            3. When done, press __Calculate__ and go to the Results tab for
+            more information.
 
             #### Citation
 
@@ -54,6 +57,11 @@ intro_tab = dbc.Card(
             > Vantassel, J.P., Cox, B.R., Brannon, D.M., 2021. HVSRweb: An
             > Open-Source, Web-Based Application for Horizontal-to-Vertical
             > Spectral Ratio Processing. (Submitted).
+
+            Additional information concerning the implementation of
+            the HVSR calculation and the terminology used can be found
+            on the _hvsrpy_
+            [GitHub repository](https://github.com/jpvantassel/hvsrpy).
 
             """),
         style=default_cardbody_style),
