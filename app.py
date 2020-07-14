@@ -59,9 +59,23 @@ intro_tab = dbc.Card(
             > Spectral Ratio Processing. (Submitted).
 
             Additional information concerning the implementation of
-            the HVSR calculation and the terminology used can be found
-            on the _hvsrpy_
+            the HVSR calculation can be found on the _hvsrpy_
             [GitHub repository](https://github.com/jpvantassel/hvsrpy).
+
+            #### Additional References
+
+            Background information concerning the HVSR statistics and
+            the terminology can be found in the following references:
+
+            Cox, B. R., Cheng, T., Vantassel, J. P., and Manuel, L. (2020).
+            “A statistical representation and frequency-domain
+            window-rejection algorithm for single-station HVSR measurements.”
+            Geophysical Journal International, 221(3), 2170-2183.
+
+            Cheng, T., Cox, B. R., Vantassel, J. P., and Manuel, L. (2020).
+            "A statistical approach to account for azimuthal variability in
+            single-station HVSR measurements." Geophysical Journal
+            International, Accepted.
 
             """),
         style=default_cardbody_style),
