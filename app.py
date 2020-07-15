@@ -497,6 +497,10 @@ results_tab = dbc.Card(
             html.Div(id='after-rejection-table'),
             html.Div(id="tooltips"),
             html.Div([
+                html.P("Looking for more information? Refer to the references back in the Intro tab.",
+                       style=dict(**default_p_style, **{"display": "inline", "color": "#495057"})),
+            ]),
+            html.Div([
                 html.P("Looking for more functionality? Checkout ",
                        style=dict(**default_p_style, **{"display": "inline", "color": "#495057"})),
                 html.A("hvsrpy.",
@@ -537,7 +541,7 @@ body = dbc.Container([
                     dcc.Upload(
                         id="upload-bar",
                         children=html.Div(
-                            ["Drag and drop or click to select a 3-component miniseed (*.miniseed or *.mseed) file to upload."]
+                            ["Drag and drop or click to select a 3-component miniSEED (*.miniseed or *.mseed) file to upload."]
                         ),
                         style={
                             "height": "50px",
