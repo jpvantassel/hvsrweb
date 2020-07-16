@@ -1,4 +1,4 @@
-# HVSRweb - A web application for horizontal-to-vertical spectral ratio processing
+# HVSRweb - An Open-Source, Web-Based Application for Horizontal-to-Vertical Spectral Ratio Processing
 
 > Dana M. Brannon and Joseph P. Vantassel, The University of Texas at Austin
 
@@ -13,6 +13,30 @@ HVSRweb relies on the open-source Python package _hvsrpy_ developed by
 Joseph P. Vantassel under the supervision of Professor Brady R. Cox at The
 University of Texas at Austin. More information about  _hvsrpy_ can be found
 on its [GitHub repository](https://github.com/jpvantassel/hvsrpy).
+
+## Citation
+
+If you use HVSRweb in your research or consulting we ask you
+please cite the following:
+
+> Vantassel, J.P., Cox, B.R., Brannon, D.M., 2021. HVSRweb: An Open-Source,
+Web-Based Application for Horizontal-to-Vertical Spectral Ratio Processing.
+(Submitted).
+
+## Additional References
+
+Background information concerning the HVSR statistics and the terminology can be
+found in the following references:
+
+>Cox, B. R., Cheng, T., Vantassel, J. P., and Manuel, L. (2020).
+“A statistical representation and frequency-domain
+window-rejection algorithm for single-station HVSR measurements.”
+Geophysical Journal International, 221(3), 2170-2183.
+
+>Cheng, T., Cox, B. R., Vantassel, J. P., and Manuel, L. (2020).
+"A statistical approach to account for azimuthal variability in
+single-station HVSR measurements." Geophysical Journal
+International, Accepted.
 
 ## Running the Application
 
@@ -53,8 +77,8 @@ from step 2.
 
 ### Example output using the _geometric mean_ of the horizontal components
 
-![gm](img/hvsrweb_gm_screenshot.png)
+![gm](https://github.com/jpvantassel/hvsrweb/blob/master/img/hvsrweb_gm_screenshot.png?raw=true)
 
 ### Example output using across _multiple-azimuths_ of the horizontal components
 
-![az](img/hvsrweb_az_screenshot.png)
+![az](https://github.com/jpvantassel/hvsrweb/blob/master/img/hvsrweb_az_screenshot.png?raw=true)
