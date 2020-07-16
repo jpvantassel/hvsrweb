@@ -54,9 +54,9 @@ intro_tab = dbc.Card(
             If you use HVSRweb in your research or consulting we ask you 
             please cite the following:
 
-            > Vantassel, J.P., Cox, B.R., Brannon, D.M., 2021. HVSRweb: An
-            > Open-Source, Web-Based Application for Horizontal-to-Vertical
-            > Spectral Ratio Processing. (Submitted).
+            Vantassel, J.P., Cox, B.R., Brannon, D.M. (2021). HVSRweb: An
+            Open-Source, Web-Based Application for Horizontal-to-Vertical
+            Spectral Ratio Processing. (Submitted).
 
             Additional information concerning the implementation of
             the HVSR calculation can be found on the _hvsrpy_

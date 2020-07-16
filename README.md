@@ -19,7 +19,7 @@ on its [GitHub repository](https://github.com/jpvantassel/hvsrpy).
 If you use HVSRweb in your research or consulting we ask you
 please cite the following:
 
-> Vantassel, J.P., Cox, B.R., Brannon, D.M., 2021. HVSRweb: An Open-Source,
+> Vantassel, J.P., Cox, B.R., Brannon, D.M., (2021). HVSRweb: An Open-Source,
 Web-Based Application for Horizontal-to-Vertical Spectral Ratio Processing.
 (Submitted).
 
