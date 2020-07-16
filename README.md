@@ -12,7 +12,7 @@ the cloud, with no installation required. For the calculation details,
 HVSRweb relies on the open-source Python package _hvsrpy_ developed by
 Joseph P. Vantassel under the supervision of Professor Brady R. Cox at The
 University of Texas at Austin. More information about  _hvsrpy_ can be found
-on its [GitHub repository](https://github.com/jpvantassel/hvsrpy).
+on its [GitHub](https://github.com/jpvantassel/hvsrpy).
 
 ## Citation
 
@@ -64,12 +64,13 @@ browser.
 
 ## Running an Earlier Version
 
-All previously released versions of HVSRweb are available as project releases.
-Previous versions of HVSRweb must be run locally (i.e., are not hosted on a
-live website). To access and run a previous version:
+All versions of HVSRweb are organized as releases. Previous versions of HVSRweb
+must be run locally (i.e., are not hosted on a live website). To access and run
+a previous version:
 
-1. Go to [releases](https://github.com/jpvantassel/hvsrweb/releases) and
-download the desired release.
+1. Go to the project's
+[releases](https://github.com/jpvantassel/hvsrweb/releases) and download the
+desired release.
 2. Once downloaded, move and unzip the folder's contents in any convenient
 location.
 3. Follow the instructions for running locally (provided above) starting

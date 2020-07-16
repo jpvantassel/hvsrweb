@@ -60,7 +60,7 @@ intro_tab = dbc.Card(
 
             Additional information concerning the implementation of
             the HVSR calculation can be found on the _hvsrpy_
-            [GitHub repository](https://github.com/jpvantassel/hvsrpy).
+            [GitHub](https://github.com/jpvantassel/hvsrpy).
 
             #### Additional References
 
