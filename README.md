@@ -42,7 +42,7 @@ International, Accepted.
 
 To run the application, you can either:
 
-- Visit the [live website](https://hvsrpy.cb-geo.com/) (_recommended_), or
+- Visit the [live website hosted by DesignSafe](https://hvsrweb.designsafe-ci.org/) (_recommended_), or
 - Run locally
 
 ## Running Locally
@@ -57,9 +57,9 @@ do not, you can find detailed instructions for doing so
 If you are unfamiliar with `pip`, you may find
 [this tutorial](https://jpvantassel.github.io/python3-course/#/intro/pip)
 helpful.
-4. Launch the application with `python app.py` from inside the project
+4. Launch the application with `python hvsrweb.py` from inside the project
 directory.
-5. Access the localhost url (e.g., localhost:8050) using your favorite web
+5. Access the localhost url (e.g., `localhost:8050`) using your favorite web
 browser.
 
 ## Running an Earlier Version
