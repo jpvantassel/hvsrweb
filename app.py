@@ -32,15 +32,15 @@ default_cardbody_style = {"min-height": "65vh"}
 intro_tab = dbc.Card(
     dbc.CardBody(
         dcc.Markdown("""
-            #### Welcome to HVSRweb
+            # Welcome to HVSRweb
 
-            HVSRweb is a web application for horizontal-to-vertical spectral 
+            HVSRweb is a web application for horizontal-to-vertical spectral
             ratio (HVSR) processing. HVSRweb utilizes _hvsrpy_
             (Vantassel, 2020) behind Dash (Plotly, 2017) to allow
             processing of ambient noise data in the cloud, with no
             installation required.
 
-            #### Getting Started
+            # Getting Started
 
             1. Load your own ambient noise data using the upload bar or press
             __Demo__ to load a data file provided by us.
@@ -49,9 +49,9 @@ intro_tab = dbc.Card(
             3. When done, press __Calculate__ and go to the Results tab for
             more information.
 
-            #### Citation
+            # Citation
 
-            If you use HVSRweb in your research or consulting we ask you 
+            If you use HVSRweb in your research or consulting we ask you
             please cite the following:
 
             Vantassel, J.P., Cox, B.R., Brannon, D.M. (2021). HVSRweb: An
@@ -62,7 +62,7 @@ intro_tab = dbc.Card(
             the HVSR calculation can be found on the _hvsrpy_
             [GitHub](https://github.com/jpvantassel/hvsrpy).
 
-            #### Additional References
+            # Additional References
 
             Background information concerning the HVSR statistics and
             the terminology can be found in the following references:
@@ -453,7 +453,7 @@ hv_tab = dbc.Card(
                             algorithm. 50 is recommended.
                             """,
                             target="n_iteration-tooltip-target",
-                ),
+                            ),
                 dbc.Input(id="n_iteration-input", type="number",
                           value=50, min=5, max=75, step=1),
             ],
@@ -590,8 +590,8 @@ body = dbc.Container([
     html.Div(id='hidden-file-contents', style={"display": "none"}),
 ], className="mt-4 mr-0", style={"margin-top": "0"}, fluid=True)
 
-server = Flask(__name__)
-app = dash.Dash(server=server, external_stylesheets=[dbc.themes.BOOTSTRAP])
+application = Flask(__name__)
+app = dash.Dash(server=application, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 app.title = 'HVSRweb: A web application for HVSR processsing'
 app.layout = html.Div(
@@ -610,7 +610,7 @@ app.layout = html.Div(
         ),
         body,
         html.Footer(dbc.Container(html.Span(
-            "HVSRweb v0.1.0 © 2019-2020 Dana M. Brannon & Joseph P. Vantassel", className="text-muted")), className="footer")
+            "HVSRweb v0.2.0 © 2019-2020 Dana M. Brannon & Joseph P. Vantassel", className="text-muted")), className="footer")
     ],
 )
 
@@ -702,7 +702,8 @@ def fig_to_uri(in_fig, close_all=True, **save_args):
         in_fig.clf()
         plt.close('all')
     out_img.seek(0)
-    encoded = base64.b64encode(out_img.read()).decode("ascii").replace("\n", "")
+    encoded = base64.b64encode(out_img.read()).decode(
+        "ascii").replace("\n", "")
     return "data:image/png;base64,{}".format(encoded), encoded
 
 
@@ -898,7 +899,7 @@ def update_timerecord_plot(calc_clicked, filename, contents,
     """
 
     if method == "rotate":
-        azimuth = np.arange(0, 180+azimuthal_interval, azimuthal_interval)
+        azimuth = np.arange(0, 180, azimuthal_interval)
     elif method == "azimuth":
         azimuth = azimuth_degrees
     else:
@@ -939,8 +940,11 @@ def update_timerecord_plot(calc_clicked, filename, contents,
                 table_before_rejection = generate_table(hv, distribution_f0,
                                                         method)
                 f0mc_before = hv.mc_peak_frq(distribution_mc)
-            mesh_frq, mesh_azi = np.meshgrid(hv.frq, hv.azimuths)
+
+            azimuths = [*hv.azimuths, 180.]
+            mesh_frq, mesh_azi = np.meshgrid(hv.frq, azimuths)
             mesh_amp = hv.mean_curves(distribution=distribution_mc)
+            mesh_amp = np.vstack((mesh_amp, mesh_amp[0]))
             end = time.time()
             print(f"Elapsed Time: {str(end-start)[0:4]} seconds")
 
@@ -960,7 +964,7 @@ def update_timerecord_plot(calc_clicked, filename, contents,
             # 3D Median Curve
             ax = ax0
             ax.plot_surface(np.log10(mesh_frq), mesh_azi, mesh_amp, rstride=1,
-                            cstride=1, cmap=cm.plasma, linewidth=0, 
+                            cstride=1, cmap=cm.plasma, linewidth=0,
                             antialiased=False)
             for coord in list("xyz"):
                 getattr(ax, f"w_{coord}axis").set_pane_color((1, 1, 1))
@@ -975,7 +979,9 @@ def update_timerecord_plot(calc_clicked, filename, contents,
             ax.set_ylabel("Azimuth (deg)")
             ax.set_zlabel("HVSR Amplitude")
             pfrqs, pamps = hv.mean_curves_peak(distribution=distribution_mc)
-            ax.scatter(np.log10(pfrqs), hv.azimuths, pamps*1.01,
+            pfrqs = np.array([*pfrqs, pfrqs[0]])
+            pamps = np.array([*pamps, pamps[0]])
+            ax.scatter(np.log10(pfrqs), azimuths, pamps*1.01,
                        marker="s", c="w", edgecolors="k", s=9)
 
             # 2D Median Curve
@@ -992,7 +998,7 @@ def update_timerecord_plot(calc_clicked, filename, contents,
             fig.colorbar(contour, cax=cax, orientation="horizontal")
             cax.xaxis.set_ticks_position("top")
 
-            ax.plot(pfrqs, hv.azimuths, marker="s", color="w", linestyle="",
+            ax.plot(pfrqs, azimuths, marker="s", color="w", linestyle="",
                     markersize=3, markeredgecolor="k",
                     label=r"$f_{0,mc,\alpha}$")
 
@@ -1070,7 +1076,7 @@ def update_timerecord_plot(calc_clicked, filename, contents,
                 new_handles.append(handles[index])
                 new_labels.append(labels[index])
             fig.legend(new_handles, new_labels, loc="lower center",
-                        bbox_to_anchor=(0.47, 0), ncol=4, columnspacing=0.5,
+                       bbox_to_anchor=(0.47, 0), ncol=4, columnspacing=0.5,
                        handletextpad=0.4)
             end = time.time()
 
