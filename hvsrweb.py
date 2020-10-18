@@ -38,44 +38,52 @@ intro_tab = dbc.Card(
             ratio (HVSR) processing. HVSRweb utilizes _hvsrpy_
             (Vantassel, 2020) behind Dash (Plotly, 2017) to allow
             processing of ambient noise data in the cloud, with no
-            installation required.
+            installation required. HVSRweb is hosted on computing resources
+            made available through the DesignSafe-CI (Rathje et al., 2017).
 
-            # Getting Started
+            ## Getting Started
 
             1. Load your own ambient noise data using the upload bar or press
             __Demo__ to load a data file provided by us.
             2. Explore the processing settings tabs (Time, Frequency,
-            and H/V) and make any desired changes.
+            and HVSR) and make any desired changes.
             3. When done, press __Calculate__ and go to the Results tab for
             more information.
 
-            # Citation
+            ## Citation
 
             If you use HVSRweb in your research or consulting we ask you
             please cite the following:
 
             Vantassel, J.P., Cox, B.R., Brannon, D.M. (2021). HVSRweb: An
             Open-Source, Web-Based Application for Horizontal-to-Vertical
-            Spectral Ratio Processing. (Submitted).
+            Spectral Ratio Processing. IFCEE 2021. (Accepted).
 
-            Additional information concerning the implementation of
-            the HVSR calculation can be found on the _hvsrpy_
-            [GitHub](https://github.com/jpvantassel/hvsrpy).
-
-            # Additional References
+            ## Additional References
 
             Background information concerning the HVSR statistics and
             the terminology can be found in the following references:
 
-            Cox, B. R., Cheng, T., Vantassel, J. P., and Manuel, L. (2020).
-            “A statistical representation and frequency-domain
-            window-rejection algorithm for single-station HVSR measurements.”
-            Geophysical Journal International, 221(3), 2170-2183.
+            Cox, B. R., Cheng, T., Vantassel, J. P., & Manuel, L.
+            (2020). A statistical representation and frequency-domain
+            window-rejection algorithm for single-station HVSR
+            measurements. Geophysical Journal International, 221(3),
+            2170–2183. https://doi.org/10.1093/gji/ggaa119.
 
-            Cheng, T., Cox, B. R., Vantassel, J. P., and Manuel, L. (2020).
-            "A statistical approach to account for azimuthal variability in
-            single-station HVSR measurements." Geophysical Journal
-            International, Accepted.
+            Cheng, T., Cox, B. R., Vantassel, J. P., & Manuel, L.
+            (2020). A statistical approach to account for azimuthal
+            variability in single-station HVSR measurements. Geophysical
+            Journal International, 223(2), 1040–1053.
+            https://doi.org/10.1093/gji/ggaa342.
+
+            ## More Information
+
+            _Looking for a previous version of HVSRweb?_
+            Refer to the
+            [HVSRweb GitHub](https://github.com/jpvantassel/hvsrweb).
+
+            _Looking for more information about the HVSR calculations?_
+            See the [hvsrpy GitHub](https://github.com/jpvantassel/hvsrpy).
 
             """),
         style=default_cardbody_style),
@@ -572,7 +580,7 @@ body = dbc.Container([
                     dbc.Tab(intro_tab, label="Intro"),
                     dbc.Tab(time_tab, label="Time"),
                     dbc.Tab(frequency_tab, label="Frequency"),
-                    dbc.Tab(hv_tab, label="H/V"),
+                    dbc.Tab(hv_tab, label="HVSR"),
                     dbc.Tab(results_tab, label="Results",
                             id="results-tab", disabled=True),
                 ], ),
