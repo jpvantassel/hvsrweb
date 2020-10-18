@@ -28,15 +28,16 @@ Web-Based Application for Horizontal-to-Vertical Spectral Ratio Processing.
 Background information concerning the HVSR statistics and the terminology can be
 found in the following references:
 
->Cox, B. R., Cheng, T., Vantassel, J. P., and Manuel, L. (2020).
-“A statistical representation and frequency-domain
-window-rejection algorithm for single-station HVSR measurements.”
-Geophysical Journal International, 221(3), 2170-2183.
+> Cox, B. R., Cheng, T., Vantassel, J. P., & Manuel, L. (2020). A statistical
+> representation and frequency-domain window-rejection algorithm for
+> single-station HVSR measurements. Geophysical Journal International,
+> 221(3), 2170–2183. https://doi.org/10.1093/gji/ggaa119
 
->Cheng, T., Cox, B. R., Vantassel, J. P., and Manuel, L. (2020).
-"A statistical approach to account for azimuthal variability in
-single-station HVSR measurements." Geophysical Journal
-International, Accepted.
+> Cheng, T., Cox, B. R., Vantassel, J. P., & Manuel, L. (2020). A statistical
+> approach to account for azimuthal variability in single-station HVSR
+> measurements. Geophysical Journal International, 223(2), 1040–1053.
+> https://doi.org/10.1093/gji/ggaa342
+
 
 ## Running the Application
 
