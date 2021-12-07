@@ -5,17 +5,13 @@ import time
 
 import numpy as np
 import dash
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dcc, html
 import dash_bootstrap_components as dbc
-import dash_table
 from dash.exceptions import PreventUpdate
 from dash.dependencies import Input, Output, State
 from flask import Flask
 import matplotlib
 from matplotlib import cm
-from mpl_toolkits.mplot3d.axes3d import get_test_data
-from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.pyplot as plt
 
@@ -55,9 +51,10 @@ intro_tab = dbc.Card(
             If you use HVSRweb in your research or consulting we ask you
             please cite the following:
 
-            Vantassel, J.P., Cox, B.R., Brannon, D.M. (2021). HVSRweb: An
-            Open-Source, Web-Based Application for Horizontal-to-Vertical
-            Spectral Ratio Processing. IFCEE 2021. (Accepted).
+            Vantassel, J.P., Cox, B.R., & Brannon, D.M. (2021). HVSRweb:
+            An Open-Source, Web-Based Application for
+            Horizontal-to-Vertical Spectral Ratio Processing. IFCEE
+            2021. https://doi.org/10.1061/9780784483428.005.
 
             ## Additional References
 
@@ -618,7 +615,7 @@ app.layout = html.Div(
         ),
         body,
         html.Footer(dbc.Container(html.Span(
-            "HVSRweb v0.2.0 © 2019-2020 Dana M. Brannon & Joseph P. Vantassel", className="text-muted")), className="footer")
+            "HVSRweb v0.3.0 © 2019-2021 Dana M. Brannon & Joseph P. Vantassel", className="text-muted")), className="footer")
     ],
 )
 
@@ -1260,7 +1257,7 @@ def update_timerecord_plot(calc_clicked, filename, contents,
             norm_factor = sensor.normalization_factor
             for ax, timerecord, name in zip([ax0, ax1, ax2], [sensor.ns, sensor.ew, sensor.vt], ["NS", "EW", "VT"]):
                 ctime = timerecord.time
-                amp = timerecord.amp/norm_factor
+                amp = timerecord.amplitude/norm_factor
                 ax.plot(ctime.T, amp.T, linewidth=0.2, color='#888888')
                 ax.set_title(f"Time Records ({name})")
                 ax.set_yticks([-1, -0.5, 0, 0.5, 1])
@@ -1268,9 +1265,10 @@ def update_timerecord_plot(calc_clicked, filename, contents,
                 ax.set_ylim(-1, 1)
                 ax.set_xlabel('Time (s)')
                 ax.set_ylabel('Normalized Amplitude')
-                for window_index in hv.rejected_window_indices:
-                    ax.plot(ctime[window_index], amp[window_index],
-                            linewidth=0.2, color="cyan")
+            # TODO (jpv): Reintroduce rejected window plotting.
+                # for window_index in hv.rejected_window_indices:
+                #     ax.plot(ctime[window_index], amp[window_index],
+                #             linewidth=0.2, color="cyan")
 
             if rejection_bool:
                 axs = [ax0, ax3, ax1, ax4, ax2]
