@@ -1,8 +1,17 @@
-FROM Python:3.9
+FROM python:3.9
 
-WORKDIR /usr/src/app
+WORKDIR /app
 
 COPY requirements.txt ./
+
 RUN pip install --no-cache-dir -r requirements.txt
 
-CMD [ "python", "./hvsrweb.py" ]
+COPY hvsrweb.py /app
+COPY /assets /app/assets
+COPY /data /app/data
+COPY /img /app/img
+
+CMD python hvsrweb.py
+
+# docker build . -t hvsrweb:dev
+# docker run -p 8050:8050 hvsrweb:dev

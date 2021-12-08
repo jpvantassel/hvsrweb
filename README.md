@@ -19,9 +19,10 @@ on its [GitHub](https://github.com/jpvantassel/hvsrpy).
 If you use HVSRweb in your research or consulting we ask you
 please cite the following:
 
-> Vantassel, J.P., Cox, B.R., Brannon, D.M. (2021). HVSRweb: An
-> Open-Source, Web-Based Application for Horizontal-to-Vertical
-> Spectral Ratio Processing. IFCEE 2021. (Accepted).
+> Vantassel, J.P., Cox, B.R., & Brannon, D.M. (2021). HVSRweb:
+> An Open-Source, Web-Based Application for
+> Horizontal-to-Vertical Spectral Ratio Processing. IFCEE
+> 2021. https://doi.org/10.1061/9780784483428.005.
 
 ## Additional References
 
@@ -37,7 +38,6 @@ found in the following references:
 > approach to account for azimuthal variability in single-station HVSR
 > measurements. Geophysical Journal International, 223(2), 1040–1053.
 > https://doi.org/10.1093/gji/ggaa342
-
 
 ## Running the Application
 
