@@ -1,0 +1,18 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+flask = "*"
+dash = "*"
+dash-bootstrap-components = "*"
+matplotlib = "*"
+numpy = "==1.23"
+
+[dev-packages]
+autopep8 = "*"
+hvsrpy = {editable = true, path = "./../hvsrpy"}
+
+[requires]
+python_version = ">=3.8"

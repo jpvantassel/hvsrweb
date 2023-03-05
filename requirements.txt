@@ -1,5 +1,5 @@
 flask
 dash
 dash_bootstrap_components
-hvsrpy
+hvsrpy>=2.0.0-rc.1
 matplotlib
