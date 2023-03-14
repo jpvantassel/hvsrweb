@@ -9,6 +9,9 @@ dash = "*"
 dash-bootstrap-components = "*"
 matplotlib = "*"
 numpy = "==1.23"
+pandas = "*"
+xgboost = "*"
+scikit-learn = "*"
 
 [dev-packages]
 autopep8 = "*"

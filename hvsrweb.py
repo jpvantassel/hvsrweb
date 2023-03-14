@@ -1,7 +1,5 @@
 import io
-import os
 import base64
-import time
 
 import numpy as np
 import dash
@@ -10,43 +8,53 @@ import dash_bootstrap_components as dbc
 from dash.exceptions import PreventUpdate
 from dash.dependencies import Input, Output, State
 from flask import Flask
-import matplotlib
-from matplotlib import cm
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-import matplotlib.pyplot as plt
-
+import pandas as pd
+import xgboost as xgb
+from sklearn import cluster
+import plotly
+import plotly.subplots
+import plotly.graph_objs as go
 import hvsrpy
-
-matplotlib.use('Agg')
 
 # Style Settings
 default_span_style = {"cursor": "context-menu",
-                      "padding": "1px", "margin-top": "0em"}
+                      "padding": "1em", "margin-top": "0em"}
 default_p_style = {"margin-top": "0.5em", "margin-bottom": "0em"}
-default_cardbody_style = {"min-height": "65vh"}
+default_cardbody_style = {"min-height": "110vh"}
+
+COLORS = {
+    "error": "#f2190a",
+    "primary": "#0d6efd",
+    "link": "#495057"
+}
+
+HIDE_CONTAINER = dict(display="none")
+DISPLAY_CONTAINER = dict(display="block")
+
 
 intro_tab = dbc.Card(
     dbc.CardBody(
         dcc.Markdown("""
-            # Welcome to HVSRweb
+            ##### Welcome to HVSRweb
 
-            HVSRweb is a web application for horizontal-to-vertical spectral
-            ratio (HVSR) processing. HVSRweb utilizes _hvsrpy_
-            (Vantassel, 2020) behind Dash (Plotly, 2017) to allow
-            processing of ambient noise data in the cloud, with no
-            installation required. HVSRweb is hosted on computing resources
-            made available through the DesignSafe-CI (Rathje et al., 2017).
+            HVSRweb is a web application for horizontal-to-vertical
+            spectral ratio (HVSR) processing (Vantassel et al., 2021).
+            HVSRweb utilizes _hvsrpy_ (Vantassel, 2020) behind Dash
+            (Plotly, 2017) to offer a cloud-based tool for HVSR
+            processing. HVSRweb is hosted on computing resources
+            made available through the DesignSafe-CI
+            (Rathje et al., 2017).
 
-            ## Getting Started
+            ##### Getting Started
 
-            1. Load your own ambient noise data using the upload bar or press
-            __Demo__ to load a data file provided by us.
+            1. Upload your own data using the bar above or press
+            __Demo__ to load an example data file.
             2. Explore the processing settings tabs (Time, Frequency,
             and HVSR) and make any desired changes.
             3. When done, press __Calculate__ and go to the Results tab for
             more information.
 
-            ## Citation
+            ##### Citation
 
             If you use HVSRweb in your research or consulting we ask you
             please cite the following:
@@ -56,7 +64,7 @@ intro_tab = dbc.Card(
             Horizontal-to-Vertical Spectral Ratio Processing. IFCEE
             2021. https://doi.org/10.1061/9780784483428.005.
 
-            ## Additional References
+            ##### References
 
             Background information concerning the HVSR statistics and
             the terminology can be found in the following references:
@@ -65,15 +73,15 @@ intro_tab = dbc.Card(
             (2020). A statistical representation and frequency-domain
             window-rejection algorithm for single-station HVSR
             measurements. Geophysical Journal International, 221(3),
-            2170–2183. https://doi.org/10.1093/gji/ggaa119.
+            2170-2183. https://doi.org/10.1093/gji/ggaa119.
 
             Cheng, T., Cox, B. R., Vantassel, J. P., & Manuel, L.
             (2020). A statistical approach to account for azimuthal
             variability in single-station HVSR measurements. Geophysical
-            Journal International, 223(2), 1040–1053.
+            Journal International, 223(2), 1040-1053.
             https://doi.org/10.1093/gji/ggaa342.
 
-            ## More Information
+            ##### More Information
 
             _Looking for a previous version of HVSRweb?_
             Refer to the
@@ -84,1265 +92,2376 @@ intro_tab = dbc.Card(
 
             """),
         style=default_cardbody_style),
-    className="mt-3",
+    className="mt-3 md-4",
 )
 
-time_tab = dbc.Card(
+data_tab = dbc.Card(
     dbc.CardBody(
         [
-            # Window Length
             html.P([
                 html.Span(
-                    "Window Length (s):",
-                    id="windowlength-tooltip-target",
+                    "Data Upload:",
                     style=default_span_style,
                 ),
             ], style=default_p_style),
-            dbc.Tooltip("""
-                        Length of each time window in seconds. For specific
-                        guidance on an appropriate window length refer to the
-                        SESAME (2004) guidelines.
-                        """,
-                        target="windowlength-tooltip-target",
-                        ),
-            dbc.Input(id="windowlength-input", type="number",
-                      value=60, min=30, max=600, step=1),
 
-            # Width of cosine taper
-            html.P([
-                html.Span(
-                    "Cosine Taper Width:",
-                    id="width-tooltip-target",
-                    style=default_span_style,
-                ),
-            ], style=default_p_style),
-            dbc.Tooltip("""
-                        Fraction of each time window to be cosine tapered.
-                        0.1 (i.e., 5% off either end) is recommended.
-                        """,
-                        target="width-tooltip-target",
-                        ),
-            dbc.Input(id="width-input", type="number",
-                      value=0.1, min=0., max=1.0, step=0.1),
-
-            # Butterworth Filter
-            html.P([
-                html.Span(
-                    "Apply Butterworth Filter?",
-                    id="butterworth-tooltip-target",
-                    style=default_span_style,
-                ),
-            ], style=default_p_style),
-            dbc.Tooltip("""
-                        Select whether a Butterworth bandpass filter is applied
-                        to the time-domain singal. Geopsy does not apply a
-                        bandpass filter.
-                        """,
-                        target="butterworth-tooltip-target",
-                        ),
-            dbc.Select(
-                id="butterworth-input",
-                options=[
-                    {"label": "Yes", "value": "True"},
-                    {"label": "No", "value": "False"},
-                ], value="False"),
-
-            dbc.Container([
-                # Butterworth Filter: Low Frequency
-                html.P([
-                    html.Span(
-                        "Low-cut Frequency (Hz):",
-                        id="flow-tooltip-target",
-                        style=default_span_style,
-                    ),
-                ], style=default_p_style),
-                dbc.Tooltip(
-                    "Frequencies below that specified are filtered.",
-                    target="flow-tooltip-target",
-                ),
-                dbc.Input(id="flow-input", type="number",
-                          value=0.1, min=0, max=1000, step=0.01),
-
-                # Butterworth Filter: High Frequency
-                html.P([
-                    html.Span(
-                        "High-cut Frequency (Hz):",
-                        id="fhigh-tooltip-target",
-                        style=default_span_style,
-                    ),
-                ], style=default_p_style),
-                dbc.Tooltip(
-                    "Frequencies above that specified are filtered.",
-                    target="fhigh-tooltip-target",
-                ),
-                dbc.Input(id="fhigh-input", type="number",
-                          value=30, min=0, max=600, step=1),
-
-                # Butterworth Filter: Filter Order
-                html.P([
-                    html.Span(
-                        "Filter Order:",
-                        id="forder-tooltip-target",
-                        style=default_span_style,
-                    ),
-                ], style=default_p_style),
-                dbc.Tooltip(
-                    "Order of Butterworth filter, 5 is recommended.",
-                    target="forder-tooltip-target",
-                ),
-                dbc.Input(id="forder-input", type="number",
-                          value=5, min=0, max=600, step=1),
-            ], className="ml-2 mr-0", id="bandpass-options",),
-        ], style=default_cardbody_style),
-    className="mt-3",
-)
-
-mod_span_style = dict(default_span_style)
-mod_span_style["padding"] = "0"
-frequency_tab = dbc.Card(
-    dbc.CardBody(
-        [
-            # Bandwidth
-            html.P([
-                html.Span(
-                    "Konno and Ohmachi Smoothing Coefficient:",
-                    id="bandwidth-tooltip-target",
-                    style=default_span_style,
-                ),
-            ], style=default_p_style),
-            dbc.Tooltip("""
-                        Bandwidth coefficient (b) for Konno and Ohmachi (1998)
-                        smoothing a value of 40 is recommended.
-                        """,
-                        target="bandwidth-tooltip-target",
-                        ),
-            dbc.Input(id="bandwidth-input", type="number",
-                      value=40, min=10, max=100, step=5),
-
-            html.P("Resampling:", style=default_p_style),
-            dbc.Container([
-                # Resampling: Minimum Frequency
-                html.P([
-                    html.Span(
-                        "Minimum Frequency (Hz):",
-                        id="minf-tooltip-target",
-                        style=mod_span_style,
-                    ),
-                ], style=default_p_style),
-                dbc.Tooltip(
-                    "Minimum frequency considered when resampling.",
-                    target="minf-tooltip-target",
-                ),
-                dbc.Input(id="minf-input", type="number",
-                          value=0.2, min=0.01, max=30, step=0.01),
-
-                # Resampling: Maximum Frequency
-                html.P([
-                    html.Span(
-                        "Maximum Frequency (Hz):",
-                        id="maxf-tooltip-target",
-                        style=default_span_style,
-                    ),
-                ], style=default_p_style),
-                dbc.Tooltip(
-                    "Maximum frequency considered when resampling.",
-                    target="maxf-tooltip-target",
-                ),
-                dbc.Input(id="maxf-input", type="number",
-                          value=20, min=1, max=100, step=1),
-
-                # Resampling: Number of Frequencies
-                html.P([
-                    html.Span(
-                        "Number of Frequency Points:",
-                        id="nf-tooltip-target",
-                        style={"cursor": "context-menu", "padding": "5px"},
-                    ),
-                ], style=default_p_style),
-                dbc.Tooltip(
-                    "Number of frequency points after resampling.",
-                    target="nf-tooltip-target",
-                ),
-                dbc.Input(id="nf-input", type="number",
-                          value=128, min=32, max=4096, step=1),
-
-                # Resampling: Type
-                html.P([
-                    html.Span(
-                        "Type:",
-                        id="res_type-tooltip-target",
-                        style=default_span_style,
-                    ),
-                ], style=default_p_style),
-                dbc.Tooltip(
-                    "Distribution of frequency samples.",
-                    target="res_type-tooltip-target",
-                ),
-                dbc.Select(
-                    id="res_type-input",
-                    options=[
-                        {"label": "Logarithmic", "value": "log"},
-                        {"label": "Linear", "value": "linear"},
-                    ],
-                    value="log",
-                )],
-                className="ml-2 mr-0"),
-        ], style=default_cardbody_style),
-    className="mt-3",
-)
-
-hv_tab = dbc.Card(
-    dbc.CardBody(
-        [
-            # Method for combining
-            html.P([
-                html.Span(
-                    "Define Horizontal Component with:",
-                    id="method-tooltip-target",
-                    style=default_span_style,
-                ),
-            ], style=default_p_style),
-            dbc.Tooltip("""
-                        Geometric-Mean is recommended.
-                        Geopsy uses the Squared-Average by default.
-                        """,
-                        target="method-tooltip-target",
-                        ),
-            dbc.Select(
-                id="method-input",
-                options=[
-                    {"label": "Geometric-Mean", "value": "geometric-mean"},
-                    {"label": "Squared-Average", "value": "squared-average"},
-                    {"label": "Single-Azimuth", "value": "azimuth"},
-                    {"label": "Multiple-Azimuths", "value": "rotate"}
-                ],
-                value="geometric-mean",
+            dcc.Upload(
+                children=html.Div(children=html.P("Drag & drop or Click to select file(s)",
+                                                  style={"font-size": "1em"})),
+                id="upload-bar",
+                style={
+                    "height": "5em",
+                    "lineHeight": "4em",
+                    "textAlign": "center",
+                    "cursor": "pointer",
+                    "background-color": "white",
+                    "color": "black",
+                    "border": "0.1em solid #dedede",
+                    "border-radius": "0.5em",
+                },
+                multiple=True,
             ),
 
-            dbc.Container([
-                # Azimuth degrees
-                html.P([
-                    html.Span(
-                        "Azimuth:",
-                        id="azimuth-tooltip-target",
-                        style=default_span_style,
-                    ),
-                ], style=default_p_style),
-                dbc.Tooltip("""
-                            Azimuth measured in degrees clockwise from North
-                            (sensor is assumed to be oriented due North).
-                            """,
-                            target="azimuth-tooltip-target",
-                            ),
-                dbc.Input(id="azimuth-input", type="number",
-                          value=90, min=0, max=179, step=1),
-            ],
-                className="ml-2 mr-0",
-                id="azimuth-options"),
-
-            dbc.Container([
-                # Rotate degrees
-                html.P([
-                    html.Span(
-                        "Azimuthal Interval:",
-                        id="rotate-tooltip-target",
-                        style=default_span_style,
-                    ),
-                ], style=default_p_style),
-                dbc.Tooltip("""
-                            Spacing in degrees between considered azimuths.
-                            15 is recommended.
-                            """,
-                            target="rotate-tooltip-target",
-                            ),
-                dbc.Input(id="rotate-input", type="number",
-                          value=15, min=0, max=45, step=1),
-            ],
-                className="ml-2 mr-0",
-                id="rotate-options"),
-
-            # Distribution of f0
             html.P([
                 html.Span(
-                    ["Distribution of ", html.Div(['f', html.Sub('0')], style={
-                                                  "display": "inline"}), ":"],
-                    id="distribution_f0-tooltip-target",
+                    "OR",
+                    style=default_span_style,
+                ),
+            ], style={**default_p_style, "text-align": "center"}),
+
+            dbc.Row(children=[
+                    dbc.Button(children="Demo", id="demo-button",
+                               color="primary", size="lg", style={"padding": "1em"}),
+                    dbc.Tooltip(children="Load ambient noise data provided by us.",
+                                id="demo-button-tooltip",
+                                target="demo-button"),
+                    ],
+                    style={"text-align": "center", "margin": "1em"}),
+
+            dbc.Row([
+                html.H6(children="",
+                        id="data-continue-instructions",
+                        style={"display": "inline", "margin-top": "2em", "margin-bottom": "2em", "text-align": "center"}),
+            ]),
+
+        ], style=default_cardbody_style),
+    className="mt-3 md-4",
+)
+
+preprocess_tab = dbc.Card(
+    dbc.CardBody(
+        [
+            # processing-workflow
+            html.P([
+                html.Span(
+                    "Processing Workflow:",
+                    id="processing-workflow-target",
                     style=default_span_style,
                 ),
             ], style=default_p_style),
             dbc.Tooltip("""
-                        Lognormal is recommended.
-                        Geopsy uses Normal.
+                        Workflow for processing the HVSR data.
                         """,
-                        target="distribution_f0-tooltip-target",
+                        target="processing-workflow-target",
                         ),
-            dbc.Select(
-                id="distribution_f0-input",
-                options=[
-                    {"label": "Lognormal", "value": "log-normal"},
-                    {"label": "Normal", "value": "normal"},
-                ], value='log-normal'),
+            dbc.Select(id="processing-workflow",
+                       options=[
+                           dict(label="Manual", value="manual"),
+                           dict(label="AutoHVSR", value="autohvsr"),
+                       ],
+                       value="manual"),  # TODO(jpv): Remove so that it is blank.
 
-            # Distribution of Median Curve
-            html.P([
-                html.Span(
-                    "Distribution of Median Curve:",
-                    id="distribution_mc-tooltip-target",
-                    style=default_span_style,
-                ),
-            ], style=default_p_style),
-            dbc.Tooltip("""
-                        Lognormal is recommended.
-                        Geopsy uses Lognormal
-                        """,
-                        target="distribution_mc-tooltip-target",
-                        ),
-            dbc.Select(
-                id="distribution_mc-input",
-                options=[
-                    {"label": "Lognormal", "value": "log-normal"},
-                    {"label": "Normal", "value": "normal"},
-                ], value="log-normal"),
-
-            # Frequency-Domain Window-Rejection Algorithm
-            html.P([
-                html.Span(
-                    "Apply Frequency-Domain Window-Rejection?",
-                    id="rejection_bool-tooltip-target",
-                    style=default_span_style,
-                ),
-            ], style=default_p_style),
-            dbc.Tooltip("""
-                        Select whether the frequency-domain window-rejection
-                        algorithm proposed by Cox et al. (2020) is applied.
-                        Geopsy does not offer this functionality.
-                        """,
-                        target="rejection_bool-tooltip-target",
-                        ),
-            dbc.Select(
-                id="rejection_bool-input",
-                options=[
-                    {"label": "Yes", "value": "True"},
-                    {"label": "No", "value": "False"},
-                ], value="True"),
-
+            # preprocess-default-container (start)
             dbc.Container([
-                # Number of Standard Deviations
+                # trim
                 html.P([
                     html.Span(
-                        "Number of Standard Deviations (n):",
-                        id="n-tooltip-target",
+                        "Start & End Times (s):",
+                        id="new-start-and-end-time-tooltip-target",
                         style=default_span_style,
                     ),
                 ], style=default_p_style),
                 dbc.Tooltip("""
-                            Number of standard deviations to consider during
-                            rejection. Smaller values will tend to reject more
-                            windows than larger values. 2 is recommended.
-                            """,
-                            target="n-tooltip-target",
+                        New start and end times for the time-domain
+                        recording in seconds.
+                        """,
+                            target="new-start-and-end-time-tooltip-target",
                             ),
-                dbc.Input(id="n-input", type="number",
-                          value=2, min=1, max=4, step=0.5),
+                dbc.Row([dbc.Col([dbc.Input(id="new-start-time", type="number",
+                                            value=0, min=0, max=9999, step=1),]),
+                         dbc.Col([dbc.Input(id="new-end-time", type="number",
+                                            value=0, min=0, max=9999, step=1),])
+                         ]),
+                dbc.Tooltip("New start time in seconds.",
+                            target="new-start-time"),
+                dbc.Tooltip("New end time in seconds.",
+                            target="new-end-time"),
 
-                # Maximum Number of Iterations
+                # orient-to-degrees-from-north
                 html.P([
                     html.Span(
-                        "Maximum Number of Allowed Iterations:",
-                        id="n_iteration-tooltip-target",
+                        "Rotate Sensor (degree):",
+                        id="orient-to-degrees-from-north-tooltip-target",
                         style=default_span_style,
                     ),
                 ], style=default_p_style),
                 dbc.Tooltip("""
-                            Maximum number of iterations of the rejection
-                            algorithm. 50 is recommended.
-                            """,
-                            target="n_iteration-tooltip-target",
+                        Rotate sensor to new orientation. The sensor's
+                        new orientation is defined in degrees from north
+                        (clockwise positive). The sensor's north
+                        component will be oriented such that it is
+                        aligned with the defined orientation.
+                        """,
+                            target="orient-to-degrees-from-north-tooltip-target",
                             ),
-                dbc.Input(id="n_iteration-input", type="number",
-                          value=50, min=5, max=75, step=1),
-            ],
-                className="ml-2 mr-0",
-                id="rejection-options"),
+                dbc.Input(id="orient-to-degrees-from-north", type="number",
+                          value=0, min=0, max=360, step=1),
+
+                # butterworth-filter
+                html.P([
+                    html.Span(
+                        "Butterworth Filter",
+                        id="butterworth-filter-tooltip-target",
+                        style=default_span_style,
+                    ),
+                ], style=default_p_style),
+                dbc.Tooltip("""
+                        Select type of Butterworth filter to be applied
+                        to the time-domain recording.
+                        """,
+                            target="butterworth-filter-tooltip-target",
+                            ),
+                dbc.Select(
+                    id="butterworth-filter",
+                    options=[
+                        dict(label="Bandpass", value="bandpass"),
+                        dict(label="Lowpass", value="lowpass"),
+                        dict(label="Highpass", value="highpass"),
+                        dict(label="None", value="none"),
+                    ], value="none"),
+
+                # butterworth-filter-lower-frequency
+                dbc.Container([
+                    html.P([
+                        html.Span(
+                            "Low-cut Frequency (Hz):",
+                            id="butterworth-filter-lower-frequency-tooltip-target",
+                            style=default_span_style,
+                        ),
+                    ], style=default_p_style),
+                    dbc.Tooltip(
+                        "Frequencies below that specified will be filtered.",
+                        target="butterworth-filter-lower-frequency-tooltip-target",
+                    ),
+                    dbc.Input(id="butterworth-filter-lower-frequency", type="number",
+                              value=0.1, min=0, max=100, step=0.01),
+                ], className="ml-2 mr-0", id="butterworth-filter-lower-frequency-container"),
+
+                # butterworth-filter-upper-frequency
+                dbc.Container([
+                    html.P([
+                        html.Span(
+                            "High-cut Frequency (Hz):",
+                            id="butterworth-filter-upper-frequency-tooltip-target",
+                            style=default_span_style,
+                        ),
+                    ], style=default_p_style),
+                    dbc.Tooltip(
+                        "Frequencies above that specified will be filtered.",
+                        target="butterworth-filter-upper-frequency-tooltip-target",
+                    ),
+                    dbc.Input(id="butterworth-filter-upper-frequency", type="number",
+                              value=30, min=0, max=100, step=0.01),
+                ], className="ml-2 mr-0", id="butterworth-filter-upper-frequency-container"),
+
+            ], id="preprocess-default-container", style=HIDE_CONTAINER),
+            # preprocess-default-container (end)
+
+            # traditional-container (start)
+            dbc.Container([
+                # window-length
+                html.P([
+                    html.Span(
+                        "Window Length (s):",
+                        id="window-length-tooltip-target",
+                        style=default_span_style,
+                    ),
+                ], style=default_p_style),
+                dbc.Tooltip("""
+                        Length of each time window in seconds.
+                        SESAME (2004) recommends 10 significant cycles
+                        per window.
+                        """,
+                            target="window-length-tooltip-target",
+                            ),
+                dbc.Input(id="window-length", type="number",
+                          value=100, min=0, max=600, step=1),
+            ], id="traditional-container", style=HIDE_CONTAINER),
+            # traditional-container (end)
+
+            # preprocess-default-container-continued (start)
+            dbc.Container([
+                # detrend
+                html.P([
+                    html.Span(
+                        "Detrend:",
+                        id="detrend-tooltip-target",
+                        style=default_span_style,
+                    ),
+                ], style=default_p_style),
+                dbc.Tooltip("""
+                        Type of detrend to be performed.
+                        """,
+                            target="detrend-tooltip-target",
+                            ),
+                dbc.Select(id="detrend",
+                           options=[
+                               dict(label="Linear", value="linear"),
+                               dict(label="Constant", value="constant"),
+                               dict(label="None", value=None),
+                           ],
+                           value="linear"),
+            ], id="preprocess-default-container-continued", style=HIDE_CONTAINER),
+            # preprocess-default-container-continued (end)
+
+
+            # preprocess-button
+            dbc.Row(
+                children=[
+                    dbc.Button(children="Preprocess", id="preprocess-button",
+                               color="primary", size="lg", style={"padding": "1em"}),
+                    dbc.Tooltip(children="Apply preprocessing settings to time-domain data.",
+                                target="preprocess-button"),
+                ], style={"text-align": "center", "margin": "1em"}
+            ),
+
+            # preprocess-continue-instructions
+            dbc.Row([
+                html.H6(children="",
+                        id="preprocess-continue-instructions",
+                        style={"display": "inline", "margin-top": "2em", "margin-bottom": "2em", "text-align": "center"}),
+            ]),
+
         ], style=default_cardbody_style),
     className="mt-3",
 )
 
-button_style = {"padding": "5px", "width": "100%"}
-col_style = {"padding": "5px"}
+process_tab = dbc.Card(
+    dbc.CardBody(
+        [
+            # process-method
+            html.P([
+                html.Span(
+                    "Processing Method:",
+                    id="process-method-tooltip-target",
+                    style=default_span_style,
+                ),
+            ], style=default_p_style),
+            dbc.Tooltip("""
+                        Select method for HVSR processing.
+                        """,
+                        target="process-method-tooltip-target",
+                        ),
+            dbc.Select(id="process-method",
+                       options=[
+                           dict(label="Traditional", value="traditional"),
+                           dict(label="Azimuthal", value="azimuthal"),
+                           dict(label="Diffuse Field", value="diffuse"),
+                       ],
+                       value="diffuse"  # TODO(jpv): Remove value kwarg; so will be blank.
+                       ),
+
+            # combine-horizontals-container (start)
+            dbc.Container([
+                html.P([
+                    html.Span(
+                        "Method to Combine Horizontals:",
+                        id="combine-horizontals-tooltip-target",
+                        style=default_span_style,
+                    ),
+                ], style=default_p_style),
+                dbc.Tooltip("""
+                            Select a method to combine the horizontal
+                            components.
+                            """,
+                            target="combine-horizontals-tooltip-target",
+                            ),
+                dbc.Select(id="combine-horizontals-select",
+                           options=[
+                               dict(label="Geometric Mean", value="geometric_mean"),
+                               dict(label="Single Azimuth", value="single_azimuth"),
+                               dict(label="RotDpp", value="rotdpp"),
+                               dict(label="Arithmetic Mean", value="arithmetic_mean"),
+                               dict(label="Squared Average", value="squared_average"),
+                               dict(label="Quadratic Mean", value="quadratic_mean"),
+                               dict(label="Total Horizontal Energy",
+                                    value="total_horizontal_energy"),
+                               dict(label="Maximum Horizontal Value",
+                                    value="maximum_horizontal_value"),
+                           ],
+                           # TODO(jpv): Remove value kwarg; so will be blank.
+                           value="geometric_mean"
+                           ),
+            ], id="combine-horizontals-container", style=HIDE_CONTAINER),
+            # combine-horizontals-container (end)
+
+
+            # process-base-container (start)
+            dbc.Container([
+
+                # window-type-and-width
+                html.P([
+                    html.Span(
+                        "Tapering Window:",
+                        id="window-type-and-width-tooltip-target",
+                        style=default_span_style,
+                    ),
+                ], style=default_p_style),
+                dbc.Tooltip("""
+                            Window function and associated width applied
+                            to each window.
+                            """,
+                            target="window-type-and-width-tooltip-target",
+                            ),
+                dbc.Row([
+                    dbc.Col([
+                        dbc.Select(id="window-type",
+                                   options=[dict(label="Tukey", value="tukey")],
+                                   value="tukey"
+                                   ),
+                    ], md=8),
+                    dbc.Col([
+                        dbc.Input(id="window-width", type="number",
+                                  value=0.1, min=0., max=1.0, step=0.1),
+                    ], md=4)
+                ]),
+
+                # smoothing-operator-and-bandwidth
+                html.P([
+                    html.Span(
+                        "Smoothing Operator:",
+                        id="smoothing-operator-and-bandwidth-tooltip-target",
+                        style=default_span_style,
+                    ),
+                ], style=default_p_style),
+                dbc.Tooltip("""
+                            Smoothing operator and associated bandwidth
+                            to be used on the raw horizontal and
+                            vertical Fourier spectra.
+                            """,
+                            target="smoothing-operator-and-bandwidth-tooltip-target",
+                            ),
+                dbc.Row([
+                    dbc.Col([
+                        dbc.Select(id="smoothing-operator",
+                                   options=[
+                                       dict(label="Konno and Ohmachi", value="konno_and_ohmachi"),
+                                       dict(label="Parzen", value="parzen"),
+                                       dict(label="Savitzky and Golay", value="savitzky_and_golay"),
+                                       dict(label="Linear Rectangular", value="linear_rectangular"),
+                                       dict(label="Log Rectangular", value="log_rectangular"),
+                                       dict(label="Linear Triangular", value="linear_triangular"),
+                                       dict(label="Log Triangular", value="log_triangular"),
+                                   ],
+                                   value="konno_and_ohmachi"
+                                   ),
+                    ], md=8),
+                    dbc.Col([
+                        dbc.Input(id="smoothing-bandwidth", type="number",
+                                  value=40., min=0., max=100, step=0.01),
+                    ], md=4)
+                ]),
+            ], id="process-base-container", style=HIDE_CONTAINER),
+            # process-base-container (end)
+
+
+            # frequency-sampling-container (start)
+            dbc.Container([
+                # frequency-sampling
+                html.P([
+                    html.Span(
+                        "Frequency Sampling:",
+                        style=default_span_style,
+                    ),
+                ], style=default_p_style),
+                dbc.Row([
+                    dbc.Col([
+                        dbc.Input(id="minimum-frequency", type="number",
+                                  value=0.2, min=0.001, max=999, step=0.001),
+                    ]),
+                    dbc.Col([
+                        dbc.Input(id="maximum-frequency", type="number",
+                            value=20, min=1, max=100, step=1),
+                    ]),
+                    dbc.Col([
+                        dbc.Input(id="n-frequency", type="number",
+                            value=256, min=32, max=4096, step=1),
+                    ]),
+                ]),
+
+                dbc.Row([
+                    dbc.Col([
+                        dbc.Select(id="sampling-type-frequency",
+                                   options=[
+                                       {"label": "Logarithmic", "value": "log"},
+                                       {"label": "Linear", "value": "linear"},
+                                   ],
+                                   value="log",
+                                   ),
+                    ]),
+                ]),
+
+                dbc.Tooltip(
+                    "Minimum frequency considered when resampling in Hz.",
+                    target="minimum-frequency",
+                ),
+                dbc.Tooltip(
+                    "Maximum frequency considered when resampling in Hz.",
+                    target="maximum-frequency",
+                ),
+                dbc.Tooltip(
+                    "Number of frequency points to consider when resampling.",
+                    target="n-frequency",
+                ),
+                dbc.Tooltip(
+                    "Distribution of frequency samples.",
+                    target="sampling-type-frequency",
+                ),
+            ], id="frequency-sampling-container", style=HIDE_CONTAINER),
+            # frequency-sampling-container (end)
+
+
+            # traditional-traditional (start)
+            dbc.Container([
+
+            ], id="traditional-traditional", style=HIDE_CONTAINER),
+            # traditional-traditional (end)
+
+
+            # traditional-single-azimuthal (start)
+            dbc.Container([
+                html.P([
+                    html.Span(
+                        "Azimuth (degree):",
+                        id="traditional-single-azimuthal-tooltip-target",
+                        style=default_span_style,
+                    ),
+                ], style=default_p_style),
+                dbc.Tooltip("""
+                            Azimuth direction for HVSR computation.
+                            """,
+                            target="traditional-single-azimuthal-tooltip-target",
+                            ),
+                dbc.Input(id="single-azimuth", type="number",
+                          value=0, min=0., max=360., step=1.),
+            ], id="traditional-single-azimuth", style=HIDE_CONTAINER),
+            # traditional-single-azimuthal (end)
+
+
+            # traditional-rotdpp (start)
+            dbc.Container([
+                # rotdpp-azimuthal-interval
+                html.P([
+                    html.Span(
+                        "Azimuthal Interval (degree):",
+                        id="rotdpp-azimuthal-interval-tooltip-target",
+                        style=default_span_style,
+                    ),
+                ], style=default_p_style),
+                dbc.Tooltip("""
+                                Interval azimuth between measurements for HVSR.
+                                An azimuthal interval of 5 indicates that HVSR
+                                will be computed every 5 degrees between 0
+                                and 180 for the determination of RotDpp.
+                                """,
+                            target="rotdpp-azimuthal-interval-tooltip-target",
+                            ),
+                dbc.Input(id="rotdpp-azimuthal-interval", type="number",
+                          value=5, min=1., max=180., step=1.),
+
+                # rotdpp-azimuthal-ppth-percentile
+                html.P([
+                    html.Span(
+                        "ppth Percential (%):",
+                        id="rotdpp-azimuthal-ppth-percentile-tooltip-target",
+                        style=default_span_style,
+                    ),
+                ], style=default_p_style),
+                dbc.Tooltip("""
+                                Percentile for RotDpp computation. A value
+                                of 50 would result in the computation of RotD50.
+                                """,
+                            target="rotdpp-azimuthal-ppth-percentile-tooltip-target",
+                            ),
+                dbc.Input(id="rotdpp-azimuthal-ppth-percentile", type="number",
+                          value=50, min=0, max=100, step=1.),
+            ], id="traditional-rotdpp", style=HIDE_CONTAINER),
+            # traditional-rotdpp (end)
+
+
+            # azimuthal (start)
+            dbc.Container([
+                # azimuthal-interval
+                html.P([
+                    html.Span(
+                        "Azimuthal Interval (degree):",
+                        id="azimuthal-interval-tooltip-target",
+                        style=default_span_style,
+                    ),
+                ], style=default_p_style),
+                dbc.Tooltip("""
+                                Interval between azimuths for HVSR computation.
+                                An azimuthal interval of 5 indicates that HVSR
+                                will be computed every 5 degrees between 0
+                                and 180.
+                                """,
+                            target="azimuthal-interval-tooltip-target",
+                            ),
+                dbc.Input(id="azimuthal-interval", type="number",
+                          value=5, min=1., max=180., step=1.),
+            ], id="azimuthal", style=HIDE_CONTAINER),
+            # azimuthal (end)
+
+
+            # statistics-container (start)
+            dbc.Container([
+
+                # distribution-resonance
+                html.P([
+                    html.Span(
+                        "Distribution of Resonance:",
+                        id="distribution-resonance-tooltip-target",
+                        style=default_span_style,
+                    ),
+                ], style=default_p_style),
+                dbc.Tooltip("""
+                            Distribution of the HVSR resonance(s)
+                            identified during processing. Applies in
+                            terms of both frequency and amplitude.
+                            """,
+                            target="distribution-resonance-tooltip-target",
+                            ),
+                dbc.Select(id="distribution-resonance",
+                           options=[
+                               dict(label="Lognormal", value="lognormal"),
+                               dict(label="Normal", value="normal"),
+                           ],
+                           value="lognormal"
+                           ),
+
+                # distribution-mean-curve
+                html.P([
+                    html.Span(
+                        "Distribution of Mean Curve:",
+                        id="distribution-mean-curve-tooltip-target",
+                        style=default_span_style,
+                    ),
+                ], style=default_p_style),
+                dbc.Tooltip("""
+                            Distribution of the mean curve.
+                            """,
+                            target="distribution-mean-curve-tooltip-target",
+                            ),
+                dbc.Select(id="distribution-mean-curve",
+                           options=[
+                               dict(label="Lognormal", value="lognormal"),
+                               dict(label="Normal", value="normal"),
+                           ],
+                           value="lognormal"
+                           ),
+
+            ], id="statistics-container", style=HIDE_CONTAINER),
+            # statistics-container (start)
+
+
+            # resonance-search-range-container (start)
+            dbc.Container([
+                # resonance-search-range
+                html.P([
+                    html.Span(
+                        "Resonance Search Range:",
+                        style=default_span_style,
+                    ),
+                ], style=default_p_style),
+                dbc.Row([
+                    dbc.Col([
+                        dbc.Input(id="minimum-search-frequency", type="number",
+                                  value=0, min=0, max=999, step=0.001),
+                    ]),
+                    dbc.Col([
+                        dbc.Input(id="maximum-search-frequency", type="number",
+                            value=100, min=0, max=999, step=0.001),
+                    ]),
+                ]),
+                dbc.Tooltip(
+                    """
+                    Lowest frequency in Hz considered when searching
+                    for peaks in the HVSR curve.
+                    """,
+                    target="minimum-search-frequency",
+                ),
+                dbc.Tooltip(
+                    """
+                    Highest frequency in Hz considered when searching
+                    for peaks in the HVSR curve.
+                    """,
+                    target="maximum-search-frequency",
+                )], id="resonance-search-range-container", style=HIDE_CONTAINER),
+            # resonance-search-range-container (end)
+
+
+            # rejection (start)
+            dbc.Container([
+
+                # rejection-select
+                html.P([
+                    html.Span(
+                        "Apply Window Rejection Algorithm:",
+                        id="rejection-select-tooltip-target",
+                        style=default_span_style,
+                    ),
+                ], style=default_p_style),
+                dbc.Tooltip("""
+                            Select which (if any) window rejection
+                            algorithm will be applied during the HVSR
+                            computation.
+                            """,
+                            target="rejection-select-tooltip-target",
+                            ),
+                dbc.Select(id="rejection-select",
+                           options=[
+                               dict(label="No", value="False"),
+                               dict(
+                                   label="Frequency-Domain Window Rejection Algorithm (Cox et al., 2020)", value="fdwra"),
+                           ],
+                           value="fdwra"
+                           ),
+
+                # fdwra (start)
+                dbc.Container([
+
+                    # fdwra-n
+                    html.P([
+                        html.Span(
+                            "Number of Standard Deviations:",
+                            id="fdwra-n-tooltip-target",
+                            style=default_span_style,
+                        ),
+                    ], style=default_p_style),
+                    dbc.Tooltip("""
+                                Number of standard deviations to consider during
+                                rejection. Smaller values will tend to reject more
+                                windows than larger values.
+                                """,
+                                target="traditional-single-azimuthal-tooltip-target",
+                                ),
+                    dbc.Input(id="fdwra-n", type="number",
+                              value=2.5, min=0.5, max=4, step=0.5),
+
+                    # fdwra-max-iteration
+                    html.P([
+                        html.Span(
+                            "Maximum Number of Allowed Iterations:",
+                            id="fdwra-max-iteration-tooltip-target",
+                            style=default_span_style,
+                        ),
+                    ], style=default_p_style),
+                    dbc.Tooltip("""
+                                Maximum number of iterations allowed for the
+                                algorithm to converge.
+                                """,
+                                target="fdwra-max-iteration-tooltip-target",
+                                ),
+                    dbc.Input(id="fdwra-max-iteration", type="number",
+                              value=50, min=5., max=75., step=5.),
+
+                ], id="fdwra", style=HIDE_CONTAINER),
+                # fdwra (end)
+
+            ], id="rejection"),
+            # rejection (end)
+
+
+            # diffuse (start)
+            dbc.Container([
+
+            ], id="diffuse", style=HIDE_CONTAINER),
+            # diffuse (end)
+
+
+            # process-button
+            dbc.Row(
+                children=[
+                    dbc.Button(children="Process", id="process-button",
+                               color="primary", size="lg", style={"padding-left": "2em", "padding-right": "2em"}),
+                    dbc.Tooltip(children="Apply processing settings to compute HVSR.",
+                                target="process-button"),
+                ], style={"padding": "2em"}
+            ),
+
+
+            # process-continue-instructions
+            dbc.Row([
+                html.H6(children="",
+                        id="process-continue-instructions",
+                        style={"display": "inline", "margin-top": "2em", "margin-bottom": "2em", "text-align": "center"}),
+            ]),
+
+        ], style=default_cardbody_style),
+    className="mt-3 md-4",
+)
+
 results_tab = dbc.Card(
     dbc.CardBody(
         [
+            html.P([
+                html.Span("General Summary:",
+                          style=default_span_style),
+            ], style=default_p_style),
+            dbc.Row(dbc.Col(id="general-summary-table")),
+
+            html.P([
+                html.Span("Resonance Summary:",
+                          style=default_span_style),
+            ], style=default_p_style),
+            dbc.Row(dbc.Col(id="results-table")),
+
+            dbc.Container([
+                html.P([
+                    html.Span("2nd Resonance Summary:",
+                          style=default_span_style),
+                ], style=default_p_style),
+                dbc.Row(dbc.Col(id="results-table-1")),
+            ], id="results-table-1-container", style=HIDE_CONTAINER),
+
+            dbc.Container([
+                html.P([
+                    html.Span("3rd Resonance Summary:",
+                          style=default_span_style),
+                ], style=default_p_style),
+                dbc.Row(dbc.Col(id="results-table-2")),
+            ], id="results-table-2-container", style=HIDE_CONTAINER),
+
+            dbc.Container([
+                html.P([
+                    html.Span("4th Resonance Summary:",
+                          style=default_span_style),
+                ], style=default_p_style),
+                dbc.Row(dbc.Col(id="results-table-3")),
+            ], id="results-table-3-container", style=HIDE_CONTAINER),
+
+            dbc.Container([
+                html.P([
+                    html.Span("5th Resonance Summary:",
+                          style=default_span_style),
+                ], style=default_p_style),
+                dbc.Row(dbc.Col(id="results-table-4")),
+            ], id="results-table-4-container", style=HIDE_CONTAINER),
+
+            dbc.Container([
+                html.P([
+                    html.Span("6th Resonance Summary:",
+                          style=default_span_style),
+                ], style=default_p_style),
+                dbc.Row(dbc.Col(id="results-table-5")),
+            ], id="results-table-5-container", style=HIDE_CONTAINER),
+
+                        # html.P([
+            #     html.Span("Download Results:",
+            #               style=default_span_style),
+            # ], style=default_p_style),
             dbc.Row([
-                dbc.Col([
+                # dbc.Col([
                     html.A(
-                        dbc.Button("Save Figure", color="primary",
-                                   id="save_figure-button", style=button_style),
-                        id='figure-download', download="", href="", target="_blank"),
-                ], style=col_style),
-                dbc.Col([
-                    html.A(
-                        dbc.Button("Save as hvsrpy", color="primary",
-                                   id="save_hvsrpy-button", style=button_style),
-                        id="hv-download", download="", href="", target="_blank"),
-                    dbc.Tooltip(
-                        "Save results in the hvsrpy-style text format.",
-                        target="save_hvsrpy-button"),
-                ], style=col_style),
-                dbc.Col([
-                    html.A(
-                        dbc.Button("Save as geopsy", color="primary",
-                                   id="save_geopsy-button", style=button_style),
-                        id="geopsy-download", download="", href="", target="_blank"),
-                    html.Div(id="geopsy-button-tooltip"),
-                ], style=col_style),
-            ], className="mb-2"),
-            html.Div(id='window-information-table'),
-            html.Div(id='before-rejection-table'),
-            html.Div(id='after-rejection-table'),
-            html.Div(id="tooltips"),
-            html.Div([
-                html.P("Looking for more information? Refer to the references back in the Intro tab.",
-                       style=dict(**default_p_style, **{"display": "inline", "color": "#495057"})),
+                        dbc.Button(children="Download Results", id="button-save-hvsrpy",
+                                   color="primary", size="lg", style={"width":"100%", "padding-left": "2em", "padding-right": "2em", "margin":"0"}),
+                        id="hvsrpy-download", download="", href="", target="_blank", style={"width":"100%", "padding":"0", "margin":"0"}),
+                    
+                    # style={"padding-left": "2em", "padding-right": "2em"}
+                    
+                    # ]),
+                    # TODO(jpv): Skip for now
+                    # dbc.Col([
+                    #     html.A(
+                    #         dbc.Button("Save as geopsy", color="primary", size="md",
+                    #                    id="button-save-geopsy", style=dict(width="80%")),
+                    #         id="geopsy-download", download="", href="", target="_blank"),
+                    # ]),
+
+                    ], style={"padding-left": "2em", "padding-right": "2em", "padding-top":"0.5em", "padding-bottom":"1em"}),
+
+            # dbc.Tooltip(
+            #     "Save results as a .",
+            #     target="button-save-hvsrpy"),
+            # TODO(jpv): Skip for now
+            # dbc.Tooltip(
+            #     "Save results in the geopsy-style text format.",
+            #     target="button-save-geopsy"),
+
+            dbc.Row([
+                html.P("Looking for more information?", style=default_p_style),
+                html.Div([
+                    html.P("Refer to the references back in the Intro tab.",
+                           style={**default_p_style, "display": "inline"}),
+                ], style={"padding-left": "2em"})
             ]),
-            html.Div([
-                html.P("Looking for more functionality? Checkout ",
-                       style=dict(**default_p_style, **{"display": "inline", "color": "#495057"})),
-                html.A("hvsrpy.",
-                       href="https://github.com/jpvantassel/hvsrpy")
+
+            dbc.Row([
+                html.P("Looking for more functionality?", style=default_p_style),
+                html.Div([
+                    html.P("Checkout ",
+                           style={**default_p_style, "display": "inline"}),
+                    html.A("hvsrpy.", href="https://github.com/jpvantassel/hvsrpy",
+                           style={"display": "inline"})
+                ], style={"padding-left": "2em"})
             ]),
-            html.Div([
-                html.P("Want to access an earlier version of HVSRweb? Find instructions ",
-                       style=dict(**default_p_style, **{"display": "inline", "color": "#495057"})),
-                html.A("here.",
-                       href="https://github.com/jpvantassel/hvsrweb")
+
+            dbc.Row([
+                html.P("Looking for an earlier version of HVSRweb?", style=default_p_style),
+                html.Div([
+                    html.P("Find instructions on the ",
+                           style={**default_p_style, "display": "inline"}),
+                    html.A("HVSRweb GitHub.",
+                           href="https://github.com/jpvantassel/hvsrweb", style={"display": "inline"})
+                ], style={"padding-left": "2em"})
             ]),
         ], style=default_cardbody_style),
-    className="mt-3",
+    className="mt-3 md-4",
 )
-
-body = dbc.Container([
-    dbc.Row([
-            # Demo and Calculate buttons
-            dbc.Col([
-                    dbc.Button("Demo", id="demo-button", color="secondary",
-                               size="lg", style={"padding-left": "30px", "padding-right": "30px"}),
-                    dbc.Tooltip(
-                        "Load ambient noise data provided by us.",
-                        target="demo-button",
-                    ),
-                    ], md=1, ),
-            dbc.Col([
-                    dbc.Button("Calculate", id="calculate-button", color="primary",
-                               size="lg"),
-                    dbc.Tooltip(
-                        "Perform HVSR calculation with the current file and settings.",
-                        target="calculate-button",
-                    ),
-                    ], md=1, ),
-
-            # Upload bar
-            dbc.Col([
-                    dcc.Upload(
-                        id="upload-bar",
-                        children=html.Div(
-                            ["Drag and drop or click to select a 3-component miniSEED (*.miniseed or *.mseed) file to upload."]
-                        ),
-                        style={
-                            "height": "50px",
-                            "lineHeight": "45px",
-                            "textAlign": "center",
-                            "cursor": "pointer",
-                            "background-color": "white",
-                            "color": "black",
-                            "border": "1px solid #dedede",
-                            "border-radius": "8px",
-                        },
-                        multiple=False,
-                    ),
-                    ],
-                    md=10,
-                    style={"padding-bottom": "10px"}),
-            ]),
-    # Row for Settings and Figure
-    dbc.Row([
-        # Settings
-        dbc.Col(
-            [
-                html.Div([
-                         html.H5("Current File:", style={"display": "inline"}),
-                         html.P(id="filename-reference"),
-                         ], className="mb-2"),
-                dbc.Tabs([
-                    dbc.Tab(intro_tab, label="Intro"),
-                    dbc.Tab(time_tab, label="Time"),
-                    dbc.Tab(frequency_tab, label="Frequency"),
-                    dbc.Tab(hv_tab, label="HVSR"),
-                    dbc.Tab(results_tab, label="Results",
-                            id="results-tab", disabled=True),
-                ], ),
-            ],
-            md=4,
-        ),
-        # Figure
-        dbc.Col([
-            dbc.Row([
-                html.Div([html.Img(id='cur_plot', src='', style={"width": "90%", "text-align": "center"})],
-                         id='plot_div')
-            ]),
-        ], md=5),
-    ]),
-    html.Div(id='hidden-file-contents', style={"display": "none"}),
-], className="mt-4 mr-0", style={"margin-top": "0"}, fluid=True)
 
 application = Flask(__name__)
 app = dash.Dash(server=application, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
-app.title = 'HVSRweb: A web application for HVSR processsing'
+tab_label_style = dict(padding="0.5em")
+app.title = "HVSRweb: A web application for HVSR processsing"
 app.layout = html.Div(
     [
-        html.Div([
-            dcc.ConfirmDialog(
-                id='no_file_warn',
-                message='Please upload a file before clicking calculate.',
-                displayed=False,
-            )]),
         html.Div(
             id="banner",
             className="banner",
             children=[html.Img(src=app.get_asset_url("hvsrweb_logo.png")),
-                      html.H2("HVSRweb: A web application for HVSR processing")]
+                      html.H4("HVSRweb: A web application for HVSR processing")]
         ),
-        body,
-        html.Footer(dbc.Container(html.Span(
-            "HVSRweb v0.3.0 © 2019-2021 Dana M. Brannon & Joseph P. Vantassel", className="text-muted")), className="footer")
+        dbc.Container([
+
+            dbc.Row([
+                dbc.Col(
+                    children=[
+                        dbc.Tabs(children=[
+                            dbc.Tab(intro_tab, id="intro-tab",
+                                    label="Intro", label_style=tab_label_style),
+                            dbc.Tab(data_tab, id="data-tab",
+                                    label="Data", label_style=tab_label_style),
+                            dbc.Tab(preprocess_tab, id="preprocess-tab",
+                                    label="Preprocess", disabled=False, label_style=tab_label_style),  # TODO(jpv): Change back to True.
+                            dbc.Tab(process_tab, id="process-tab",
+                                    label="Process", disabled=False, label_style=tab_label_style),  # TODO(jpv): Change back to True.
+                            dbc.Tab(results_tab, id="results-tab",
+                                    label="Results", disabled=False, label_style=tab_label_style),  # TODO(jpv): Change back to True.
+                        ]),
+                    ],
+                    md=4,
+                ),
+
+                dbc.Col(
+                    children=[
+                        dbc.Tabs(children=[
+                            dbc.Tab(label="Seismic Record",
+                                    children=[dbc.Card(dbc.CardBody(children=[
+                                        dbc.Row(
+                                            children=[
+                                                html.Div([
+                                                    html.H6(children="Current File:",
+                                                            style={"display": "inline", "margin-top": "1em", "margin-bottom": "1em"}),
+                                                    html.P(children="No file has been uploaded.",
+                                                           id="filename-display",
+                                                           style={"display": "inline", "padding": "0.25em", "margin-left": "0.5em"}),
+                                                ]),
+                                            ],
+                                        ),
+                                        html.Div(id="plot", className="p-4")], style=default_cardbody_style), className="mt-3"),
+                                    ],
+                                    label_style=tab_label_style),
+                            dbc.Tab(label="HVSR",
+                                    children=[dbc.Card(dbc.CardBody(children=[
+                                        dbc.Row(
+                                            children=[
+                                                html.Div([
+                                                    html.H6(children="Current File:",
+                                                            style={"display": "inline", "margin-top": "1em", "margin-bottom": "1em"}),
+                                                    html.P(children="No file has been uploaded.",
+                                                           id="filename-display-hvsr",
+                                                           style={"display": "inline", "padding": "0.25em", "margin-left": "0.5em"}),
+                                                ]),
+                                            ],
+                                        ),
+                                        dbc.Row(
+                                            html.Div(html.Div(id="plot-hvsr", style={'display': 'inline-block', 'width': '100%', 'height': "100%"}),
+                                                     style={'display': 'inline-block', 'width': '100%', 'min-height': "600px"})
+                                        )
+                                    ], style=default_cardbody_style), className="mt-3"),
+                                    ],
+                                    label_style=tab_label_style),
+                            dbc.Tab(label="HVSR - 3D",
+                                    id="hvsr-3d",
+                                    disabled=True,
+                                    children=[dbc.Card(dbc.CardBody(children=[
+                                        dbc.Row(
+                                            children=[
+                                                html.Div([
+                                                    html.H6(children="Current File:",
+                                                            style={"display": "inline", "margin-top": "1em", "margin-bottom": "1em"}),
+                                                    html.P(children="No file has been uploaded.",
+                                                           id="filename-display-hvsr-az",
+                                                           style={"display": "inline", "padding": "0.25em", "margin-left": "0.5em"}),
+                                                ]),
+                                            ],
+                                        ),
+                                        dbc.Row(
+                                            html.Div(html.Div(id="plot-hvsr-az", style={'display': 'inline-block', 'width': '100%', 'height': "100%"}),
+                                                     style={'display': 'inline-block', 'width': '100%', 'min-height': "600px"})
+                                        )
+                                    ],  style=default_cardbody_style), className="mt-3"),
+                                    ],
+                                    label_style=tab_label_style),
+                        ]),
+                    ],
+                    md=8,
+                ),
+            ]),
+            html.Div(id="output"),  # TODO (jpv): Remove
+            dcc.Store(id='srecord3c'),
+            dcc.Store(id='preprocess-settings'),
+            dcc.Store(id='process-settings'),
+        ], fluid=True),
+
+        html.Footer(dbc.Container(children=[html.Div("HVSRweb v0.3.0 © 2019-2023"),
+                                            html.Div("Joseph P. Vantassel & Dana M. Brannon")],
+                                  className="text-muted"),
+                    className="footer")
     ],
 )
 
 
-@app.callback(Output('no_file_warn', 'displayed'),
-              [Input('calculate-button', 'n_clicks'),
-               Input('filename-reference', 'children')])
-def display_no_file_warn(n_clicks, filename):
-    """Warn user if they click Calculate without a data file."""
-    if filename == "No file has been uploaded." and n_clicks:
-        return True
-    return False
+dbc.Tooltip(children="The preprocess tab is disabled; you must upload data first.",
+            id="preprocess-tab-tooltip",
+            target="preprocess-tab"),
+dbc.Tooltip(children="The process tab is disabled; you must preprocess your data first.",
+            id="process-tab-tooltip",
+            target="process-tab"),
+dbc.Tooltip(children="Results disabled; you must process your data first.",
+            id="results-tab-tooltip",
+            target="results-tab"),
+dbc.Tooltip(children="HVSR 3D results are only available following azimuthal processing.",
+            id="hvsr-3d-tooltip",
+            target="hvsr-3d"),
 
 
-@app.callback(
-    [Output('filename-reference', 'children'),
-     Output('filename-reference', 'style'),
-     Output('hidden-file-contents', 'children')],
-    [Input('upload-bar', 'contents'),
-     Input('upload-bar', 'filename'),
-     Input('demo-button', 'n_clicks')])
-def store_filename(contents, filename, n_clicks):
-    """Display the uploaded filename and store its contents."""
-    defaults = {"color": "gray", "padding": "4px",
-                "margin-left": "4px", "display": "inline"}
-    if filename:
-        return [filename, {**defaults, "color": "#34a1eb"}, contents]
-    if n_clicks != None:
-        return ["File loaded, press calculate to continue.",
-                {**defaults, "color": "#34a1eb", "font-weight": "bold"},
-                "data/UT.STN11.A2_C150.miniseed"]
+@ app.callback(
+    [Output('filename-display', 'children'),
+     Output('filename-display-hvsr', 'children'),
+     Output('filename-display-hvsr-az', 'children'),
+     Output('srecord3c', 'data'),
+     Output('data-continue-instructions', 'children'),
+     Output('data-continue-instructions', 'style'),
+     Output('new-end-time', "value")],
+    [Input('demo-button', 'n_clicks'),
+     Input('upload-bar', 'contents')],
+    [State('upload-bar', 'filename'),
+     State('data-continue-instructions', 'style')])
+def gather_filename_from_user(demo_button_n_clicks, upload_bar_contents,
+                              upload_bar_filename, data_continue_instructions_style):
+    """Acquire filename and update web components accordingly."""
+    triggered_id = dash.ctx.triggered_id
+    if triggered_id == "demo-button":
+        srecord3c = hvsrpy.read_single("data/UT.STN11.A2_C150.miniseed")
+        return ("Demo file",
+                "Demo file",
+                "Demo file",
+                srecord3c._to_dict(),
+                "Data loading complete. Continue to the Preprocess tab.",
+                {**data_continue_instructions_style, "color": COLORS["primary"]},
+                np.floor(srecord3c.vt.time()[-1])
+                )
+
+    # if upload bar has been used.
+    if triggered_id == "upload-bar":
+
+        # loop across upload_bar_contents (one entry per file selected for upload).
+        decoded_contents = []
+        for upload_bar_content in upload_bar_contents:
+            _, string = upload_bar_content.split(",")
+            decoded_contents.append(base64.b64decode(string, validate=True))
+
+        # only accept a single file or a set of three files.
+        if len(decoded_contents) not in [1, 3]:
+            return ("No file has been uploaded.",
+                    "No file has been uploaded.",
+                    "No file has been uploaded.",
+                    None,
+                    f"Incorrect number of files selected, must be 1 or 3.",
+                    {**data_continue_instructions_style, "color": COLORS["error"]},
+                    0,
+                    )
+
+        # dash loads data as base64 encoded, but we do not know
+        # whether the underlying data is from a binary format
+        # (e.g., miniseed) or a text format (e.g., saf) so we need to
+        # check both with nested try statements.
+        try:
+            file_contents = [io.BytesIO(content) for content in decoded_contents]
+            file_contents = file_contents if len(file_contents) == 3 else file_contents[0]
+            srecord3c = hvsrpy.read_single(file_contents)
+        except Exception as e:
+            try:
+                file_contents = [io.StringIO(content.decode("utf-8"))
+                                 for content in decoded_contents]
+                file_contents = file_contents if len(file_contents) == 3 else file_contents[0]
+                srecord3c = hvsrpy.read_single(file_contents)
+            except Exception as e:
+                return ("No file has been uploaded.",
+                        "No file has been uploaded.",
+                        "No file has been uploaded.",
+                        None,
+                        "An error occured; the selected file type is not supported. Please contact the developer if you believe this is in error.",
+                        {**data_continue_instructions_style, "color": COLORS["error"]},
+                        0,
+                        )
+            
+        srecord3c.meta["file name(s)"] = upload_bar_filename
+
+
+        return (f"{', '.join(upload_bar_filename)}",
+                f"{', '.join(upload_bar_filename)}",
+                f"{', '.join(upload_bar_filename)}",
+                srecord3c._to_dict(),
+                "Data loading complete. Continue to the Preprocess tab.",
+                {**data_continue_instructions_style, "color": COLORS["primary"]},
+                np.floor(srecord3c.vt.time()[-1])
+                )
+
+    raise PreventUpdate
+
+
+def plot_srecord3c(srecord3c):
+    fig = plotly.subplots.make_subplots(rows=3, cols=1, shared_xaxes=True, shared_yaxes=True,
+                                        x_title="Time (s)", y_title="Amplitude (counts)", vertical_spacing=0.03)
+    fig.add_trace(go.Scatter(x=srecord3c.ns.time(),
+                  y=srecord3c.ns.amplitude, name="NS"), row=1, col=1)
+    fig.add_trace(go.Scatter(x=srecord3c.ew.time(),
+                  y=srecord3c.ew.amplitude, name="EW"), row=2, col=1)
+    fig.add_trace(go.Scatter(x=srecord3c.vt.time(),
+                  y=srecord3c.vt.amplitude, name="VT"), row=3, col=1)
+    fig.update_layout(margin=dict(t=50, b=100, l=100, r=50),
+                      height=600)
+    return (dcc.Graph(figure=fig),)
+
+
+def plot_preprocessed_srecord3c(records):
+    """If file loads correctly, create a plot of the associated time series."""
+    dt = records[0].vt.dt_in_seconds
+    ns = hvsrpy.TimeSeries(np.concatenate([record.ns.amplitude for record in records]), dt)
+    ew = hvsrpy.TimeSeries(np.concatenate([record.ew.amplitude for record in records]), dt)
+    vt = hvsrpy.TimeSeries(np.concatenate([record.vt.amplitude for record in records]), dt)
+    degrees_from_north = records[0].degrees_from_north
+    meta = records[0].meta
+    srecord3c = hvsrpy.SeismicRecording3C(ns, ew, vt,
+                                          degrees_from_north=degrees_from_north,
+                                          meta=meta)
+    return plot_srecord3c(srecord3c)
+
+
+def plot_raw_srecord3c(file_contents):
+    """If file loads correctly, create a plot of the associated time series."""
+    srecord3c = hvsrpy.SeismicRecording3C._from_dict(file_contents)
+    return plot_srecord3c(srecord3c)
+
+
+def preprocess_srecord3c(srecord3c_data, new_start_time_value, new_stop_time_value, preprocess_settings_data):
+    srecord3c = hvsrpy.SeismicRecording3C._from_dict(srecord3c_data)
+    srecord3c.trim(new_start_time_value, new_stop_time_value)
+    records = [srecord3c]
+    settings = hvsrpy.HvsrPreProcessingSettings(**preprocess_settings_data)
+    records = hvsrpy.preprocess(records, settings)
+    return records
+
+
+@ app.callback(
+    Output("plot", "children"),
+    [Input("srecord3c", "data"),
+     Input("preprocess-settings", "data")],
+    [State("new-start-time", "value"),
+     State("new-end-time", "value")]
+)
+def srecord3c_plotting(srecord3c_data, preprocess_settings_data, new_start_time_value, new_stop_time_value):
+    triggered_id = dash.ctx.triggered_id
+    if triggered_id == "srecord3c":
+        return plot_raw_srecord3c(srecord3c_data)
+
+    if triggered_id == "preprocess-settings":
+        records = preprocess_srecord3c(srecord3c_data,
+                                       new_start_time_value,
+                                       new_stop_time_value,
+                                       preprocess_settings_data)
+        return plot_preprocessed_srecord3c(records)
+    raise PreventUpdate
+
+
+@ app.callback(
+    [Output("preprocess-default-container", "style"),
+     Output("traditional-container", "style"),
+     Output("preprocess-default-container-continued", "style"),
+     Output("process-method", "options"),
+     Output("process-method", "value")],
+    Input('processing-workflow', 'value'),
+    State('process-method', "options"))
+def dynamic_hvsr_preprocess_settings(processing_workflow_value, process_method_options):
+    """Show/hide hvsr process tab inputs according to previous selections."""
+
+    if processing_workflow_value == "manual":
+        options = [
+            dict(label="Traditional", value="traditional"),
+            dict(label="Azimuthal", value="azimuthal"),
+            dict(label="Diffuse Field", value="diffuse"),
+        ]
+
+        return (
+            DISPLAY_CONTAINER,
+            DISPLAY_CONTAINER,
+            DISPLAY_CONTAINER,
+            options,
+            None,
+        )
+
+    if processing_workflow_value == "autohvsr":
+        options = [
+            dict(label="Traditional", value="traditional"),
+            # dict(label="Azimuthal", value="azimuthal"), #TODO(jpv): Skip this for now.
+        ]
+
+        return (
+            DISPLAY_CONTAINER,
+            HIDE_CONTAINER,
+            DISPLAY_CONTAINER,
+            options,
+            "traditional",
+        )
+
+    raise PreventUpdate
+
+
+@ app.callback([Output("butterworth-filter-lower-frequency-container", "style"),
+               Output("butterworth-filter-upper-frequency-container", "style"),],
+               [Input('butterworth-filter', 'value')])
+def dynamic_filtering_settings(value):
+    """Show/hide filter inputs according to type of filter specified."""
+
+    if value == "bandpass":
+        return (DISPLAY_CONTAINER,
+                DISPLAY_CONTAINER)
+    elif value == "lowpass":
+        return (HIDE_CONTAINER,
+                DISPLAY_CONTAINER)
+    elif value == "highpass":
+        return (DISPLAY_CONTAINER,
+                HIDE_CONTAINER)
+    elif value == "none":
+        return (HIDE_CONTAINER,
+                HIDE_CONTAINER)
     else:
-        return ["No file has been uploaded.", {**defaults}, "No contents."]
-
-@app.callback(Output('bandpass-options', 'style'),
-              [Input('butterworth-input', 'value')])
-def set_bandpass_options_style(value):
-    """Show/hide Bandpass Filter options depending on user input."""
-    if value == "True":
-        return {'display': 'block'}
-    elif value == "False":
-        return {'display': 'none'}
-
-@app.callback(Output('rejection-options', 'style'),
-              [Input('rejection_bool-input', 'value')])
-def set_rejection_options_style(value):
-    """Show/hide Window Rejection options depending on user input."""
-    if value == "True":
-        return {'display': 'block'}
-    elif value == "False":
-        return {'display': 'none'}
-
-@app.callback(Output('azimuth-options', 'style'),
-              [Input('method-input', 'value')])
-def set_azimuth_options_style(value):
-    """Show/hide Azimuth options depending on user input."""
-    if value == "azimuth":
-        return {'display': 'block'}
-    else:
-        return {'display': 'none'}
-
-@app.callback(Output('rotate-options', 'style'),
-              [Input('method-input', 'value')])
-def set_azimuth_options_style(value):
-    """Show/hide Rotate options depending on user input."""
-    if value == "rotate":
-        return {'display': 'block'}
-    else:
-        return {'display': 'none'}
-
-
-def parse_data(contents, filename):
-    """Parse uploaded data and return a Sensor3c object."""
-    content_type, content_string = contents.split(',')
-    decoded = base64.b64decode(content_string)
-    try:
-        if filename.endswith("miniseed") or filename.endswith("mseed"):
-            bytesio_obj = io.BytesIO(decoded)
-            return hvsrpy.Sensor3c.from_mseed(bytesio_obj)
-    except Exception as e:
         raise PreventUpdate
 
 
-def fig_to_uri(in_fig, close_all=True, **save_args):
-    """Save matplotlib figure for use as html.Img source and for downloading purposes."""
-    out_img = io.BytesIO()
-    in_fig.savefig(out_img, format='png', **save_args)
-    if close_all:
-        in_fig.clf()
-        plt.close('all')
-    out_img.seek(0)
-    encoded = base64.b64encode(out_img.read()).decode(
-        "ascii").replace("\n", "")
-    return "data:image/png;base64,{}".format(encoded), encoded
+@ app.callback(
+    [Output("preprocess-settings", "data"),
+     Output("preprocess-continue-instructions", "children"),
+     Output("preprocess-continue-instructions", "style")],
+    Input("preprocess-button", "n_clicks"),
+    [State("srecord3c", "data"),
+     State("processing-workflow", "value"),
+     State("orient-to-degrees-from-north", "value"),
+     State("butterworth-filter", "value"),
+     State("butterworth-filter-lower-frequency", "value"),
+     State("butterworth-filter-upper-frequency", "value"),
+     State("window-length", "value"),
+     State("detrend", "value"),
+     State("preprocess-continue-instructions", "style"),]
+)
+def create_preprocess_settings(execute_button_n_clicks,
+                               srecord3c_data,
+                               processing_workflow_value,
+                               orient_to_degrees_from_north_value,
+                               butterworth_filter_value,
+                               butterworth_filter_value_lower_frequency_value,
+                               butterworth_filter_value_upper_frequency_value,
+                               window_length_value,
+                               detrend_value, preprocess_continue_instructions_style):
 
-
-def generate_table(hv, distribution_f0, method):
-    """Generate output tables depending on user specifications."""
-    head_style = {"font-size": "16px", "padding": "0.5px"}
-    row_style = {"font-size": "16px", "padding": "0.5px"}
-
-    def prep(x): return str(np.round(x, decimals=2))
-
-    if method == "rotate":
-        sub_letters = "AZ"
-    elif method == "azimuth":
-        sub_letters = u"\u03B1"
-    elif method == "geometric-mean":
-        sub_letters = "GM"
-    elif method == "squared-average":
-        sub_letters = "SA"
-    else:
-        sub_letters = ""
-
-    f0 = hv.mean_f0_frq(distribution_f0)
-    t0 = prep(1/f0) + "s"
-    f0 = prep(f0)
-    f0_std = prep(hv.std_f0_frq(distribution_f0))
-    t0_std = f0_std
-
-    if distribution_f0 == "log-normal":
-        row0 = html.Tr([html.Td(""),
-                        html.Td(html.Div(["LM"]), id="med"),
-                        html.Td(html.Div([u"\u03c3", html.Sub('ln')]), id="std")],
-                       style=head_style)
-    elif distribution_f0 == "normal":
-        row0 = html.Tr([html.Td(""),
-                        html.Td(html.Div([u"\u03bc"]), id="med"),
-                        html.Td(html.Div([u"\u03c3"]), id="std")],
-                       style=head_style)
-        t0 = "-"
-        t0_std = "-"
-    else:
-        raise ValueError
-
-    sub = f"0,{sub_letters}"
-    row1 = html.Tr([html.Td(html.Div(["f", html.Sub(sub)]), id="f0"),
-                    html.Td(f"{f0} Hz"),
-                    html.Td(f0_std)],
-                   style=row_style)
-
-    row2 = html.Tr([html.Td(html.Div(["T", html.Sub(sub)]), id="t0"),
-                    html.Td(f"{t0}"),
-                    html.Td(t0_std)],
-                   style=row_style)
-
-    table = dbc.Table([html.Thead(row0), html.Tbody([row1, row2])],
-                      bordered=True, hover=True, className="mb-0",
-                      style={"padding": "0", "color": "#495057"})
-    return table
-
-
-def create_hrefs(hv, distribution_f0, distribution_mc, filename, rotate_flag):
-    """Generate hrefs to be put inside hv-download and geopsy-download."""
-    for filetype in ["hvsrpy", "geopsy"]:
-        if filetype == "hvsrpy":
-            data = "".join(hv._hvsrpy_style_lines(distribution_f0,
-                                                  distribution_mc))
+    if execute_button_n_clicks is not None:
+        if butterworth_filter_value == "none":
+            filter_description = (None, None)
+        elif butterworth_filter_value == "bandpass":
+            filter_description = (butterworth_filter_value_lower_frequency_value,
+                                  butterworth_filter_value_upper_frequency_value)
+        elif butterworth_filter_value == "lowpass":
+            filter_description = (None,
+                                  butterworth_filter_value_upper_frequency_value)
+        elif butterworth_filter_value == "highpass":
+            filter_description = (butterworth_filter_value_lower_frequency_value,
+                                  None)
         else:
-            if rotate_flag:
-                pass
-            else:
-                data = "".join(hv._geopsy_style_lines(distribution_f0,
-                                                      distribution_mc))
-        bytesIO = io.BytesIO()
-        bytesIO.write(bytearray(data, 'utf-8'))
-        bytesIO.seek(0)
-        encoded = base64.b64encode(bytesIO.read()).decode(
-            "utf-8").replace("\n", "")
-        bytesIO.close()
-        if filetype == "hvsrpy":
-            hvsrpy_downloadable = f'data:text/plain;base64,{encoded}'
-            hvsrpy_name = filename.split('.miniseed')[0] + '.hv'
-        else:
-            if rotate_flag:
-                geopsy_downloadable = "#"
-                geopsy_name = "null.hv"
-            else:
-                geopsy_downloadable = f'data:text/plain;base64,{encoded}'
-                geopsy_name = filename.split('.miniseed')[0] + '_geopsy.hv'
-    return (hvsrpy_downloadable, hvsrpy_name, geopsy_downloadable, geopsy_name)
+            raise ValueError(f"butterworth_filter_value = {butterworth_filter_value} is unknown.")
+
+        # if using autohvsr, require 35 time windows.
+        if processing_workflow_value == "autohvsr":
+            time_windows = 35
+            srecord3c = hvsrpy.SeismicRecording3C._from_dict(srecord3c_data)
+            duration_in_seconds = srecord3c.vt.time()[-1]
+            window_length_value = duration_in_seconds / time_windows
+
+        settings = hvsrpy.HvsrPreProcessingSettings(orient_to_degrees_from_north=float(orient_to_degrees_from_north_value),
+                                                    filter_corner_frequencies_in_hz=filter_description,
+                                                    window_length_in_seconds=window_length_value,
+                                                    detrend=detrend_value,
+                                                    )
+        return (settings.attr_dict,
+                "Preprocess settings applied, continue to the Process tab.",
+                {**preprocess_continue_instructions_style, "color": COLORS["primary"]},
+                )
+
+    raise PreventUpdate
+
+
+@ app.callback([Output("combine-horizontals-container", "style"),
+               Output("process-base-container", "style"),
+               Output("frequency-sampling-container", "style"),
+               Output("traditional-traditional", "style"),
+               Output("traditional-single-azimuth", "style"),
+               Output("traditional-rotdpp", "style"),
+               Output("azimuthal", "style"),
+               Output("statistics-container", "style"),
+               Output("resonance-search-range-container", "style"),
+               Output("rejection", "style"),
+               Output("diffuse", "style")],
+               [Input('process-method', 'value'),
+                Input('combine-horizontals-select', 'value'),
+                Input('processing-workflow', 'value')],
+               )
+def dynamic_hvsr_process_settings(process_method_value, combine_horizontals_value, processing_workflow_value):
+    """Show/hide hvsr process tab inputs according to previous selections."""
+
+    if processing_workflow_value == "manual":
+
+        if process_method_value == "traditional":
+            if combine_horizontals_value is None:
+                return (DISPLAY_CONTAINER,
+                        HIDE_CONTAINER,
+                        HIDE_CONTAINER,
+                        HIDE_CONTAINER,
+                        HIDE_CONTAINER,
+                        HIDE_CONTAINER,
+                        HIDE_CONTAINER,
+                        HIDE_CONTAINER,
+                        HIDE_CONTAINER,
+                        HIDE_CONTAINER,
+                        HIDE_CONTAINER)
+            if combine_horizontals_value == "single_azimuth":
+                return (DISPLAY_CONTAINER,
+                        DISPLAY_CONTAINER,
+                        DISPLAY_CONTAINER,
+                        HIDE_CONTAINER,
+                        DISPLAY_CONTAINER,
+                        HIDE_CONTAINER,
+                        HIDE_CONTAINER,
+                        DISPLAY_CONTAINER,
+                        DISPLAY_CONTAINER,
+                        DISPLAY_CONTAINER,
+                        HIDE_CONTAINER)
+            if combine_horizontals_value == "rotdpp":
+                return (DISPLAY_CONTAINER,
+                        DISPLAY_CONTAINER,
+                        DISPLAY_CONTAINER,
+                        HIDE_CONTAINER,
+                        HIDE_CONTAINER,
+                        DISPLAY_CONTAINER,
+                        HIDE_CONTAINER,
+                        DISPLAY_CONTAINER,
+                        DISPLAY_CONTAINER,
+                        DISPLAY_CONTAINER,
+                        HIDE_CONTAINER)
+            return (DISPLAY_CONTAINER,
+                    DISPLAY_CONTAINER,
+                    DISPLAY_CONTAINER,
+                    DISPLAY_CONTAINER,
+                    HIDE_CONTAINER,
+                    HIDE_CONTAINER,
+                    HIDE_CONTAINER,
+                    DISPLAY_CONTAINER,
+                    DISPLAY_CONTAINER,
+                    DISPLAY_CONTAINER,
+                    HIDE_CONTAINER)
+
+        if process_method_value == "azimuthal":
+            return (HIDE_CONTAINER,
+                    DISPLAY_CONTAINER,
+                    DISPLAY_CONTAINER,
+                    HIDE_CONTAINER,
+                    HIDE_CONTAINER,
+                    HIDE_CONTAINER,
+                    DISPLAY_CONTAINER,
+                    DISPLAY_CONTAINER,
+                    DISPLAY_CONTAINER,
+                    DISPLAY_CONTAINER,
+                    HIDE_CONTAINER)
+
+        if process_method_value == "diffuse":
+            return (HIDE_CONTAINER,
+                    DISPLAY_CONTAINER,
+                    DISPLAY_CONTAINER,
+                    HIDE_CONTAINER,
+                    HIDE_CONTAINER,
+                    HIDE_CONTAINER,
+                    HIDE_CONTAINER,
+                    HIDE_CONTAINER,
+                    DISPLAY_CONTAINER,
+                    HIDE_CONTAINER,
+                    DISPLAY_CONTAINER)
+
+    if processing_workflow_value == "autohvsr":
+
+        if process_method_value == "traditional":
+            if combine_horizontals_value is None:
+                return (DISPLAY_CONTAINER,
+                        HIDE_CONTAINER,
+                        HIDE_CONTAINER,
+                        HIDE_CONTAINER,
+                        HIDE_CONTAINER,
+                        HIDE_CONTAINER,
+                        HIDE_CONTAINER,
+                        HIDE_CONTAINER,
+                        HIDE_CONTAINER,
+                        HIDE_CONTAINER,
+                        HIDE_CONTAINER)
+            if combine_horizontals_value == "single_azimuth":
+                return (DISPLAY_CONTAINER,
+                        DISPLAY_CONTAINER,
+                        HIDE_CONTAINER,
+                        HIDE_CONTAINER,
+                        DISPLAY_CONTAINER,
+                        HIDE_CONTAINER,
+                        HIDE_CONTAINER,
+                        DISPLAY_CONTAINER,
+                        HIDE_CONTAINER,
+                        HIDE_CONTAINER,
+                        HIDE_CONTAINER)
+            if combine_horizontals_value == "rotdpp":
+                return (DISPLAY_CONTAINER,
+                        DISPLAY_CONTAINER,
+                        HIDE_CONTAINER,
+                        HIDE_CONTAINER,
+                        HIDE_CONTAINER,
+                        DISPLAY_CONTAINER,
+                        HIDE_CONTAINER,
+                        DISPLAY_CONTAINER,
+                        HIDE_CONTAINER,
+                        HIDE_CONTAINER,
+                        HIDE_CONTAINER)
+            return (DISPLAY_CONTAINER,
+                    DISPLAY_CONTAINER,
+                    HIDE_CONTAINER,
+                    DISPLAY_CONTAINER,
+                    HIDE_CONTAINER,
+                    HIDE_CONTAINER,
+                    HIDE_CONTAINER,
+                    DISPLAY_CONTAINER,
+                    HIDE_CONTAINER,
+                    HIDE_CONTAINER,
+                    HIDE_CONTAINER)
+
+        if process_method_value == "azimuthal":
+            return (HIDE_CONTAINER,
+                    DISPLAY_CONTAINER,
+                    HIDE_CONTAINER,
+                    HIDE_CONTAINER,
+                    HIDE_CONTAINER,
+                    HIDE_CONTAINER,
+                    DISPLAY_CONTAINER,
+                    DISPLAY_CONTAINER,
+                    HIDE_CONTAINER,
+                    HIDE_CONTAINER,
+                    HIDE_CONTAINER)
+
+        if process_method_value == "diffuse":
+            raise ValueError("autohvsr not allowed with diffuse processing")
+
+    raise PreventUpdate
+
+
+@ app.callback(
+    Output('fdwra', 'style'),
+    Input('rejection-select', 'value'),
+)
+def dynamic_hvsr_rejection_settings(rejection_selection_value):
+
+    if rejection_selection_value == "fdwra":
+        return DISPLAY_CONTAINER
+
+    if rejection_selection_value == "False":
+        return HIDE_CONTAINER
+
+    raise PreventUpdate
+
+
+def prepare_traditional_settings(combine_horizontals_select_value, window_type_value, window_width_value, smoothing_operator_value, smoothing_bandwidth_value, frequency_resampling_in_hz, single_azimuth_value, rotdpp_azimuthal_interval_value, rotdpp_azimuthal_ppth_percential_value):
+    if combine_horizontals_select_value == "single_azimuth":
+        return hvsrpy.HvsrTraditionalSingleAzimuthProcessingSettings(
+            window_type_and_width=(window_type_value, window_width_value),
+            smoothing_operator_and_bandwidth=(smoothing_operator_value, smoothing_bandwidth_value),
+            frequency_resampling_in_hz=frequency_resampling_in_hz,
+            azimuth_in_degrees=single_azimuth_value
+        ).attr_dict
+
+    if combine_horizontals_select_value == "rotdpp":
+        return hvsrpy.HvsrTraditionalRotDppProcessingSettings(
+            window_type_and_width=(window_type_value, window_width_value),
+            smoothing_operator_and_bandwidth=(smoothing_operator_value, smoothing_bandwidth_value),
+            frequency_resampling_in_hz=frequency_resampling_in_hz,
+            ppth_percentile_for_rotdpp_computation=rotdpp_azimuthal_ppth_percential_value,
+            azimuths_in_degrees=np.arange(0, 180, rotdpp_azimuthal_interval_value)
+        ).attr_dict
+
+    return hvsrpy.HvsrTraditionalProcessingSettings(
+        method_to_combine_horizontals=combine_horizontals_select_value,
+        window_type_and_width=(window_type_value, window_width_value),
+        smoothing_operator_and_bandwidth=(smoothing_operator_value, smoothing_bandwidth_value),
+        frequency_resampling_in_hz=frequency_resampling_in_hz
+    ).attr_dict
+
+
+def prepare_azimuthal_settings(window_type_value, window_width_value, smoothing_operator_value, smoothing_bandwidth_value, frequency_resampling_in_hz, azimuthal_interval_value):
+    return hvsrpy.HvsrAzimuthalProcessingSettings(
+        window_type_and_width=(window_type_value, window_width_value),
+        smoothing_operator_and_bandwidth=(smoothing_operator_value, smoothing_bandwidth_value),
+        frequency_resampling_in_hz=frequency_resampling_in_hz,
+        azimuths_in_degrees=np.arange(0, 180, azimuthal_interval_value)
+    ).attr_dict
+
+
+def prepare_diffuse_settings(window_type_value, window_width_value, smoothing_operator_value, smoothing_bandwidth_value, frequency_resampling_in_hz):
+    return hvsrpy.HvsrDiffuseFieldProcessingSettings(
+        window_type_and_width=(window_type_value, window_width_value),
+        smoothing_operator_and_bandwidth=(smoothing_operator_value, smoothing_bandwidth_value),
+        frequency_resampling_in_hz=frequency_resampling_in_hz
+    ).attr_dict
+
+
+def create_processing_settings_manual(process_method_value, combine_horizontals_select_value,
+                                      window_type_value, window_width_value, smoothing_operator_value, smoothing_bandwidth_value,
+                                      minimum_frequency_value, maximum_frequency_value, n_frequency_value, sampling_type_frequency_value,
+                                      single_azimuth_value, rotdpp_azimuthal_interval_value, rotdpp_azimuthal_ppth_percential_value,
+                                      azimuthal_interval_value):
+    if sampling_type_frequency_value == "linear":
+        frequency_resampling_in_hz = np.linspace(
+            minimum_frequency_value, maximum_frequency_value, n_frequency_value)
+    else:
+        frequency_resampling_in_hz = np.geomspace(
+            minimum_frequency_value, maximum_frequency_value, n_frequency_value)
+
+    if process_method_value == "traditional":
+        return prepare_traditional_settings(combine_horizontals_select_value, window_type_value, window_width_value,
+                                            smoothing_operator_value, smoothing_bandwidth_value, frequency_resampling_in_hz, single_azimuth_value,
+                                            rotdpp_azimuthal_interval_value, rotdpp_azimuthal_ppth_percential_value)
+
+    if process_method_value == "azimuthal":
+        return prepare_azimuthal_settings(window_type_value, window_width_value,
+                                          smoothing_operator_value, smoothing_bandwidth_value, frequency_resampling_in_hz, azimuthal_interval_value)
+
+    if process_method_value == "diffuse":
+        return prepare_diffuse_settings(window_type_value, window_width_value,
+                                        smoothing_operator_value, smoothing_bandwidth_value, frequency_resampling_in_hz)
+
+
+def create_processing_settings_autohvsr(srecord3c, process_method_value, combine_horizontals_select_value,
+                                        window_type_value, window_width_value, smoothing_operator_value, smoothing_bandwidth_value,
+                                        single_azimuth_value, rotdpp_azimuthal_interval_value, rotdpp_azimuthal_ppth_percential_value,
+                                        azimuthal_interval_value):
+    # define consistent frequency vector.
+    desired_frequency_vector_in_hz = np.geomspace(0.05, 50, 256)
+
+    # require 15 significant cycles.
+    significant_cycles = 15
+
+    # require 35 time windows.
+    time_windows = 35
+
+    # window length (s)
+    duration_in_seconds = srecord3c.vt.time()[-1]
+    windowlength_in_seconds = duration_in_seconds / time_windows
+
+    # frequency vector (Hz)
+    minimum_frequency = significant_cycles / windowlength_in_seconds
+    fids = desired_frequency_vector_in_hz > minimum_frequency
+    frequency_resampling_in_hz = desired_frequency_vector_in_hz[fids]
+
+    if process_method_value == "traditional":
+        return prepare_traditional_settings(combine_horizontals_select_value, window_type_value, window_width_value,
+                                            smoothing_operator_value, smoothing_bandwidth_value, frequency_resampling_in_hz, single_azimuth_value,
+                                            rotdpp_azimuthal_interval_value, rotdpp_azimuthal_ppth_percential_value)
+
+    if process_method_value == "azimuthal":
+        return prepare_azimuthal_settings(window_type_value, window_width_value,
+                                          smoothing_operator_value, smoothing_bandwidth_value, frequency_resampling_in_hz, azimuthal_interval_value)
+
+    if process_method_value == "diffuse":
+        return prepare_diffuse_settings(window_type_value, window_width_value,
+                                        smoothing_operator_value, smoothing_bandwidth_value, frequency_resampling_in_hz)
 
 
 @app.callback(
-    [Output('cur_plot', 'src'),
-     Output('window-information-table', 'children'),
-     Output('before-rejection-table', 'children'),
-     Output('after-rejection-table', 'children'),
-     Output('figure-download', 'href'),
-     Output('figure-download', 'download'),
-     Output('hv-download', 'href'),
-     Output('hv-download', 'download'),
-     Output('geopsy-download', 'href'),
-     Output('geopsy-download', 'download'),
-     Output('results-tab', 'disabled'),
-     Output('tooltips', 'children'),
-     Output('geopsy-button-tooltip', 'children'),
-     Output('save_geopsy-button', 'disabled')],
-    [Input('calculate-button', 'n_clicks')],
-    [State('filename-reference', 'children'),
-     State('hidden-file-contents', 'children'),
-     State('butterworth-input', 'value'),
-     State('flow-input', 'value'),
-     State('fhigh-input', 'value'),
-     State('forder-input', 'value'),
-     State('minf-input', 'value'),
-     State('maxf-input', 'value'),
-     State('nf-input', 'value'),
-     State('res_type-input', 'value'),
-     State('windowlength-input', 'value'),
-     State('width-input', 'value'),
-     State('bandwidth-input', 'value'),
-     State('method-input', 'value'),
-     State('distribution_mc-input', 'value'),
-     State('rejection_bool-input', 'value'),
-     State('n-input', 'value'),
-     State('distribution_f0-input', 'value'),
-     State('n_iteration-input', 'value'),
-     State('azimuth-input', 'value'),
-     State('rotate-input', 'value')]
+    Output("process-settings", "data"),
+    Input('process-button', 'n_clicks'),
+    [State("processing-workflow", "value"),
+     State("srecord3c", "data"),
+     State("new-start-time", "value"),
+     State("new-end-time", "value"),
+     State("process-method", "value"),
+     State("combine-horizontals-select", "value"),
+     State("window-type", "value"),
+     State("window-width", "value"),
+     State("smoothing-operator", "value"),
+     State("smoothing-bandwidth", "value"),
+     State("minimum-frequency", "value"),
+     State("maximum-frequency", "value"),
+     State("n-frequency", "value"),
+     State("sampling-type-frequency", "value"),
+     State("single-azimuth", "value"),
+     State("rotdpp-azimuthal-interval", "value"),
+     State("rotdpp-azimuthal-ppth-percentile", "value"),
+     State("azimuthal-interval", "value")]
 )
-def update_timerecord_plot(calc_clicked, filename, contents,
-                           filter_bool, flow, fhigh, forder,
-                           minf, maxf, nf, res_type,
-                           windowlength, width, bandwidth, method,
-                           distribution_mc, rejection_bool, n, distribution_f0,
-                           n_iteration, azimuth_degrees, azimuthal_interval):
-    """Create figure and tables from user-uploaded file.
+def create_process_settings(process_button_n_clicks, processing_workflow_value, srecord_data, new_start_time, new_end_time, process_method_value, combine_horizontals_select_value,
+                            window_type_value, window_width_value, smoothing_operator_value, smoothing_bandwidth_value,
+                            minimum_frequency_value, maximum_frequency_value, n_frequency_value, sampling_type_frequency_value,
+                            single_azimuth_value, rotdpp_azimuthal_interval_value, rotdpp_azimuthal_ppth_percential_value,
+                            azimuthal_interval_value):
 
-    Determine if user is requesting a demo or uploading a file. Run calculation and create figure and
-    tables based on demo or uploaded file. Return the figure, tables, and download information.
+    if process_button_n_clicks is not None:
+        if processing_workflow_value == "manual":
+            return create_processing_settings_manual(process_method_value, combine_horizontals_select_value,
+                                                     window_type_value, window_width_value, smoothing_operator_value, smoothing_bandwidth_value,
+                                                     minimum_frequency_value, maximum_frequency_value, n_frequency_value, sampling_type_frequency_value,
+                                                     single_azimuth_value, rotdpp_azimuthal_interval_value, rotdpp_azimuthal_ppth_percential_value,
+                                                     azimuthal_interval_value)
 
-    Parameters
-    ----------
-    calc_clicked : int
-        Number of clicks (initiates function via callback).
-    demo_clicked : int
-        Number of clicks (initiates function via callback).
-    filename : str
-        The name of the user-uploaded file.
-    contents : str
-        The contents of the user-uploaded file (as a base64 encoded string.)
-    filter_bool : str
-        User-specified value.
-    flow : float
-        User-specified value.
-    fhigh : float
-        User-specified value.
-    forder : float
-        User-specified value.
-    minf : float
-        User-specified value.
-    maxf: float
-        User-specified value.
-    nf : float
-        User-specified value.
-    res_type : str
-        User-specified value.
-    windowlength : float
-        User-specified value.
-    width : float
-        User-specified value.
-    bandwith : float
-        User-specified value.
-    method : str
-        User-specified value.
-    distribution_mc : str
-        User-specified value.
-    rejection_bool : str
-        User-specified value.
-    n : float
-        User-specified value.
-    distribution_f0 : str
-        User-specified value.
-    n_iteration : float
-        User-specified value.
+        if processing_workflow_value == "autohvsr":
+            srecord3c = hvsrpy.SeismicRecording3C._from_dict(srecord_data)
+            srecord3c.trim(new_start_time, new_end_time)
+            return create_processing_settings_autohvsr(srecord3c, process_method_value, combine_horizontals_select_value,
+                                                       window_type_value, window_width_value, smoothing_operator_value, smoothing_bandwidth_value,
+                                                       single_azimuth_value, rotdpp_azimuthal_interval_value, rotdpp_azimuthal_ppth_percential_value,
+                                                       azimuthal_interval_value)
 
-    Returns
-    -------
-    bool
-        True if successful, False otherwise.
+    raise PreventUpdate
 
-    .. _PEP 484:
-        https://www.python.org/dev/peps/pep-0484/
+
+DEFAULT_PLOT_KWARGS = {
+    "width_of_individual_hvsr_curve": 0.3,
+    "color_of_individual_valid_hvsr_curve": "#888888",
+    "label_of_individual_valid_hvsr_curve": "Accepted HVSR Curve",
+    "color_of_individual_invalid_hvsr_curve": "#00ffff",
+    "label_of_individual_invalid_hvsr_curve": "Rejected HVSR Curve",
+    "color_of_mean_hvsr_curve": "black",
+    "width_of_mean_hvsr_curve": 1.3,
+    "label_of_mean_hvsr_curve": "Mean Curve",
+    "color_of_nth_std_mean_hvsr_curve": "black",
+    "width_of_nth_std_mean_hvsr_curve": 1.3,
+    "label_of_nth_std_mean_hvsr_curve": r"$Mean Curve \pm 1 STD",
+    "linestyle_of_nth_std_mean_hvsr_curve": "--",
+    "color_of_nth_std_frequency_range": "#ff8080",
+    "label_of_nth_std_frequency_range_normal": r"$\mu_{fn} \pm \sigma_{fn}",
+    "label_of_nth_std_frequency_range_lognormal": r"$(\mu_{ln,fn} \pm \sigma_{ln,fn})^*",
+    "label_of_valid_peak_individual_curves": r"$f_{n,i}$",
+    "edge_color_of_valid_peak_individual_curves": "black",
+    "fill_color_of_valid_peak_individual_curves": "white",
+    "label_of_valid_peak_mean_curve": r"$f_{n,mc$",
+    "fill_color_of_mean_curve_peak": "#66ff33"
+}
+
+
+def pt_to_px(x): return 4/3*x
+
+
+DEFAULT_PLOT_KWARGS["width_of_individual_hvsr_curve"] = pt_to_px(
+    DEFAULT_PLOT_KWARGS["width_of_individual_hvsr_curve"])
+DEFAULT_PLOT_KWARGS["width_of_mean_hvsr_curve"] = pt_to_px(
+    DEFAULT_PLOT_KWARGS["width_of_mean_hvsr_curve"])
+DEFAULT_PLOT_KWARGS["width_of_nth_std_mean_hvsr_curve"] = pt_to_px(
+    DEFAULT_PLOT_KWARGS["width_of_nth_std_mean_hvsr_curve"])
+
+# changes to avoid latex in legends
+DEFAULT_PLOT_KWARGS["label_of_nth_std_mean_hvsr_curve"] = "Mean Curve +/- 1 Standard Deviation"
+DEFAULT_PLOT_KWARGS["label_of_nth_std_frequency_range_normal"] = "Mean Frequency +/- 1 Standard Deviation"
+DEFAULT_PLOT_KWARGS["label_of_nth_std_frequency_range_lognormal"] = "Mean Frequency +/- 1 Standard Deviation"
+DEFAULT_PLOT_KWARGS["label_of_valid_peak_individual_curves"] = "Peak of Individual Valid HVSR Curve"
+DEFAULT_PLOT_KWARGS["label_of_valid_peak_mean_curve"] = "Peak of Mean HVSR Curve"
+
+
+def _prepare_individual_hvsr_curves(hvsr):
+    """Prepare HVSR curves for plotting.
+
+    .. warning::
+        Private methods are subject to change without warning.
 
     """
-
-    if method == "rotate":
-        azimuth = np.arange(0, 180, azimuthal_interval)
-    elif method == "azimuth":
-        azimuth = azimuth_degrees
+    if isinstance(hvsr, hvsrpy.HvsrTraditional):
+        return [hvsr]
+    elif isinstance(hvsr, hvsrpy.HvsrAzimuthal):
+        return hvsr.hvsrs
     else:
-        azimuth = None
+        return hvsr
 
-    filter_bool = True if filter_bool == "True" else False
-    rejection_bool = True if rejection_bool == "True" else False
 
-    start = time.time()
+def _plot_individual_invalid_hvsr_curves(fig, hvsr):
+    hvsrs = _prepare_individual_hvsr_curves(hvsr)
+    name = DEFAULT_PLOT_KWARGS["label_of_individual_invalid_hvsr_curve"]
+    show_legend = True
+    for hvsr in hvsrs:
+        for amplitude in hvsr.amplitude[~hvsr.valid_window_boolean_mask]:
+            fig.add_trace(go.Scatter(x=hvsr.frequency, y=amplitude, name=name, showlegend=show_legend, legendgroup="invalid", legendrank=2,
+                                     line=dict(color=DEFAULT_PLOT_KWARGS["color_of_individual_invalid_hvsr_curve"],
+                                               width=DEFAULT_PLOT_KWARGS["width_of_individual_hvsr_curve"])), row=1, col=1),
+            show_legend = False
 
-    if (contents) and (contents != "No contents."):
-        if filename == "File loaded, press calculate to continue.":
-            sensor = hvsrpy.Sensor3c.from_mseed(contents)
-            filename = "Demo file"
-        else:
-            sensor = parse_data(contents, filename)
-        bp_filter = {"flag": filter_bool, "flow": flow,
-                     "fhigh": fhigh, "order": forder}
-        resampling = {"minf": minf, "maxf": maxf,
-                      "nf": nf, "res_type": res_type}
-        hv = sensor.hv(windowlength, bp_filter, width,
-                       bandwidth, resampling, method, azimuth=azimuth)
-        hv.meta["File Name"] = filename
 
-        individual_width = 0.3
-        median_width = 1.3
+def _plot_individual_valid_hvsr_curves(fig, hvsr):
+    hvsrs = _prepare_individual_hvsr_curves(hvsr)
+    name = DEFAULT_PLOT_KWARGS["label_of_individual_valid_hvsr_curve"]
+    show_legend = True
+    for hvsr in hvsrs:
+        for amplitude in hvsr.amplitude[hvsr.valid_window_boolean_mask]:
 
-        # Azimuth Code
-        if method == "rotate":
-            if rejection_bool:
-                hv.reject_windows(n=n, max_iterations=n_iteration,
-                                  distribution_f0=distribution_f0,
-                                  distribution_mc=distribution_mc)
-                f0mc_after = hv.mc_peak_frq(distribution_mc)
-                table_after_rejection = generate_table(hv, distribution_f0,
-                                                       method)
-            else:
-                table_before_rejection = generate_table(hv, distribution_f0,
-                                                        method)
-                f0mc_before = hv.mc_peak_frq(distribution_mc)
+            fig.add_trace(go.Scatter(x=hvsr.frequency, y=amplitude, name=name, showlegend=show_legend, legendgroup="valid", legendrank=1,
+                                     line=dict(color=DEFAULT_PLOT_KWARGS["color_of_individual_valid_hvsr_curve"],
+                                               width=DEFAULT_PLOT_KWARGS["width_of_individual_hvsr_curve"])), row=1, col=1)
+            show_legend = False
 
-            azimuths = [*hv.azimuths, 180.]
-            mesh_frq, mesh_azi = np.meshgrid(hv.frq, azimuths)
-            mesh_amp = hv.mean_curves(distribution=distribution_mc)
-            mesh_amp = np.vstack((mesh_amp, mesh_amp[0]))
-            end = time.time()
-            print(f"Elapsed Time: {str(end-start)[0:4]} seconds")
 
-            # Layout
-            fig = plt.figure(figsize=(6, 5), dpi=150)
-            gs = fig.add_gridspec(nrows=2, ncols=2, wspace=0.3,
-                                  hspace=0.1, width_ratios=(1.2, 0.8))
-            ax0 = fig.add_subplot(gs[0:2, 0:1], projection='3d')
-            ax1 = fig.add_subplot(gs[0:1, 1:2])
-            ax2 = fig.add_subplot(gs[1:2, 1:2])
-            fig.subplots_adjust(bottom=0.21)
+def _plot_mean_hvsr_curve(fig, hvsr, distribution_mean_curve_value):
+    name = DEFAULT_PLOT_KWARGS["label_of_mean_hvsr_curve"]
+    mean_curve = hvsr.mean_curve(distribution=distribution_mean_curve_value)
+    fig.add_trace(go.Scatter(x=hvsr.frequency, y=mean_curve, name=name,
+                  line=dict(color=DEFAULT_PLOT_KWARGS["color_of_mean_hvsr_curve"],
+                            width=DEFAULT_PLOT_KWARGS["width_of_mean_hvsr_curve"])), row=1, col=1)
 
-            # Settings
-            individual_width = 0.3
-            median_width = 1.3
 
-            # 3D Median Curve
-            ax = ax0
-            ax.plot_surface(np.log10(mesh_frq), mesh_azi, mesh_amp, rstride=1,
-                            cstride=1, cmap=cm.plasma, linewidth=0,
-                            antialiased=False)
-            for coord in list("xyz"):
-                getattr(ax, f"w_{coord}axis").set_pane_color((1, 1, 1))
-            ax.set_xticks(np.log10(np.array([0.01, 0.1, 1, 10, 100])))
-            ax.set_xticklabels(["$10^{"+str(x)+"}$" for x in range(-2, 3)])
-            ax.set_xlim(np.log10((0.1, 30)))
-            ax.view_init(elev=30, azim=245)
-            ax.dist = 12
-            ax.set_yticks(np.arange(0, 180+45, 45))
-            ax.set_ylim(0, 180)
-            ax.set_xlabel("Frequency (Hz)")
-            ax.set_ylabel("Azimuth (deg)")
-            ax.set_zlabel("HVSR Amplitude")
-            pfrqs, pamps = hv.mean_curves_peak(distribution=distribution_mc)
-            pfrqs = np.array([*pfrqs, pfrqs[0]])
-            pamps = np.array([*pamps, pamps[0]])
-            ax.scatter(np.log10(pfrqs), azimuths, pamps*1.01,
-                       marker="s", c="w", edgecolors="k", s=9)
+def _plot_mean_pm_std_hvsr_curve(fig, hvsr, distribution_mean_curve_value, n=1):
+    name = DEFAULT_PLOT_KWARGS["label_of_nth_std_mean_hvsr_curve"]
+    fig.add_trace(go.Scatter(x=hvsr.frequency, y=hvsr.nth_std_curve(n=n, distribution=distribution_mean_curve_value), name=name, legendgroup="hvsr_std",
+                  line=dict(color=DEFAULT_PLOT_KWARGS["color_of_mean_hvsr_curve"],
+                            width=DEFAULT_PLOT_KWARGS["width_of_nth_std_mean_hvsr_curve"],
+                            dash="dash")), row=1, col=1)
+    fig.add_trace(go.Scatter(x=hvsr.frequency, y=hvsr.nth_std_curve(n=-n, distribution=distribution_mean_curve_value), showlegend=False, legendgroup="hvsr_std",
+                  line=dict(color=DEFAULT_PLOT_KWARGS["color_of_mean_hvsr_curve"],
+                            width=DEFAULT_PLOT_KWARGS["width_of_nth_std_mean_hvsr_curve"],
+                            dash="dash")), row=1, col=1)
 
-            # 2D Median Curve
-            ax = ax1
-            contour = ax.contourf(mesh_frq, mesh_azi, mesh_amp,
-                                  cmap=cm.plasma, levels=10)
-            ax.set_xscale("log")
-            ax.set_xticklabels([])
-            ax.set_ylabel("Azimuth (deg)")
-            ax.set_yticks(np.arange(0, 180+30, 30))
-            ax.set_ylim(0, 180)
-            divider = make_axes_locatable(ax)
-            cax = divider.append_axes("top", size="5%", pad=0.05)
-            fig.colorbar(contour, cax=cax, orientation="horizontal")
-            cax.xaxis.set_ticks_position("top")
 
-            ax.plot(pfrqs, azimuths, marker="s", color="w", linestyle="",
-                    markersize=3, markeredgecolor="k",
-                    label=r"$f_{0,mc,\alpha}$")
+def _plot_individual_peaks_from_iterable_of_peaks(fig, frequency, amplitude):
+    name = DEFAULT_PLOT_KWARGS["label_of_valid_peak_individual_curves"]
+    show_legend = True
+    for _frequency, _amplitude in zip(frequency, amplitude):
+        fig.add_trace(go.Scatter(x=_frequency, y=_amplitude, name=name, showlegend=show_legend, legendgroup="peak", mode="markers",
+                                 marker=dict(color=DEFAULT_PLOT_KWARGS["fill_color_of_valid_peak_individual_curves"],
+                                             size=4,
+                                             line=dict(color=DEFAULT_PLOT_KWARGS["edge_color_of_valid_peak_individual_curves"],
+                                                       width=1)),
+                                 ), row=1, col=1)
+        show_legend = False
 
-            # 2D Median Curve
-            ax = ax2
 
-            # Accepted Windows
-            label = "Accepted"
-            for amps in hv.amp:
-                for amp in amps:
-                    ax.plot(hv.frq, amp, color="#888888",
-                            linewidth=individual_width, zorder=2, label=label)
-                    label = None
+def _plot_individual_peaks(fig, hvsr):
+    hvsrs = _prepare_individual_hvsr_curves(hvsr)
+    frequency = [hvsr.peak_frequencies for hvsr in hvsrs]
+    amplitude = [hvsr.peak_amplitudes for hvsr in hvsrs]
+    _plot_individual_peaks_from_iterable_of_peaks(fig, frequency, amplitude)
 
-            # Mean Curve
-            label = r"$LM_{curve,AZ}$" if distribution_mc == "log-normal" else r"$Mean_{curve,AZ}$"
-            ax.plot(hv.frq, hv.mean_curve(distribution_mc), color='k',
-                    label=label, linewidth=median_width, zorder=4)
 
-            # Mean +/- Curve
-            label = r"$LM_{curve,AZ}$" + \
-                " ± 1 STD" if distribution_mc == "log-normal" else r"$Mean_{curve,AZ}$"+" ± 1 STD"
-            ax.plot(hv.frq, hv.nstd_curve(-1, distribution=distribution_mc),
-                    color="k", linestyle="--", linewidth=median_width,
-                    zorder=4, label=label)
-            ax.plot(hv.frq, hv.nstd_curve(+1, distribution=distribution_mc),
-                    color="k", linestyle="--", linewidth=median_width,
-                    zorder=4)
+def _plot_hvsr_resonance_from_values(fig, f_lower, f_upper, hvsr, distribution_resonance_value, show_legend=True):
+    amplitude = np.round(1.2*np.max(hvsr.amplitude))
+    color = DEFAULT_PLOT_KWARGS["color_of_nth_std_frequency_range"]
+    name = DEFAULT_PLOT_KWARGS[f"label_of_nth_std_frequency_range_{distribution_resonance_value}"]
+    fig.add_trace(go.Scatter(x=[f_lower, f_upper], y=[amplitude]*2, mode="lines", name=name, legendgroup="resonance", showlegend=show_legend,
+                  fill="tozeroy", line=dict(color=color, width=0)), row=1, col=1)
 
-            # Window Peaks
-            label = r"$f_{0,i,\alpha}$"
-            for frq, amp in zip(hv.peak_frq, hv.peak_amp):
-                ax.plot(frq, amp, linestyle="", zorder=3, marker='o',
-                        markersize=2.5, markerfacecolor="#ffffff",
-                        markeredgewidth=0.5, markeredgecolor='k', label=label)
-                label = None
 
-            # Peak Mean Curve
-            ax.plot(hv.mc_peak_frq(distribution_mc),
-                    hv.mc_peak_amp(distribution_mc), linestyle="", zorder=5,
-                    marker='D', markersize=4, markerfacecolor='#66ff33',
-                    markeredgewidth=1, markeredgecolor='k',
-                    label=r"$f_{0,mc,AZ}$")
+def _plot_hvsr_resonance(fig, hvsr, distribution_resonance_value, n=1):
+    f_lower = hvsr.nth_std_fn_frequency(n=-n, distribution=distribution_resonance_value)
+    f_upper = hvsr.nth_std_fn_frequency(n=+n, distribution=distribution_resonance_value)
+    _plot_hvsr_resonance_from_values(fig, f_lower, f_upper, hvsr,
+                                     distribution_resonance_value, show_legend=True)
 
-            # f0,az
-            label = r"$LM_{f0,AZ}$"+" ± 1 STD" if distribution_f0 == "log-normal" else "Mean " + \
-                r"$f_{0,AZ}$"+" ± 1 STD"
-            ymin, ymax = ax.get_ylim()
-            ax.plot([hv.mean_f0_frq(distribution_f0)]*2, [ymin, ymax],
-                    linestyle="-.", color="#000000", zorder=6)
-            ax.fill([hv.nstd_f0_frq(-1, distribution_f0)]*2 + [hv.nstd_f0_frq(+1, distribution_f0)]*2, [ymin, ymax, ymax, ymin],
-                    color="#ff8080", label=label, zorder=1)
-            ax.set_ylim((ymin, ymax))
 
-            # Limits and labels
-            ax.set_xscale("log")
-            ax.set_xlabel("Frequency (Hz)")
-            ax.set_ylabel("HVSR Amplitude")
-            for spine in ["top", "right"]:
-                ax.spines[spine].set_visible(False)
+def _plot_peak_mean_curve_multiple(fig, frequency, amplitude):
+    name = DEFAULT_PLOT_KWARGS["label_of_valid_peak_mean_curve"]
+    fig.add_trace(go.Scatter(x=frequency, y=amplitude, name=name, mode="markers",
+                             marker=dict(color=DEFAULT_PLOT_KWARGS["fill_color_of_mean_curve_peak"],
+                                         symbol="diamond",
+                                         line=dict(color=DEFAULT_PLOT_KWARGS["edge_color_of_valid_peak_individual_curves"],
+                                                   width=1)),
+                             ), row=1, col=1)
 
-            # Lettering
-            xs, ys = [0.45, 0.85, 0.85], [0.81, 0.81, 0.47]
-            for x, y, letter in zip(xs, ys, list("abc")):
-                fig.text(x, y, f"({letter})", fontsize=12)
 
-            # Legend
-            handles, labels = [], []
-            for ax in [ax2, ax1, ax0]:
-                _handles, _labels = ax.get_legend_handles_labels()
-                handles += _handles
-                labels += _labels
-            new_handles, new_labels = [], []
-            for index in [0, 5, 1, 2, 3, 4, 6]:
-                new_handles.append(handles[index])
-                new_labels.append(labels[index])
-            fig.legend(new_handles, new_labels, loc="lower center",
-                       bbox_to_anchor=(0.47, 0), ncol=4, columnspacing=0.5,
-                       handletextpad=0.4)
-            end = time.time()
+def _plot_peak_mean_curve(fig, hvsr, distribution_mean_curve_value, search_range_in_hz):
+    x, y = hvsr.mean_curve_peak(distribution=distribution_mean_curve_value,
+                                search_range_in_hz=search_range_in_hz)
+    _plot_peak_mean_curve_multiple(fig, [x], [y])
 
-            # User is attempting to download the demo file
-            if (filename == "Demo file"):
-                filename = "hvsrpy_demo"
-            out_url, encoded_image = fig_to_uri(fig)
-            fig_name = filename.split('.miniseed')[0] + '.png'
 
-            # Create hrefs to send to html.A links for download
-            hrefs = create_hrefs(hv, distribution_f0, distribution_mc,
-                                 filename, rotate_flag=True)
+def _plot_azimuthal_hvsr_3d(fig, hvsr, distribution_mean_curve_value):
+    x = hvsr.frequency
+    y = hvsr.azimuths
+    z = np.empty((len(y)+1, len(x)))
+    median_curves = hvsr.mean_curve_by_azimuth(distribution=distribution_mean_curve_value)
+    z[:-1, :] = median_curves
+    z[-1, :] = median_curves[0]
+    fig.add_trace(go.Surface(z=z, x=x, y=y))
 
-            if distribution_f0 == "log-normal":
-                med_title = "Log-Normal Median"
-                std_title = "Log-Normal Standard Deviation"
-            else:
-                med_title = "Mean"
-                std_title = "Standard Deviation"
-            tooltips = [dbc.Tooltip("Fundamental Site Frequency",
-                                    id="f0_tt", target="f0"),
-                        dbc.Tooltip("Fundamental Site Period",
-                                    id="t0_tt", target="t0"),
-                        dbc.Tooltip(med_title, id="med_tt", target="med"),
-                        dbc.Tooltip(std_title, id="std_tt", target="std")]
 
-            mc_style = {"font-size": "16px", "color": "#495057"}
-            if distribution_mc == "normal":
-                fmc_txt = "Peak frequency of mean curve, f"
-            else:
-                fmc_txt = "Peak frequency of median curve, f"
+def plot_hvsr_diffuse(hvsr, distribution_resonance_value, distribution_mean_curve_value, search_range_in_hz):
+    fig = plotly.subplots.make_subplots(rows=1, cols=1,
+                                        x_title="Frequency (Hz)", y_title="HVSR Amplitude")
 
-            if rejection_bool:
-                stats = (html.P("Statistics After Rejection:", className="mb-1"),
-                         table_after_rejection,
-                         html.Div([fmc_txt, html.Sub("0,mc,AZ"),  ": ", str(f0mc_after)[:4]], style=mc_style, className="mb-2"))
-            else:
-                stats = (html.P("Statistics Without Rejection:", className="mb-1"),
-                         table_before_rejection,
-                         html.Div([fmc_txt, html.Sub("0,mc,AZ"),  ": ", str(f0mc_before)[:4]], style=mc_style, className="mb-2"))
+    _plot_mean_hvsr_curve(fig, hvsr, distribution_mean_curve_value)
+    _plot_peak_mean_curve(fig, hvsr, distribution_mean_curve_value, search_range_in_hz)
+    fig.update_yaxes(rangemode="tozero")
+    fig.update_xaxes(type="log")
+    fig.update_layout(margin=dict(t=50, b=100, l=100, r=50),
+                      height=600)
 
-            return (out_url,
-                    ([]),
-                    ([]),
-                    stats,
-                    out_url,
-                    fig_name,
-                    *hrefs,
-                    False,
-                    tooltips,
-                    dbc.Tooltip(
-                        "Geopsy does not offer a multi-azimuth output file.",
-                        target="save_geopsy-button"),
-                    True)
+    return (dcc.Graph(figure=fig), None)
 
-        # No rotate
-        else:
-            fig = plt.figure(figsize=(6, 6), dpi=150)
-            gs = fig.add_gridspec(nrows=6, ncols=6)
 
-            ax0 = fig.add_subplot(gs[0:2, 0:3])
-            ax1 = fig.add_subplot(gs[2:4, 0:3])
-            ax2 = fig.add_subplot(gs[4:6, 0:3])
+def plot_hvsr_azimuthal(hvsr, distribution_resonance_value, distribution_mean_curve_value, search_range_in_hz):
+    fig = plotly.subplots.make_subplots(rows=1, cols=1,
+                                        x_title="Frequency (Hz)", y_title="HVSR Amplitude")
 
-            if rejection_bool:
-                ax3 = fig.add_subplot(gs[0:3, 3:6])
-                ax4 = fig.add_subplot(gs[3:6, 3:6])
-            else:
-                ax3 = fig.add_subplot(gs[1:4, 3:6])
-                ax4 = False
+    _plot_individual_invalid_hvsr_curves(fig, hvsr)
+    _plot_individual_valid_hvsr_curves(fig, hvsr)
+    _plot_mean_hvsr_curve(fig, hvsr, distribution_mean_curve_value)
+    _plot_mean_pm_std_hvsr_curve(fig, hvsr, distribution_mean_curve_value, n=1)
+    _plot_individual_peaks(fig, hvsr)
+    _plot_hvsr_resonance(fig, hvsr, distribution_resonance_value)
+    _plot_peak_mean_curve(fig, hvsr, distribution_mean_curve_value, search_range_in_hz)
+    fig.update_yaxes(rangemode="tozero")
+    fig.update_xaxes(type="log")
+    fig.update_layout(margin=dict(t=50, b=100, l=100, r=50),
+                      height=600)
 
-            individual_width = 0.3
-            median_width = 1.3
-            for ax, title in zip([ax3, ax4], ["Before Rejection", "After Rejection"]):
-                # Rejected Windows
-                if title == "After Rejection":
-                    if len(hv.rejected_window_indices):
-                        label = "Rejected"
-                        for amp in hv.amp[hv.rejected_window_indices]:
-                            ax.plot(hv.frq, amp, color='#00ffff',
-                                    linewidth=individual_width, zorder=2, label=label)
-                            label = None
+    fig2 = go.Figure()
+    _plot_azimuthal_hvsr_3d(fig2, hvsr, distribution_mean_curve_value)
+    fig2.update_scenes(xaxis=dict(type="log", title="Frequency (Hz)"))
+    fig2.update_scenes(yaxis=dict(title="Azimuth (degrees)"))
+    fig2.update_scenes(zaxis=dict(rangemode="tozero", title="HVSR Amplitude"))
+    camera = dict(up=dict(x=0, y=0, z=1),
+                  center=dict(x=0, y=0, z=0),
+                  eye=dict(x=-1.3, y=-1.7, z=1.1))
+    fig2.update_layout(scene_camera=camera,
+                       margin=dict(t=50, b=0, l=0, r=50),
+                       height=600)
 
-                # Accepted Windows
-                label = "Accepted"
-                for amp in hv.amp[hv.valid_window_indices]:
-                    ax.plot(hv.frq, amp, color='#888888', linewidth=individual_width,
-                            label=label if title == "Before Rejection" else "")
-                    label = None
+    return (dcc.Graph(figure=fig), dcc.Graph(figure=fig2))
 
-                # Window Peaks
-                ax.plot(hv.peak_frq, hv.peak_amp, linestyle="", zorder=2,
-                        marker='o', markersize=2.5, markerfacecolor="#ffffff",
-                        markeredgewidth=0.5, markeredgecolor='k',
-                        label="" if title == "Before Rejection" and rejection_bool else r"$f_{0,i}$")
 
-                # Peak Mean Curve
-                ax.plot(hv.mc_peak_frq(distribution_mc),
-                        hv.mc_peak_amp(distribution_mc), linestyle="",
-                        zorder=4, marker='D', markersize=4,
-                        markerfacecolor='#66ff33', markeredgewidth=1,
-                        markeredgecolor='k',
-                        label="" if title == "Before Rejection" and rejection_bool else r"$f_{0,mc}$")
+# TODO(jpv): Implement aziuthal processing with autohvsr.
+# def plot_hvsr_azimuthal_autohvsr(hvsr, distribution_resonance_value, distribution_mean_curve_value, search_range_in_hz):
+#     fig = plotly.subplots.make_subplots(rows=1, cols=1,
+#                                         x_title="Frequency (Hz)", y_title="HVSR Amplitude")
 
-                # Mean Curve
-                label = r"$LM_{curve}$" if distribution_mc == "log-normal" else "Mean Curve"
-                ax.plot(hv.frq, hv.mean_curve(distribution_mc), color='k',
-                        linewidth=median_width,
-                        label="" if title == "Before Rejection" and rejection_bool else label)
+#     _plot_individual_invalid_hvsr_curves(fig, hvsr)
+#     _plot_individual_valid_hvsr_curves(fig, hvsr)
+#     _plot_mean_hvsr_curve(fig, hvsr, distribution_mean_curve_value)
+#     _plot_mean_pm_std_hvsr_curve(fig, hvsr, distribution_mean_curve_value, n=1)
+#     # _plot_individual_peaks(fig, hvsr)
+#     # _plot_hvsr_resonance(fig, hvsr, distribution_resonance_value)
+#     # _plot_peak_mean_curve(fig, hvsr, distribution_mean_curve_value, search_range_in_hz)
+#     fig.update_yaxes(rangemode="tozero")
+#     fig.update_xaxes(type="log")
+#     fig.update_layout(margin=dict(t=50, b=100, l=100, r=50),
+#                       height=600)
 
-                # Mean +/- Curve
-                label = r"$LM_{curve}$" + \
-                    " ± 1 STD" if distribution_mc == "log-normal" else "Mean ± 1 STD"
-                ax.plot(hv.frq, hv.nstd_curve(-1, distribution_mc),
-                        color='k', linestyle='--', linewidth=median_width, zorder=3,
-                        label="" if title == "Before Rejection" and rejection_bool else label)
-                ax.plot(hv.frq, hv.nstd_curve(+1, distribution_mc),
-                        color='k', linestyle='--', linewidth=median_width, zorder=3)
+#     fig2 = go.Figure()
+#     _plot_azimuthal_hvsr_3d(fig2, hvsr, distribution_mean_curve_value)
+#     fig2.update_scenes(xaxis=dict(type="log", title="Frequency (Hz)"))
+#     fig2.update_scenes(yaxis=dict(title="Azimuth (degrees)"))
+#     fig2.update_scenes(zaxis=dict(rangemode="tozero", title="HVSR Amplitude"))
+#     camera = dict(up=dict(x=0, y=0, z=1),
+#                   center=dict(x=0, y=0, z=0),
+#                   eye=dict(x=-1.3, y=-1.7, z=1.1))
+#     fig2.update_layout(scene_camera=camera,
+#                        margin=dict(t=50, b=0, l=0, r=50),
+#                        height=600)
 
-                label = r"$LM_{f0}$" + \
-                    " ± 1 STD" if distribution_f0 == "log-normal" else "Mean f0 ± 1 STD"
-                ymin, ymax = ax.get_ylim()
-                ax.plot([hv.mean_f0_frq(distribution_f0)]*2,
-                        [ymin, ymax], linestyle="-.", color="#000000")
-                ax.fill([hv.nstd_f0_frq(-1, distribution_f0)]*2 + [hv.nstd_f0_frq(+1, distribution_f0)]*2, [ymin, ymax, ymax, ymin],
-                        color="#ff8080",
-                        label="" if title == "Before Rejection" and rejection_bool else label)
+#     return (dcc.Graph(figure=fig), dcc.Graph(figure=fig2))
 
-                ax.set_ylim((ymin, ymax))
-                ax.set_xscale('log')
-                ax.set_xlabel("Frequency (Hz)")
-                ax.set_ylabel("HVSR Ampltidue")
 
-                if rejection_bool:
-                    if title == "Before Rejection":
-                        table_before_rejection = generate_table(
-                            hv, distribution_f0, method)
-                        c_iter = hv.reject_windows(n, max_iterations=n_iteration,
-                                                   distribution_f0=distribution_f0, distribution_mc=distribution_mc)
-                        # Create Window Information Table
-                        row1 = html.Tr([html.Td("Window length"),
-                                        html.Td(str(windowlength)+"s")], style={"font-size": "16px"})
-                        row2 = html.Tr([html.Td("No. of iterations"), html.Td(
-                            str(c_iter)+" of "+str(n_iteration)+" allowed.")], style={"font-size": "16px"})
-                        f0mc_before = hv.mc_peak_frq(distribution_mc)
+def plot_hvsr_traditional(hvsr, distribution_resonance_value, distribution_mean_curve_value, search_range_in_hz):
+    fig = plotly.subplots.make_subplots(rows=1, cols=1,
+                                        x_title="Frequency (Hz)", y_title="HVSR Amplitude")
 
-                    elif title == "After Rejection":
-                        table_after_rejection = generate_table(
-                            hv, distribution_f0, method)
-                        fig.legend(ncol=4, loc='lower center',
-                                   bbox_to_anchor=(0.51, 0), columnspacing=2)
-                        rej_str = f"{len(hv.rejected_window_indices)} of {sensor.ns.n_windows}"
-                        row3 = html.Tr([html.Td("No. of rejected windows"),
-                                        html.Td(rej_str)],
-                                       style={"font-size": "16px"})
-                        window_table = [html.Tbody([row1, row2, row3])]
-                        f0mc_after = hv.mc_peak_frq(distribution_mc)
-                else:
-                    f0mc_before = hv.mc_peak_frq(distribution_mc)
-                    table_no_rejection = generate_table(
-                        hv, distribution_f0, method)
-                    # Create Window Information Table
-                    row1 = html.Tr([html.Td("Window length"),
-                                    html.Td(str(windowlength)+"s")])
-                    row2 = html.Tr([html.Td("No. of windows"),
-                                    html.Td(str(sensor.ns.n_windows))])
-                    window_table = [html.Tbody([row1, row2])]
+    _plot_individual_invalid_hvsr_curves(fig, hvsr)
+    _plot_individual_valid_hvsr_curves(fig, hvsr)
+    _plot_mean_hvsr_curve(fig, hvsr, distribution_mean_curve_value)
+    _plot_mean_pm_std_hvsr_curve(fig, hvsr, distribution_mean_curve_value, n=1)
+    _plot_individual_peaks(fig, hvsr)
+    _plot_hvsr_resonance(fig, hvsr, distribution_resonance_value)
+    _plot_peak_mean_curve(fig, hvsr, distribution_mean_curve_value, search_range_in_hz)
+    fig.update_yaxes(rangemode="tozero")
+    fig.update_xaxes(type="log")
+    fig.update_layout(margin=dict(t=50, b=100, l=100, r=50),
+                      height=600)
 
-                    fig.legend(loc="upper center", bbox_to_anchor=(0.77, 0.4))
-                    break
-                ax.set_title(title)
+    return (dcc.Graph(figure=fig), None)
 
-            norm_factor = sensor.normalization_factor
-            for ax, timerecord, name in zip([ax0, ax1, ax2], [sensor.ns, sensor.ew, sensor.vt], ["NS", "EW", "VT"]):
-                ctime = timerecord.time
-                amp = timerecord.amplitude/norm_factor
-                ax.plot(ctime.T, amp.T, linewidth=0.2, color='#888888')
-                ax.set_title(f"Time Records ({name})")
-                ax.set_yticks([-1, -0.5, 0, 0.5, 1])
-                ax.set_xlim(0, windowlength*timerecord.n_windows)
-                ax.set_ylim(-1, 1)
-                ax.set_xlabel('Time (s)')
-                ax.set_ylabel('Normalized Amplitude')
-            # TODO (jpv): Reintroduce rejected window plotting.
-                # for window_index in hv.rejected_window_indices:
-                #     ax.plot(ctime[window_index], amp[window_index],
-                #             linewidth=0.2, color="cyan")
 
-            if rejection_bool:
-                axs = [ax0, ax3, ax1, ax4, ax2]
-            else:
-                axs = [ax0, ax3, ax1, ax2]
+def plot_hvsr_traditional_autohvsr(hvsr, distribution_resonance_value, distribution_mean_curve_value, df):
+    fig = plotly.subplots.make_subplots(rows=1, cols=1,
+                                        x_title="Frequency (Hz)",
+                                        y_title="HVSR Amplitude")
 
-            for ax, letter in zip(axs, list("abcde")):
-                ax.text(0.97, 0.97, f"({letter})", ha="right",
-                        va="top", transform=ax.transAxes, fontsize=12)
-                for spine in ["top", "right"]:
-                    ax.spines[spine].set_visible(False)
-            fig.tight_layout(h_pad=1, w_pad=2, rect=(0, 0.08, 1, 1))
-            end = time.time()
+    # calculate window boolean mask
+    valid_window_boolean_mask = np.zeros((hvsr.n_curves,), dtype=bool)
+    for window_idx in range(hvsr.n_curves):
+        # if any curve has a peak, keep it as valid; otherwise reject it.
+        if len(df[(df["window idx"] == window_idx) & (df["valid"] == True)]) > 0:
+            valid_window_boolean_mask[window_idx] = True
 
-            # User is attempting to download the demo file
-            if (filename == "Demo file"):
-                filename = "hvsrpy_demo"
-            out_url, encoded_image = fig_to_uri(fig)
-            fig_name = filename.split('.miniseed')[0] + '.png'
+    some_windows_valid = True
+    if np.sum(valid_window_boolean_mask) == 0:
+        some_windows_valid = False
+        hvsr.valid_window_boolean_mask = valid_window_boolean_mask
 
-            # Create hrefs to send to html.A links for download
-            hrefs = create_hrefs(hv, distribution_f0, distribution_mc,
-                                 filename, rotate_flag=False)
+    _plot_individual_invalid_hvsr_curves(fig, hvsr)
+    _plot_individual_valid_hvsr_curves(fig, hvsr)
+    _plot_mean_hvsr_curve(fig, hvsr, distribution_mean_curve_value)
+    _plot_mean_pm_std_hvsr_curve(fig, hvsr, distribution_mean_curve_value, n=1)
 
-            if distribution_f0 == "log-normal":
-                med_title = "Log-Normal Median"
-                std_title = "Log-Normal Standard Deviation"
-            else:
-                med_title = "Mean"
-                std_title = "Standard Deviation"
-            tooltips = [dbc.Tooltip("Fundamental Site Frequency",
-                                    id="f0_tt", target="f0"),
-                        dbc.Tooltip("Fundamental Site Period",
-                                    id="t0_tt", target="t0"),
-                        dbc.Tooltip(med_title, id="med_tt", target="med"),
-                        dbc.Tooltip(std_title, id="std_tt", target="std")
-                        ]
+    stats = []
 
-            mc_style = {"font-size": "16px", "color": "#495057"}
-            if distribution_mc == "normal":
-                fmc_txt = "Peak frequency of mean curve, f"
-            else:
-                fmc_txt = "Peak frequency of median curve, f"
+    if some_windows_valid:
 
-            if rejection_bool:
-                stats = ((html.P("Statistics Before Rejection:", className="mb-1"),
-                          table_before_rejection,
-                          html.Div([fmc_txt, html.Sub("0,mc"), ": ", str(f0mc_before)[:4]], style=mc_style, className="mb-2")),
-                         (html.P("Statistics After Rejection:", className="mb-1"),
-                          table_after_rejection,
-                          html.Div([fmc_txt, html.Sub("0,mc"),  ": ", str(f0mc_after)[:4]], style=mc_style, className="mb-2")),
-                         )
-            else:
-                stats = ((html.P("Statistics:", className="mb-1"),
-                          table_no_rejection,
-                          html.Div([fmc_txt, html.Sub("0,mc"),  ": ", str(f0mc_before)[:4]], style=mc_style, className="mb-2")),
-                         ([]))
+        # plot resonances
+        frequencies, amplitudes = [], []
+        for window_idx in range(hvsr.n_curves):
+            rows = df[(df["window idx"] == window_idx) & (df["valid"] == True)]
+            frequency = rows["peak frequency"]
+            amplitude = rows["peak amplitude"]
+            frequencies.append(frequency)
+            amplitudes.append(amplitude)
+        _plot_individual_peaks_from_iterable_of_peaks(fig, frequencies, amplitudes)
 
-            return (out_url,
-                    (html.P("Window Information:", className="mb-1"),
-                     dbc.Table(window_table, bordered=True, hover=True, style={"color": "#495057"})),
-                    *stats,
-                    out_url,
-                    fig_name,
-                    *hrefs,
-                    False,
-                    tooltips,
-                    dbc.Tooltip(
-                        "Save results in the geopsy-style text format.",
-                        target="save_geopsy-button"),
-                    False)
+        # plot mean peak
+        frequencies, amplitudes = [], []
+        mc = hvsr.mean_curve(distribution_mean_curve_value)
+        resonances = df["resonance"].unique()
+        for resonance in resonances:
+            if resonance == -1:
+                continue
+            _frequencies = df[(df["resonance"] == resonance)]["peak frequency"]
+            f_min, f_max = np.min(_frequencies), np.max(_frequencies)
+            _frequency, _amplitude = hvsrpy.HvsrCurve._find_peak_bounded(
+                hvsr.frequency, mc, search_range_in_hz=(f_min, f_max))
+            frequencies.append(_frequency)
+            amplitudes.append(_amplitude)
+            stats.append([_frequency, _amplitude])
+        _plot_peak_mean_curve_multiple(fig, frequencies, amplitudes)
 
-    else:
-        raise PreventUpdate
+        # plot autohvsr mean frequency +/- 1 std
+        show_legend = True
+        idx = 0
+        for resonance in resonances:
+            if resonance == -1:
+                continue
+            _frequencies = df[(df["resonance"] == resonance)]["peak frequency"]
+            mean = hvsrpy.statistics._nanmean_weighted(distribution_resonance_value, _frequencies)
+            std = hvsrpy.statistics._nanstd_weighted(distribution_resonance_value, _frequencies)
+
+            _amplitudes = df[(df["resonance"] == resonance)]["peak amplitude"]
+            mean_a = hvsrpy.statistics._nanmean_weighted(distribution_resonance_value, _amplitudes)
+            std_a = hvsrpy.statistics._nanstd_weighted(distribution_resonance_value, _amplitudes)
+
+            stats[idx].extend([mean, std, distribution_resonance_value, mean_a, std_a])
+
+            f_lower = hvsrpy.statistics._nth_std_factory(-1,
+                                                         distribution_resonance_value, mean, std)
+            f_upper = hvsrpy.statistics._nth_std_factory(+1,
+                                                         distribution_resonance_value, mean, std)
+            _plot_hvsr_resonance_from_values(
+                fig, f_lower, f_upper, hvsr, distribution_resonance_value, show_legend=show_legend)
+            show_legend = False
+            idx += 1
+
+    fig.update_yaxes(rangemode="tozero")
+    fig.update_xaxes(type="log")
+    fig.update_layout(margin=dict(t=50, b=100, l=100, r=50),
+                      height=600)
+
+    return (dcc.Graph(figure=fig), None, stats)
+
+
+def prep(x): return str(np.round(x, decimals=2))
+
+
+def generate_table_for_resonance_from_values(mean_curve_peak_frequency, mean_curve_peak_amplitude,
+                                             mean_frequency=None, std_frequency=None, distribution_resonance_value=None,
+                                             mean_amplitude=None, std_amplitude=None):
+    rows = [
+        html.Tr([
+            html.Td("Mean Curve Peak Frequency (Hz)"),
+            html.Td(prep(mean_curve_peak_frequency)),
+        ]),
+        html.Tr([
+            html.Td("Mean Curve Peak Amplitude"),
+            html.Td(prep(mean_curve_peak_amplitude)),
+        ]),
+    ]
+
+    if distribution_resonance_value is not None:
+        unit_frequency = "Hz" if distribution_resonance_value == "normal" else "log(Hz)"
+        rows = [
+            html.Tr([
+                html.Td("Resonance Mean Frequency (Hz)"),
+                html.Td(prep(mean_frequency)),
+            ]),
+            html.Tr([
+                html.Td(f"Resonance Standard Deviation Frequency ({unit_frequency})"),
+                html.Td(prep(std_frequency)),
+            ]),
+            html.Tr([
+                html.Td("Resonance Mean Amplitude"),
+                html.Td(prep(mean_amplitude)),
+            ]),
+            html.Tr([
+                html.Td("Resonance Standard Deviation Amplitude"),
+                html.Td(prep(std_amplitude)),
+            ]),
+            *rows
+        ]
+
+    return dbc.Table(html.Tbody(rows),
+                     bordered=True, hover=True, className="mt-2",
+                     style={"color": "secondary"})
+
+
+def generate_table_for_resonance(hvsr, distribution_resonance_value, distribution_mean_curve_value, search_range_in_hz):
+
+    mean_curve_peak_frequency, mean_curve_peak_amplitude = hvsr.mean_curve_peak(distribution=distribution_mean_curve_value,
+                                                                                search_range_in_hz=search_range_in_hz)
+
+    if isinstance(hvsr, hvsrpy.HvsrDiffuseField):
+        return generate_table_for_resonance_from_values(mean_curve_peak_frequency, mean_curve_peak_amplitude)
+
+    mean_frequency = hvsr.mean_fn_frequency(distribution=distribution_resonance_value)
+    mean_amplitude = hvsr.mean_fn_amplitude(distribution=distribution_resonance_value)
+    std_frequency = hvsr.std_fn_frequency(distribution=distribution_resonance_value)
+    std_amplitude = hvsr.std_fn_amplitude(distribution=distribution_resonance_value)
+
+    return generate_table_for_resonance_from_values(mean_curve_peak_frequency, mean_curve_peak_amplitude, mean_frequency, std_frequency,
+                                                    distribution_resonance_value, mean_amplitude, std_amplitude)
+
+
+def generate_table_summary(hvsr):
+    if isinstance(hvsr, hvsrpy.HvsrDiffuseField):
+        rows = [
+            html.Tr([
+                html.Td("HVSR Curves"),
+                html.Td(1),
+            ]),
+        ]
+
+    if isinstance(hvsr, hvsrpy.HvsrTraditional):
+        rows = [
+            html.Tr([
+                html.Td("HVSR Curves (one per time window)"),
+                html.Td(hvsr.n_curves),
+            ]),
+            html.Tr([
+                html.Td("Accepted HVSR Curves"),
+                html.Td(np.sum(hvsr.valid_window_boolean_mask)),
+            ]),
+            html.Tr([
+                html.Td("Rejected HVSR Curves"),
+                html.Td(np.sum(~hvsr.valid_window_boolean_mask)),
+            ]),
+        ]
+
+    if isinstance(hvsr, hvsrpy.HvsrAzimuthal):
+        valid = np.sum([np.sum(_hvsr.valid_window_boolean_mask) for _hvsr in hvsr.hvsrs])
+        invalid = np.sum([np.sum(~_hvsr.valid_window_boolean_mask) for _hvsr in hvsr.hvsrs])
+
+        rows = [
+            html.Tr([
+                html.Td("HVSR Curves (one per time window and azimuth)"),
+                html.Td(valid+invalid),
+            ]),
+            html.Tr([
+                html.Td("Accepted HVSR Curves"),
+                html.Td(valid),
+            ]),
+            html.Tr([
+                html.Td("Rejected HVSR Curves"),
+                html.Td(invalid),
+            ]),
+        ]
+
+    return dbc.Table(html.Tbody(rows),
+                     bordered=True, hover=True, className="mt-2",
+                     style={"color": "secondary"})
+
+
+def safe_mean(amplitude, frequency, f_min, f_max):
+    boolean_mask = np.logical_and(frequency > f_min, frequency < f_max)
+
+    if np.sum(boolean_mask) == 0:
+        return 0
+
+    return np.mean(amplitude[boolean_mask])
+
+
+def extract_hvsr_features(hvsr, idx=0):
+    from hvsrpy.hvsr_curve import find_peaks
+
+    find_peaks_settings = dict(
+        prominence=0.25,
+    )
+
+    peak_data = []
+    mc = hvsr.mean_curve()
+    mc_std = hvsr.std_curve()
+
+    # aggregate peak data
+    raw_peak_data_list = []
+    f_all, a_all = [], []
+    for _amplitude in hvsr.amplitude:
+        # find all of the potential peaks in a window
+        (peak_ids, metadata) = find_peaks(_amplitude, **find_peaks_settings)
+
+        raw_peak_data_list.append((peak_ids,
+                                   hvsr.frequency[peak_ids],
+                                   _amplitude[peak_ids],
+                                   metadata["prominences"]))
+        f_all.extend(hvsr.frequency[peak_ids])
+        a_all.extend(_amplitude[peak_ids])
+    f_all = np.array(f_all)
+    a_all = np.array(a_all)
+
+    n_series = len(hvsr.amplitude)
+
+    # loop across windows and extract features
+    for window_idx, (_amplitude, raw_peak_data_tuple) in enumerate(zip(hvsr.amplitude, raw_peak_data_list)):
+
+        # mean of window within the specified bins
+        bins = [0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30, 100]
+        values = []
+        for f_min, f_max in zip(bins[:-1], bins[1:]):
+            values.append(safe_mean(_amplitude, hvsr.frequency, f_min, f_max))
+        names = [f"time window feature {_idx}" for _idx in range(len(values))]
+        time_window_features = {name: value for name, value in zip(names, values)}
+
+        # Loop across peaks
+        for peak_ids, frequency, amplitude, prominence in zip(*raw_peak_data_tuple):
+
+            # locate number of nearby points (in frequency)
+            distances_in_log_frequency = [0, 0.025, 0.05, 0.1, 0.2, 0.4]
+            nearby_frequency = []
+            for min_distance_threshold, max_distance_threshold in zip(distances_in_log_frequency[:-1], distances_in_log_frequency[1:]):
+                all_distances = np.abs(np.log10(f_all) - np.log10(frequency))
+                all_nearby = np.sum(np.logical_and(
+                    all_distances > min_distance_threshold, all_distances < max_distance_threshold))
+                nearby_frequency.append(all_nearby/n_series)
+            names = [f"nearby frequency feature {_idx}" for _idx in range(len(nearby_frequency))]
+            nearby_frequency_features = {name: value for name,
+                                         value in zip(names, nearby_frequency)}
+
+            # locate number of nearby points (in amplitude)
+            distances_in_amplitude = [0, 0.5, 1, 2, 4, 10]
+            nearby_amplitude = []
+            for min_distance_threshold, max_distance_threshold in zip(distances_in_amplitude[:-1], distances_in_amplitude[1:]):
+                all_distances = np.abs(a_all - amplitude)
+                all_nearby = np.sum(np.logical_and(
+                    all_distances > min_distance_threshold, all_distances < max_distance_threshold))
+                nearby_amplitude.append(all_nearby/n_series)
+            names = [f"nearby amplitude feature {_idx}" for _idx in range(len(nearby_amplitude))]
+            nearby_amplitude_features = {name: value for name,
+                                         value in zip(names, nearby_amplitude)}
+
+            # organize features
+            peak_data_dict = {"record idx": idx,
+                              "window idx": window_idx,
+                              "peak frequency": frequency,
+                              "peak amplitude": amplitude,
+                              "peak prominence": prominence,
+                              "mc amplitude at peak": mc[peak_ids],
+                              "mc std at peak": mc_std[peak_ids],
+                              **time_window_features,
+                              **nearby_frequency_features,
+                              **nearby_amplitude_features,
+                              }
+            peak_data.append(peak_data_dict)
+
+    return peak_data
+
+
+def create_hvsrpy_file_href(hvsr, distribution_mean_curve):
+    """Generate hrefs to be put inside hv-download and geopsy-download."""
+    bytes_io_object = io.BytesIO()
+    hvsrpy.write_hvsr_to_file(hvsr, bytes_io_object, distribution_mean_curve)
+    bytes_io_object.seek(0, 0)
+    encoded = base64.b64encode(bytes_io_object.read()).decode("utf-8").replace("\n", "")
+    bytes_io_object.close()
+    hvsrpy_downloadable = f'data:text/plain;base64,{encoded}'
+    return hvsrpy_downloadable
+
+
+@ app.callback(
+    [Output("plot-hvsr", "children"),
+     Output("plot-hvsr-az", "children"),
+     Output("hvsr-3d", "disabled"),
+     Output("process-continue-instructions", "children"),
+     Output("process-continue-instructions", "style"),
+     Output("hvsrpy-download", "href"),
+     Output("hvsrpy-download", "download"),
+     Output("general-summary-table", "children"),
+     Output("results-table", "children"),
+     Output("results-table-1", "children"),
+     Output("results-table-2", "children"),
+     Output("results-table-3", "children"),
+     Output("results-table-4", "children"),
+     Output("results-table-5", "children"),
+     Output("results-table-1-container", "style"),
+     Output("results-table-2-container", "style"),
+     Output("results-table-3-container", "style"),
+     Output("results-table-4-container", "style"),
+     Output("results-table-5-container", "style")],
+    Input("process-settings", "data"),
+    [State("processing-workflow", "value"),
+     State("srecord3c", "data"),
+     State("new-start-time", "value"),
+     State("new-end-time", "value"),
+     State("preprocess-settings", "data"),
+     State("distribution-resonance", "value"),
+     State("minimum-search-frequency", "value"),
+     State("maximum-search-frequency", "value"),
+     State("distribution-mean-curve", "value"),
+     State("rejection-select", "value"),
+     State("fdwra-n", "value"),
+     State("fdwra-max-iteration", "value"),
+     State("process-continue-instructions", "style")]
+)
+def processing_hvsr(process_settings_data, processing_workflow_value, srecord3c_data,
+                    new_start_time_value, new_end_time_value, preprocess_settings_data,
+                    distribution_resonance_value, minimum_search_frequency_value,
+                    maximum_search_frequency_value,
+                    distribution_mean_curve_value,
+                    rejection_select_value,
+                    fdwra_n_value, fdwra_max_iteration_value,
+                    process_continue_instructions_style,
+                    ):
+    if process_settings_data is not None:
+
+        # preprocess time-domain recordings with latest settings
+        records = preprocess_srecord3c(srecord3c_data,
+                                       new_start_time_value,
+                                       new_end_time_value,
+                                       preprocess_settings_data)
+
+        # need to decode a dictionary of settings back to the appropriate object.
+        try:
+            settings = hvsrpy.HvsrDiffuseFieldProcessingSettings(**process_settings_data)
+        except:
+            try:
+                settings = hvsrpy.HvsrAzimuthalProcessingSettings(**process_settings_data)
+            except:
+                try:
+                    settings = hvsrpy.HvsrTraditionalRotDppProcessingSettings(
+                        **process_settings_data)
+                except:
+                    try:
+                        settings = hvsrpy.HvsrTraditionalSingleAzimuthProcessingSettings(
+                            **process_settings_data)
+                    except:
+                        settings = hvsrpy.HvsrTraditionalProcessingSettings(**process_settings_data)
+
+        # apply time-domain window rejection
+        # TODO(jpv): To add at some later date.
+
+        hvsr = hvsrpy.process(records, settings)
+
+        if processing_workflow_value == "manual":
+            # correct search range values as necessary.
+            minimum_search_frequency_value = max(minimum_search_frequency_value,
+                                                 min(hvsr.frequency))
+            maximum_search_frequency_value = min(maximum_search_frequency_value,
+                                                 max(hvsr.frequency))
+            search_range_in_hz = (minimum_search_frequency_value,
+                                  maximum_search_frequency_value)
+
+            # apply hvsr-domain window rejection
+            if rejection_select_value == "fdwra" and settings.processing_method != "diffuse_field":
+                max_iteration = hvsrpy.frequency_domain_window_rejection(hvsr,
+                                                                         n=fdwra_n_value,
+                                                                         max_iterations=fdwra_max_iteration_value,
+                                                                         distribution_fn=distribution_resonance_value,
+                                                                         distribution_mc=distribution_mean_curve_value,
+                                                                         search_range_in_hz=search_range_in_hz)
+
+            resonance_tables = [generate_table_for_resonance(hvsr, distribution_resonance_value,
+                                                             distribution_mean_curve_value, search_range_in_hz)]
+            resonance_tables.extend([None]*5)
+            resonance_tables_display = [HIDE_CONTAINER]*5
+            summary_table = generate_table_summary(hvsr)
+
+            if isinstance(hvsr, hvsrpy.HvsrDiffuseField):
+                return (*plot_hvsr_diffuse(hvsr, distribution_resonance_value, distribution_mean_curve_value, search_range_in_hz),
+                        True,
+                        "Processing complete. Continue to the Results and HVSR tabs.",
+                        {**process_continue_instructions_style, "color": COLORS["primary"]},
+                        create_hvsrpy_file_href(hvsr, distribution_mean_curve_value),
+                        "filename.hvsrpy",
+                        summary_table,
+                        *resonance_tables,
+                        *resonance_tables_display)
+
+            if isinstance(hvsr, hvsrpy.HvsrAzimuthal):
+                return (*plot_hvsr_azimuthal(hvsr, distribution_resonance_value, distribution_mean_curve_value, search_range_in_hz),
+                        False,
+                        "Processing complete. Continue to the Results, HVSR, and HVSR-3D tabs.",
+                        {**process_continue_instructions_style, "color": COLORS["primary"]},
+                        create_hvsrpy_file_href(hvsr, distribution_mean_curve_value),
+                        "filename.hvsrpy",
+                        summary_table,
+                        *resonance_tables,
+                        *resonance_tables_display)
+
+            if isinstance(hvsr, hvsrpy.HvsrTraditional):
+                return (*plot_hvsr_traditional(hvsr, distribution_resonance_value, distribution_mean_curve_value, search_range_in_hz),
+                        True,
+                        "Processing complete. Continue to the Results and HVSR tabs.",
+                        {**process_continue_instructions_style, "color": COLORS["primary"]},
+                        create_hvsrpy_file_href(hvsr, distribution_mean_curve_value),
+                        "filename.hvsrpy",
+                        summary_table,
+                        *resonance_tables,
+                        *resonance_tables_display)
+
+        if processing_workflow_value == "autohvsr":
+            # extract peak features
+            _peak_data = extract_hvsr_features(hvsr)
+            if len(_peak_data) > 0:
+
+                df = pd.DataFrame(_peak_data)
+
+                # classify peaks
+                trained_model = xgb.XGBClassifier()
+                trained_model.load_model("protected/2_xgboost_peak_classifier.json")
+                df["peak frequency"] = np.log(df["peak frequency"])
+                x = df.to_numpy()[:, 2:]
+                valid_boolean_mask = trained_model.predict(x).astype(bool)
+                df["valid"] = valid_boolean_mask
+
+                # default assumption is that all peaks are invalid, that is they belong to resonance -1
+                resonance_values = np.full_like(x[:, 0], -1, dtype=int)
+                if sum(valid_boolean_mask) > 0:
+                    # only cluster valid peaks
+                    x_valid = x[valid_boolean_mask]
+
+                    dbscan_settings = dict(eps=0.2, min_samples=10, metric="euclidean")
+                    db = cluster.DBSCAN(**dbscan_settings).fit(x_valid[:, 0:1])
+                    y_pred = db.labels_
+
+                    nresonances = set(y_pred)
+                    nresonances.discard(-1)
+
+                    # check if a split will help (mean split)
+                    delta_resonance = 0
+                    for nresonance in nresonances:
+                        nresonance += delta_resonance
+                        values = x_valid[y_pred == nresonance, 0]
+
+                        if len(values) < 6 or (np.max(values) - np.min(values)) < 1E-3:
+                            continue
+
+                        before_variance = np.var(values)
+                        split_value = np.mean(values)
+
+                        if len(values[values <= split_value]) < 3 or len(values[values > split_value]) < 3:
+                            continue
+
+                        after_variance = np.var(
+                            values[values <= split_value]) + np.var(values[values > split_value])
+
+                        # perform split
+                        gamma = 0.02
+                        if (before_variance - after_variance) > gamma:
+                            y_pred[y_pred > nresonance] += 1
+                            y_pred[np.logical_and(y_pred == nresonance,
+                                                  x_valid[:, 0] > split_value)] += 1
+                            delta_resonance += 1
+
+                    resonance_values[valid_boolean_mask] = y_pred
+
+                    # order resonance labels smallest to largest
+                    nresonances = set(resonance_values)
+                    nresonances.discard(-1)
+                    nresonances = list(nresonances)
+                    fmeans = []
+                    for resonance in nresonances:
+                        fmeans.append(np.mean(x[resonance_values == resonance, 0]))
+                    old_resonance_order = np.array(nresonances)[np.argsort(fmeans)]
+                    new_resonance_order = np.arange(len(nresonances))
+
+                    old_resonance_values = resonance_values.copy()
+                    for old_resonance_value, new_resonance_value in zip(old_resonance_order, new_resonance_order):
+                        resonance_values[old_resonance_values ==
+                                         old_resonance_value] = new_resonance_value
+
+                df["resonance"] = resonance_values
+
+                # reset peak frequency to hz
+                df["peak frequency"] = np.exp(df["peak frequency"])
+
+                if isinstance(hvsr, hvsrpy.HvsrAzimuthal):
+                    raise NotImplementedError
+                    # TODO(jpv): Prepare azimuthal processing with autohvsr.
+                    # return (*plot_hvsr_azimuthal_autohvsr(hvsr, distribution_resonance_value, distribution_mean_curve_value, df),
+                    #         False,
+                    #         "Processing complete. Continue to the Results, HVSR, and HVSR-3D tabs.",
+                    #         {**process_continue_instructions_style, "color": COLORS["primary"]},
+                    #         generate_table_summary(hvsr),
+                    #         *([None]*10),  # *resonance_tables)
+
+                if isinstance(hvsr, hvsrpy.HvsrTraditional):
+                    g1, g2, stats = plot_hvsr_traditional_autohvsr(
+                        hvsr, distribution_resonance_value, distribution_mean_curve_value, df)
+                    nresults = len(stats)
+
+                    resonance_tables = [
+                        generate_table_for_resonance_from_values(*stat) for stat in stats]
+                    resonance_tables.extend([None]*(6-nresults))
+                    display_tables = [DISPLAY_CONTAINER]*(nresults-1)
+                    display_tables.extend([HIDE_CONTAINER]*(5-(nresults-1)))
+
+                    return (g1,
+                            g2,
+                            True,
+                            "Processing complete. Continue to the Results and HVSR tabs.",
+                            {**process_continue_instructions_style, "color": COLORS["primary"]},
+                            create_hvsrpy_file_href(hvsr, distribution_mean_curve_value),
+                            "filename.hvsrpy",
+                            generate_table_summary(hvsr),
+                            *resonance_tables,
+                            *display_tables)
+
+    raise PreventUpdate
 
 
 if __name__ == "__main__":
