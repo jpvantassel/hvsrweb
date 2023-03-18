@@ -110,7 +110,7 @@ data_tab = dbc.Card(
                                                   style={"font-size": "1em"})),
                 id="upload-bar",
                 style={
-                    "height": "5em",
+                    "height": "4em",
                     "lineHeight": "4em",
                     "textAlign": "center",
                     "cursor": "pointer",
@@ -118,6 +118,7 @@ data_tab = dbc.Card(
                     "color": "black",
                     "border": "0.1em solid #dedede",
                     "border-radius": "0.5em",
+                    # "padding":"1em",
                 },
                 multiple=True,
             ),
@@ -130,7 +131,7 @@ data_tab = dbc.Card(
             ], style={**default_p_style, "text-align": "center"}),
 
             dbc.Row(children=[
-                    dbc.Button(children="Demo", id="demo-button",
+                    dbc.Button(children="Load Demo Data", id="demo-button",
                                color="primary", size="lg", style={"padding": "1em"}),
                     dbc.Tooltip(children="Load ambient noise data provided by us.",
                                 id="demo-button-tooltip",
@@ -169,7 +170,8 @@ preprocess_tab = dbc.Card(
                            dict(label="Manual", value="manual"),
                            dict(label="AutoHVSR", value="autohvsr"),
                        ],
-                       value="manual"),  # TODO(jpv): Remove so that it is blank.
+                       ),
+
 
             # preprocess-default-container (start)
             dbc.Container([
@@ -324,7 +326,6 @@ preprocess_tab = dbc.Card(
             ], id="preprocess-default-container-continued", style=HIDE_CONTAINER),
             # preprocess-default-container-continued (end)
 
-
             # preprocess-button
             dbc.Row(
                 children=[
@@ -368,7 +369,6 @@ process_tab = dbc.Card(
                            dict(label="Azimuthal", value="azimuthal"),
                            dict(label="Diffuse Field", value="diffuse"),
                        ],
-                       value="diffuse"  # TODO(jpv): Remove value kwarg; so will be blank.
                        ),
 
             # combine-horizontals-container (start)
@@ -399,12 +399,9 @@ process_tab = dbc.Card(
                                dict(label="Maximum Horizontal Value",
                                     value="maximum_horizontal_value"),
                            ],
-                           # TODO(jpv): Remove value kwarg; so will be blank.
-                           value="geometric_mean"
                            ),
             ], id="combine-horizontals-container", style=HIDE_CONTAINER),
             # combine-horizontals-container (end)
-
 
             # process-base-container (start)
             dbc.Container([
@@ -775,10 +772,10 @@ process_tab = dbc.Card(
                     dbc.Input(id="fdwra-max-iteration", type="number",
                               value=50, min=5., max=75., step=5.),
 
-                ], id="fdwra", style=HIDE_CONTAINER),
+                ], id="fdwra"),
                 # fdwra (end)
 
-            ], id="rejection"),
+            ], id="rejection", style=HIDE_CONTAINER),
             # rejection (end)
 
 
@@ -866,7 +863,7 @@ results_tab = dbc.Card(
                 dbc.Row(dbc.Col(id="results-table-5")),
             ], id="results-table-5-container", style=HIDE_CONTAINER),
 
-                        # html.P([
+            # html.P([
             #     html.Span("Download Results:",
             #               style=default_span_style),
             # ], style=default_p_style),
@@ -874,11 +871,11 @@ results_tab = dbc.Card(
                 # dbc.Col([
                     html.A(
                         dbc.Button(children="Download Results", id="button-save-hvsrpy",
-                                   color="primary", size="lg", style={"width":"100%", "padding-left": "2em", "padding-right": "2em", "margin":"0"}),
-                        id="hvsrpy-download", download="", href="", target="_blank", style={"width":"100%", "padding":"0", "margin":"0"}),
-                    
+                                   color="primary", size="lg", style={"width": "100%", "padding-left": "2em", "padding-right": "2em", "margin": "0"}),
+                        id="hvsrpy-download", download="", href="", target="_blank", style={"width": "100%", "padding": "0", "margin": "0"}),
+
                     # style={"padding-left": "2em", "padding-right": "2em"}
-                    
+
                     # ]),
                     # TODO(jpv): Skip for now
                     # dbc.Col([
@@ -888,7 +885,7 @@ results_tab = dbc.Card(
                     #         id="geopsy-download", download="", href="", target="_blank"),
                     # ]),
 
-                    ], style={"padding-left": "2em", "padding-right": "2em", "padding-top":"0.5em", "padding-bottom":"1em"}),
+                    ], style={"padding-left": "2em", "padding-right": "2em", "padding-top": "0.5em", "padding-bottom": "1em"}),
 
             # dbc.Tooltip(
             #     "Save results as a .",
@@ -953,11 +950,11 @@ app.layout = html.Div(
                             dbc.Tab(data_tab, id="data-tab",
                                     label="Data", label_style=tab_label_style),
                             dbc.Tab(preprocess_tab, id="preprocess-tab",
-                                    label="Preprocess", disabled=False, label_style=tab_label_style),  # TODO(jpv): Change back to True.
+                                    label="Preprocess", disabled=True, label_style=tab_label_style),
                             dbc.Tab(process_tab, id="process-tab",
-                                    label="Process", disabled=False, label_style=tab_label_style),  # TODO(jpv): Change back to True.
+                                    label="Process", disabled=True, label_style=tab_label_style),
                             dbc.Tab(results_tab, id="results-tab",
-                                    label="Results", disabled=False, label_style=tab_label_style),  # TODO(jpv): Change back to True.
+                                    label="Results", disabled=True, label_style=tab_label_style),
                         ]),
                     ],
                     md=4,
@@ -979,10 +976,12 @@ app.layout = html.Div(
                                                 ]),
                                             ],
                                         ),
-                                        html.Div(id="plot", className="p-4")], style=default_cardbody_style), className="mt-3"),
+                                        html.Div(id="plot-seismic-record", className="p-4")], style=default_cardbody_style), className="mt-3"),
                                     ],
                                     label_style=tab_label_style),
                             dbc.Tab(label="HVSR",
+                                    id="plot-hvsr-tab",
+                                    disabled=True,
                                     children=[dbc.Card(dbc.CardBody(children=[
                                         dbc.Row(
                                             children=[
@@ -1003,7 +1002,7 @@ app.layout = html.Div(
                                     ],
                                     label_style=tab_label_style),
                             dbc.Tab(label="HVSR - 3D",
-                                    id="hvsr-3d",
+                                    id="plot-hvsr-3d-tab",
                                     disabled=True,
                                     children=[dbc.Card(dbc.CardBody(children=[
                                         dbc.Row(
@@ -1018,7 +1017,7 @@ app.layout = html.Div(
                                             ],
                                         ),
                                         dbc.Row(
-                                            html.Div(html.Div(id="plot-hvsr-az", style={'display': 'inline-block', 'width': '100%', 'height': "100%"}),
+                                            html.Div(html.Div(id="plot-hvsr-3d", style={'display': 'inline-block', 'width': '100%', 'height': "100%"}),
                                                      style={'display': 'inline-block', 'width': '100%', 'min-height': "600px"})
                                         )
                                     ],  style=default_cardbody_style), className="mt-3"),
@@ -1029,10 +1028,11 @@ app.layout = html.Div(
                     md=8,
                 ),
             ]),
-            html.Div(id="output"),  # TODO (jpv): Remove
             dcc.Store(id='srecord3c'),
             dcc.Store(id='preprocess-settings'),
             dcc.Store(id='process-settings'),
+            dcc.Store(id='reset-to-preprocess-step'),
+            dcc.Store(id='reset-to-process-step'),
         ], fluid=True),
 
         html.Footer(dbc.Container(children=[html.Div("HVSRweb v0.3.0 © 2019-2023"),
@@ -1058,13 +1058,109 @@ dbc.Tooltip(children="HVSR 3D results are only available following azimuthal pro
 
 
 @ app.callback(
+    [Output('reset-to-preprocess-step', 'data'),
+     Output('reset-to-process-step', 'data'),
+    ],
+    [Input('demo-button', 'n_clicks'),
+     Input('upload-bar', 'filename'),
+     Input("butterworth-filter", "value"),
+     Input('butterworth-filter-lower-frequency', "value"),
+     Input('butterworth-filter-upper-frequency', "value"),
+     Input('processing-workflow', "value"),
+     Input('new-start-time', "value"),
+     Input('new-start-time', "value"),
+     Input('orient-to-degrees-from-north', "value"),
+     Input('window-length', "value"),
+     Input('detrend', "value"),
+     Input("process-method", "value"),
+     Input("combine-horizontals-select", "value"),
+     Input("window-type", "value"),
+     Input("window-width", "value"),
+     Input("smoothing-operator", "value"),
+     Input("smoothing-bandwidth", "value"),
+     Input("minimum-frequency", "value"),
+     Input("maximum-frequency", "value"),
+     Input("n-frequency", "value"),
+     Input("sampling-type-frequency", "value"),
+     Input("single-azimuth", "value"),
+     Input("rotdpp-azimuthal-interval", "value"),
+     Input("rotdpp-azimuthal-ppth-percentile", "value"),
+     Input("azimuthal-interval", "value"),
+     Input("distribution-resonance", "value"),
+     Input("distribution-mean-curve", "value"),
+     Input("minimum-search-frequency", "value"),
+     Input("maximum-search-frequency", "value"),
+     Input("rejection-select", "value"),
+     Input("fdwra-n", "value"),
+     Input("fdwra-max-iteration", "value"),
+     ]
+)
+def the_listener(*args):
+    """Display/Hide Tab; Keep/Remove Message"""
+    triggered_id = dash.ctx.triggered_id
+
+    # changes to data tab
+    if triggered_id in ["demo-button", "upload-bar"]:
+        return (
+            (True, True),  # preprocessing: disable tab; disable text
+            (True, True),  # processing: disable tab; disable text
+        )
+
+    # changes to preprocess tab
+    if triggered_id in ["butterworth-filter",
+                        "butterworth-filter-lower-frequency",
+                        "butterworth-filter-upper-frequency",
+                        "processing-workflow",
+                        "new-start-time",
+                        "new-end-time",
+                        "orient-to-degrees-from-north",
+                        "window-length",
+                        "detrend"]:
+        return (
+            (True, True),  # preprocessing: disable tab; disable text
+            (True, True),  # processing: disable tab; disable text
+        )
+
+    # changes to process tab
+    if triggered_id in ["process-method",
+                        "combine-horizontals-select",
+                        "window-type",
+                        "window-width",
+                        "smoothing-operator",
+                        "smoothing-bandwidth",
+                        "minimum-frequency",
+                        "maximum-frequency",
+                        "n-frequency",
+                        "sampling-type-frequency",
+                        "single-azimuth",
+                        "rotdpp-azimuthal-interval",
+                        "traditional-rotdpp",
+                        "azimuthal-interval",
+                        "distribution-resonance",
+                        "distribution-mean-curve",
+                        "minimum-search-frequency",
+                        "maximum-search-frequency",
+                        "rejection-select",
+                        "fdwra-n",
+                        "fdwra-max-iteration",
+                        ]:
+        return (
+            (False, False),   # preprocessing: disable tab; disable text
+            (True, True),   # processing: disable tab; disable text
+        )
+
+    raise PreventUpdate
+
+
+@ app.callback(
     [Output('filename-display', 'children'),
      Output('filename-display-hvsr', 'children'),
      Output('filename-display-hvsr-az', 'children'),
      Output('srecord3c', 'data'),
      Output('data-continue-instructions', 'children'),
      Output('data-continue-instructions', 'style'),
-     Output('new-end-time', "value")],
+     Output('new-end-time', "value"),
+     Output('preprocess-tab', 'disabled')],
     [Input('demo-button', 'n_clicks'),
      Input('upload-bar', 'contents')],
     [State('upload-bar', 'filename'),
@@ -1073,6 +1169,7 @@ def gather_filename_from_user(demo_button_n_clicks, upload_bar_contents,
                               upload_bar_filename, data_continue_instructions_style):
     """Acquire filename and update web components accordingly."""
     triggered_id = dash.ctx.triggered_id
+
     if triggered_id == "demo-button":
         srecord3c = hvsrpy.read_single("data/UT.STN11.A2_C150.miniseed")
         return ("Demo file",
@@ -1081,7 +1178,8 @@ def gather_filename_from_user(demo_button_n_clicks, upload_bar_contents,
                 srecord3c._to_dict(),
                 "Data loading complete. Continue to the Preprocess tab.",
                 {**data_continue_instructions_style, "color": COLORS["primary"]},
-                np.floor(srecord3c.vt.time()[-1])
+                np.floor(srecord3c.vt.time()[-1]),
+                False,
                 )
 
     # if upload bar has been used.
@@ -1102,6 +1200,7 @@ def gather_filename_from_user(demo_button_n_clicks, upload_bar_contents,
                     f"Incorrect number of files selected, must be 1 or 3.",
                     {**data_continue_instructions_style, "color": COLORS["error"]},
                     0,
+                    True,
                     )
 
         # dash loads data as base64 encoded, but we do not know
@@ -1126,10 +1225,10 @@ def gather_filename_from_user(demo_button_n_clicks, upload_bar_contents,
                         "An error occured; the selected file type is not supported. Please contact the developer if you believe this is in error.",
                         {**data_continue_instructions_style, "color": COLORS["error"]},
                         0,
+                        True,
                         )
-            
-        srecord3c.meta["file name(s)"] = upload_bar_filename
 
+        srecord3c.meta["file name(s)"] = upload_bar_filename
 
         return (f"{', '.join(upload_bar_filename)}",
                 f"{', '.join(upload_bar_filename)}",
@@ -1137,7 +1236,8 @@ def gather_filename_from_user(demo_button_n_clicks, upload_bar_contents,
                 srecord3c._to_dict(),
                 "Data loading complete. Continue to the Preprocess tab.",
                 {**data_continue_instructions_style, "color": COLORS["primary"]},
-                np.floor(srecord3c.vt.time()[-1])
+                np.floor(srecord3c.vt.time()[-1]),
+                False,
                 )
 
     raise PreventUpdate
@@ -1187,7 +1287,7 @@ def preprocess_srecord3c(srecord3c_data, new_start_time_value, new_stop_time_val
 
 
 @ app.callback(
-    Output("plot", "children"),
+    Output("plot-seismic-record", "children"),
     [Input("srecord3c", "data"),
      Input("preprocess-settings", "data")],
     [State("new-start-time", "value"),
@@ -1195,15 +1295,17 @@ def preprocess_srecord3c(srecord3c_data, new_start_time_value, new_stop_time_val
 )
 def srecord3c_plotting(srecord3c_data, preprocess_settings_data, new_start_time_value, new_stop_time_value):
     triggered_id = dash.ctx.triggered_id
-    if triggered_id == "srecord3c":
+
+    if triggered_id == "srecord3c" or preprocess_settings_data is None:
         return plot_raw_srecord3c(srecord3c_data)
 
-    if triggered_id == "preprocess-settings":
+    if triggered_id == "preprocess-settings" and preprocess_settings_data is not None:
         records = preprocess_srecord3c(srecord3c_data,
                                        new_start_time_value,
                                        new_stop_time_value,
                                        preprocess_settings_data)
         return plot_preprocessed_srecord3c(records)
+
     raise PreventUpdate
 
 
@@ -1275,8 +1377,10 @@ def dynamic_filtering_settings(value):
 @ app.callback(
     [Output("preprocess-settings", "data"),
      Output("preprocess-continue-instructions", "children"),
-     Output("preprocess-continue-instructions", "style")],
-    Input("preprocess-button", "n_clicks"),
+     Output("preprocess-continue-instructions", "style"),
+     Output("process-tab", "disabled")],
+    [Input("preprocess-button", "n_clicks"),
+     Input("reset-to-preprocess-step", "data")],
     [State("srecord3c", "data"),
      State("processing-workflow", "value"),
      State("orient-to-degrees-from-north", "value"),
@@ -1285,9 +1389,13 @@ def dynamic_filtering_settings(value):
      State("butterworth-filter-upper-frequency", "value"),
      State("window-length", "value"),
      State("detrend", "value"),
-     State("preprocess-continue-instructions", "style"),]
+     State("preprocess-continue-instructions", "children"),
+     State("preprocess-continue-instructions", "style"),
+     State("preprocess-settings", "data")
+     ]
 )
 def create_preprocess_settings(execute_button_n_clicks,
+                               reset_to_preprocess_step_data,
                                srecord3c_data,
                                processing_workflow_value,
                                orient_to_degrees_from_north_value,
@@ -1295,9 +1403,29 @@ def create_preprocess_settings(execute_button_n_clicks,
                                butterworth_filter_value_lower_frequency_value,
                                butterworth_filter_value_upper_frequency_value,
                                window_length_value,
-                               detrend_value, preprocess_continue_instructions_style):
+                               detrend_value,
+                               preprocess_continue_instructions_children,
+                               preprocess_continue_instructions_style,
+                               preprocess_settings_data,
+                               ):
+    triggered_id = dash.ctx.triggered_id
+
+    if triggered_id == "reset-to-preprocess-step":
+        disable_tab, hide_text = reset_to_preprocess_step_data
+        return (preprocess_settings_data,
+                "" if hide_text else preprocess_continue_instructions_children,
+                preprocess_continue_instructions_style,
+                disable_tab
+                )
 
     if execute_button_n_clicks is not None:
+        if processing_workflow_value is None:
+            return (None,
+                    "Please select your Processing Workflow before attempting to preprocess.",
+                    {**preprocess_continue_instructions_style, "color": COLORS["error"]},
+                    True,
+                    )
+
         if butterworth_filter_value == "none":
             filter_description = (None, None)
         elif butterworth_filter_value == "bandpass":
@@ -1327,22 +1455,23 @@ def create_preprocess_settings(execute_button_n_clicks,
         return (settings.attr_dict,
                 "Preprocess settings applied, continue to the Process tab.",
                 {**preprocess_continue_instructions_style, "color": COLORS["primary"]},
+                False,
                 )
 
     raise PreventUpdate
 
 
 @ app.callback([Output("combine-horizontals-container", "style"),
-               Output("process-base-container", "style"),
-               Output("frequency-sampling-container", "style"),
-               Output("traditional-traditional", "style"),
-               Output("traditional-single-azimuth", "style"),
-               Output("traditional-rotdpp", "style"),
-               Output("azimuthal", "style"),
-               Output("statistics-container", "style"),
-               Output("resonance-search-range-container", "style"),
-               Output("rejection", "style"),
-               Output("diffuse", "style")],
+                Output("process-base-container", "style"),
+                Output("frequency-sampling-container", "style"),
+                Output("traditional-traditional", "style"),
+                Output("traditional-single-azimuth", "style"),
+                Output("traditional-rotdpp", "style"),
+                Output("azimuthal", "style"),
+                Output("statistics-container", "style"),
+                Output("resonance-search-range-container", "style"),
+                Output("rejection", "style"),
+                Output("diffuse", "style")],
                [Input('process-method', 'value'),
                 Input('combine-horizontals-select', 'value'),
                 Input('processing-workflow', 'value')],
@@ -1617,7 +1746,7 @@ def create_processing_settings_autohvsr(srecord3c, process_method_value, combine
                                         smoothing_operator_value, smoothing_bandwidth_value, frequency_resampling_in_hz)
 
 
-@app.callback(
+@ app.callback(
     Output("process-settings", "data"),
     Input('process-button', 'n_clicks'),
     [State("processing-workflow", "value"),
@@ -1646,6 +1775,12 @@ def create_process_settings(process_button_n_clicks, processing_workflow_value, 
                             azimuthal_interval_value):
 
     if process_button_n_clicks is not None:
+        if process_method_value is None:
+            return "process_method_value"
+
+        if combine_horizontals_select_value is None and process_method_value != "diffuse":
+            return "combine_horizontals_select_value"
+
         if processing_workflow_value == "manual":
             return create_processing_settings_manual(process_method_value, combine_horizontals_select_value,
                                                      window_type_value, window_width_value, smoothing_operator_value, smoothing_bandwidth_value,
@@ -2224,8 +2359,9 @@ def create_hvsrpy_file_href(hvsr, distribution_mean_curve):
 
 @ app.callback(
     [Output("plot-hvsr", "children"),
-     Output("plot-hvsr-az", "children"),
-     Output("hvsr-3d", "disabled"),
+     Output("plot-hvsr-3d", "children"),
+     Output("plot-hvsr-tab", "disabled"),
+     Output("plot-hvsr-3d-tab", "disabled"),
      Output("process-continue-instructions", "children"),
      Output("process-continue-instructions", "style"),
      Output("hvsrpy-download", "href"),
@@ -2241,8 +2377,10 @@ def create_hvsrpy_file_href(hvsr, distribution_mean_curve):
      Output("results-table-2-container", "style"),
      Output("results-table-3-container", "style"),
      Output("results-table-4-container", "style"),
-     Output("results-table-5-container", "style")],
-    Input("process-settings", "data"),
+     Output("results-table-5-container", "style"),
+     Output("results-tab", "disabled")],
+    [Input("process-settings", "data"),
+     Input("reset-to-process-step", "data")],
     [State("processing-workflow", "value"),
      State("srecord3c", "data"),
      State("new-start-time", "value"),
@@ -2255,9 +2393,11 @@ def create_hvsrpy_file_href(hvsr, distribution_mean_curve):
      State("rejection-select", "value"),
      State("fdwra-n", "value"),
      State("fdwra-max-iteration", "value"),
-     State("process-continue-instructions", "style")]
+     State("process-continue-instructions", "style"),
+     State("process-continue-instructions", "children"),
+     State("results-table", "style")]
 )
-def processing_hvsr(process_settings_data, processing_workflow_value, srecord3c_data,
+def processing_hvsr(process_settings_data, reset_to_process_step_data, processing_workflow_value, srecord3c_data,
                     new_start_time_value, new_end_time_value, preprocess_settings_data,
                     distribution_resonance_value, minimum_search_frequency_value,
                     maximum_search_frequency_value,
@@ -2265,8 +2405,47 @@ def processing_hvsr(process_settings_data, processing_workflow_value, srecord3c_
                     rejection_select_value,
                     fdwra_n_value, fdwra_max_iteration_value,
                     process_continue_instructions_style,
+                    process_continue_instructions_children,
+                    results_table_style
                     ):
-    if process_settings_data is not None:
+    triggered_id = dash.ctx.triggered_id
+    if triggered_id == "reset-to-process-step":
+        disable_tab, hide_text = reset_to_process_step_data
+        return (*([False]*2),
+                disable_tab,
+                disable_tab,
+                "" if hide_text else process_continue_instructions_children,
+                process_continue_instructions_style,
+                "",
+                "",
+                *([False]*7),
+                *([results_table_style]*5),
+                disable_tab,
+               )
+
+    if triggered_id == "process-settings":
+
+        if process_settings_data == "process_method_value":
+            return (None,
+                    None,
+                    True,
+                    True,
+                    "Please select Processing Method before attempting to process your data.",
+                    {**process_continue_instructions_style, **dict(color=COLORS["error"])},
+                    *([None]*14),
+                    True,
+                    )
+
+        if process_settings_data == "combine_horizontals_select_value":
+            return (None,
+                    None,
+                    True,
+                    True,
+                    "Please select Method to Combine Horizontals before attempting to process your data.",
+                    {**process_continue_instructions_style, **dict(color=COLORS["error"])},
+                    *([None]*14),
+                    True,
+                    )
 
         # preprocess time-domain recordings with latest settings
         records = preprocess_srecord3c(srecord3c_data,
@@ -2322,6 +2501,7 @@ def processing_hvsr(process_settings_data, processing_workflow_value, srecord3c_
 
             if isinstance(hvsr, hvsrpy.HvsrDiffuseField):
                 return (*plot_hvsr_diffuse(hvsr, distribution_resonance_value, distribution_mean_curve_value, search_range_in_hz),
+                        False,
                         True,
                         "Processing complete. Continue to the Results and HVSR tabs.",
                         {**process_continue_instructions_style, "color": COLORS["primary"]},
@@ -2329,10 +2509,13 @@ def processing_hvsr(process_settings_data, processing_workflow_value, srecord3c_
                         "filename.hvsrpy",
                         summary_table,
                         *resonance_tables,
-                        *resonance_tables_display)
+                        *resonance_tables_display,
+                        False,
+                        )
 
             if isinstance(hvsr, hvsrpy.HvsrAzimuthal):
                 return (*plot_hvsr_azimuthal(hvsr, distribution_resonance_value, distribution_mean_curve_value, search_range_in_hz),
+                        False,
                         False,
                         "Processing complete. Continue to the Results, HVSR, and HVSR-3D tabs.",
                         {**process_continue_instructions_style, "color": COLORS["primary"]},
@@ -2340,10 +2523,13 @@ def processing_hvsr(process_settings_data, processing_workflow_value, srecord3c_
                         "filename.hvsrpy",
                         summary_table,
                         *resonance_tables,
-                        *resonance_tables_display)
+                        *resonance_tables_display,
+                        False,
+                        )
 
             if isinstance(hvsr, hvsrpy.HvsrTraditional):
                 return (*plot_hvsr_traditional(hvsr, distribution_resonance_value, distribution_mean_curve_value, search_range_in_hz),
+                        False,
                         True,
                         "Processing complete. Continue to the Results and HVSR tabs.",
                         {**process_continue_instructions_style, "color": COLORS["primary"]},
@@ -2351,7 +2537,9 @@ def processing_hvsr(process_settings_data, processing_workflow_value, srecord3c_
                         "filename.hvsrpy",
                         summary_table,
                         *resonance_tables,
-                        *resonance_tables_display)
+                        *resonance_tables_display,
+                        False,
+                        )
 
         if processing_workflow_value == "autohvsr":
             # extract peak features
@@ -2452,6 +2640,7 @@ def processing_hvsr(process_settings_data, processing_workflow_value, srecord3c_
 
                     return (g1,
                             g2,
+                            False,
                             True,
                             "Processing complete. Continue to the Results and HVSR tabs.",
                             {**process_continue_instructions_style, "color": COLORS["primary"]},
@@ -2459,7 +2648,9 @@ def processing_hvsr(process_settings_data, processing_workflow_value, srecord3c_
                             "filename.hvsrpy",
                             generate_table_summary(hvsr),
                             *resonance_tables,
-                            *display_tables)
+                            *display_tables,
+                            False,
+                            )
 
     raise PreventUpdate
 
