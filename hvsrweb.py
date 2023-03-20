@@ -33,7 +33,7 @@ DISPLAY_CONTAINER = dict(display="block")
 
 
 intro_tab = dbc.Card(
-    dbc.CardBody(
+    dbc.CardBody([
         dcc.Markdown("""
             ##### Welcome to HVSRweb
 
@@ -44,15 +44,6 @@ intro_tab = dbc.Card(
             processing. HVSRweb is hosted on computing resources
             made available through the DesignSafe-CI
             (Rathje et al., 2017).
-
-            ##### Getting Started
-
-            1. Upload your own data using the bar above or press
-            __Demo__ to load an example data file.
-            2. Explore the processing settings tabs (Time, Frequency,
-            and HVSR) and make any desired changes.
-            3. When done, press __Calculate__ and go to the Results tab for
-            more information.
 
             ##### Citation
 
@@ -66,8 +57,8 @@ intro_tab = dbc.Card(
 
             ##### References
 
-            Background information concerning the HVSR statistics and
-            the terminology can be found in the following references:
+            Background information concerning the HVSR statistics can be
+            found in the following references:
 
             Cox, B. R., Cheng, T., Vantassel, J. P., & Manuel, L.
             (2020). A statistical representation and frequency-domain
@@ -81,16 +72,40 @@ intro_tab = dbc.Card(
             Journal International, 223(2), 1040-1053.
             https://doi.org/10.1093/gji/ggaa342.
 
+            ##### Getting Started
+
+            1. Progress to the __Data__ tab to upload your data,
+            HVSRweb supports many different file formats
+            (e.g., miniSEED, SAF, SAC, etc.).
+            2. Make your __PreProcessing__ and __Processing__ selections
+            in the associated tabs.
+            3. After processing review the results of your HVSR analysis
+            in the __Results__, __HVSR__, and __HVSR-3D__ tabs as
+            applicable. 
+
             ##### More Information
-
-            _Looking for a previous version of HVSRweb?_
-            Refer to the
-            [HVSRweb GitHub](https://github.com/jpvantassel/hvsrweb).
-
-            _Looking for more information about the HVSR calculations?_
-            See the [hvsrpy GitHub](https://github.com/jpvantassel/hvsrpy).
-
             """),
+
+            dbc.Row([
+                html.P("Looking for a previous version of HVSRweb?", style=default_p_style),
+                html.Div([
+                    html.P(" Refer to the ",
+                           style={**default_p_style, "display": "inline"}),
+                    html.A("HVSRweb GitHub.", href="https://github.com/jpvantassel/hvsrweb",
+                           style={"display": "inline"})
+                ], style={"padding-left": "2em"})
+            ]),
+
+            dbc.Row([
+                html.P("Looking for more information about the HVSR calculations?", style=default_p_style),
+                html.Div([
+                    html.P("See the ",
+                           style={**default_p_style, "display": "inline"}),
+                    html.A("hvsrpy GitHub.", href="https://github.com/jpvantassel/hvsrpy",
+                           style={"display": "inline"})
+                ], style={"padding-left": "2em"})
+            ]),
+    ],
         style=default_cardbody_style),
     className="mt-3 md-4",
 )
@@ -898,8 +913,13 @@ results_tab = dbc.Card(
             dbc.Row([
                 html.P("Looking for more information?", style=default_p_style),
                 html.Div([
-                    html.P("Refer to the references back in the Intro tab.",
+                    html.P("Refer to the references back in the ",
                            style={**default_p_style, "display": "inline"}),
+                    html.P("Intro ",
+                           style={**default_p_style, "display": "inline", "font-weight":"bold"}),
+                    html.P(" tab.",
+                           style={**default_p_style, "display": "inline"}),
+
                 ], style={"padding-left": "2em"})
             ]),
 
@@ -1702,6 +1722,7 @@ def create_processing_settings_manual(process_method_value, combine_horizontals_
                                             rotdpp_azimuthal_interval_value, rotdpp_azimuthal_ppth_percential_value)
 
     if process_method_value == "azimuthal":
+        print(frequency_resampling_in_hz)
         return prepare_azimuthal_settings(window_type_value, window_width_value,
                                           smoothing_operator_value, smoothing_bandwidth_value, frequency_resampling_in_hz, azimuthal_interval_value)
 
@@ -1778,7 +1799,7 @@ def create_process_settings(process_button_n_clicks, processing_workflow_value, 
         if process_method_value is None:
             return "process_method_value"
 
-        if combine_horizontals_select_value is None and process_method_value != "diffuse":
+        if combine_horizontals_select_value is None and process_method_value not in ["azimuthal", "diffuse"]:
             return "combine_horizontals_select_value"
 
         if processing_workflow_value == "manual":
@@ -2454,21 +2475,19 @@ def processing_hvsr(process_settings_data, reset_to_process_step_data, processin
                                        preprocess_settings_data)
 
         # need to decode a dictionary of settings back to the appropriate object.
-        try:
+        if process_settings_data["processing_method"] == "diffuse_field":
             settings = hvsrpy.HvsrDiffuseFieldProcessingSettings(**process_settings_data)
-        except:
-            try:
-                settings = hvsrpy.HvsrAzimuthalProcessingSettings(**process_settings_data)
-            except:
-                try:
-                    settings = hvsrpy.HvsrTraditionalRotDppProcessingSettings(
-                        **process_settings_data)
-                except:
-                    try:
-                        settings = hvsrpy.HvsrTraditionalSingleAzimuthProcessingSettings(
-                            **process_settings_data)
-                    except:
-                        settings = hvsrpy.HvsrTraditionalProcessingSettings(**process_settings_data)
+        elif process_settings_data["processing_method"] == "azimuthal":
+            settings = hvsrpy.HvsrAzimuthalProcessingSettings(**process_settings_data)
+        elif process_settings_data["processing_method"] == "traditional":
+            if process_settings_data["method_to_combine_horizontals"] == "rotdpp":
+                settings = hvsrpy.HvsrTraditionalRotDppProcessingSettings(**process_settings_data)
+            elif process_settings_data["method_to_combine_horizontals"] == "single_azimuth":
+                settings = hvsrpy.HvsrTraditionalSingleAzimuthProcessingSettings(**process_settings_data)
+            else:  
+                settings = hvsrpy.HvsrTraditionalProcessingSettings(**process_settings_data)
+        else:
+            raise NotImplementedError
 
         # apply time-domain window rejection
         # TODO(jpv): To add at some later date.
@@ -2514,6 +2533,8 @@ def processing_hvsr(process_settings_data, reset_to_process_step_data, processin
                         )
 
             if isinstance(hvsr, hvsrpy.HvsrAzimuthal):
+                if rejection_select_value != "fdwra":
+                    hvsr._update_peaks_bounded(search_range_in_hz=search_range_in_hz)
                 return (*plot_hvsr_azimuthal(hvsr, distribution_resonance_value, distribution_mean_curve_value, search_range_in_hz),
                         False,
                         False,
@@ -2528,6 +2549,8 @@ def processing_hvsr(process_settings_data, reset_to_process_step_data, processin
                         )
 
             if isinstance(hvsr, hvsrpy.HvsrTraditional):
+                if rejection_select_value != "fdwra":
+                    hvsr._update_peaks_bounded(search_range_in_hz=search_range_in_hz)
                 return (*plot_hvsr_traditional(hvsr, distribution_resonance_value, distribution_mean_curve_value, search_range_in_hz),
                         False,
                         True,
