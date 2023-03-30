@@ -205,9 +205,9 @@ preprocess_tab = dbc.Card(
                             target="new-start-and-end-time-tooltip-target",
                             ),
                 dbc.Row([dbc.Col([dbc.Input(id="new-start-time", type="number",
-                                            value=0, min=0, max=9999, step=1),]),
+                                            value=0, min=0, max=99999, step=1),]),
                          dbc.Col([dbc.Input(id="new-end-time", type="number",
-                                            value=0, min=0, max=9999, step=1),])
+                                            value=0, min=0, max=99999, step=1),])
                          ]),
                 dbc.Tooltip("New start time in seconds.",
                             target="new-start-time"),
