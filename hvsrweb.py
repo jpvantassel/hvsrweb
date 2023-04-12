@@ -335,7 +335,7 @@ preprocess_tab = dbc.Card(
                            options=[
                                dict(label="Linear", value="linear"),
                                dict(label="Constant", value="constant"),
-                               dict(label="None", value=None),
+                               dict(label="None", value="none"),
                            ],
                            value="linear"),
             ], id="preprocess-default-container-continued", style=HIDE_CONTAINER),
@@ -1470,7 +1470,7 @@ def create_preprocess_settings(execute_button_n_clicks,
         settings = hvsrpy.HvsrPreProcessingSettings(orient_to_degrees_from_north=float(orient_to_degrees_from_north_value),
                                                     filter_corner_frequencies_in_hz=filter_description,
                                                     window_length_in_seconds=window_length_value,
-                                                    detrend=detrend_value,
+                                                    detrend=None if detrend_value == "none" else detrend_value,
                                                     )
         return (settings.attr_dict,
                 "Preprocess settings applied, continue to the Process tab.",
