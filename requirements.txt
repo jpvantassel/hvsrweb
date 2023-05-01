@@ -1,4 +1,4 @@
-flask == 1.1.2
+flask == 2.3.2
 dash == 1.15.0
 dash_bootstrap_components == 0.10.5
 hvsrpy == 0.4.2
