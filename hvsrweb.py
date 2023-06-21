@@ -2027,39 +2027,6 @@ def plot_hvsr_azimuthal(hvsr, distribution_resonance_value, distribution_mean_cu
 
     return (dcc.Graph(figure=fig), dcc.Graph(figure=fig2))
 
-
-# TODO(jpv): Implement aziuthal processing with autohvsr.
-# def plot_hvsr_azimuthal_autohvsr(hvsr, distribution_resonance_value, distribution_mean_curve_value, search_range_in_hz):
-#     fig = plotly.subplots.make_subplots(rows=1, cols=1,
-#                                         x_title="Frequency (Hz)", y_title="HVSR Amplitude")
-
-#     _plot_individual_invalid_hvsr_curves(fig, hvsr)
-#     _plot_individual_valid_hvsr_curves(fig, hvsr)
-#     _plot_mean_hvsr_curve(fig, hvsr, distribution_mean_curve_value)
-#     _plot_mean_pm_std_hvsr_curve(fig, hvsr, distribution_mean_curve_value, n=1)
-#     # _plot_individual_peaks(fig, hvsr)
-#     # _plot_hvsr_resonance(fig, hvsr, distribution_resonance_value)
-#     # _plot_peak_mean_curve(fig, hvsr, distribution_mean_curve_value, search_range_in_hz)
-#     fig.update_yaxes(rangemode="tozero")
-#     fig.update_xaxes(type="log")
-#     fig.update_layout(margin=dict(t=50, b=100, l=100, r=50),
-#                       height=600)
-
-#     fig2 = go.Figure()
-#     _plot_azimuthal_hvsr_3d(fig2, hvsr, distribution_mean_curve_value)
-#     fig2.update_scenes(xaxis=dict(type="log", title="Frequency (Hz)"))
-#     fig2.update_scenes(yaxis=dict(title="Azimuth (degrees)"))
-#     fig2.update_scenes(zaxis=dict(rangemode="tozero", title="HVSR Amplitude"))
-#     camera = dict(up=dict(x=0, y=0, z=1),
-#                   center=dict(x=0, y=0, z=0),
-#                   eye=dict(x=-1.3, y=-1.7, z=1.1))
-#     fig2.update_layout(scene_camera=camera,
-#                        margin=dict(t=50, b=0, l=0, r=50),
-#                        height=600)
-
-#     return (dcc.Graph(figure=fig), dcc.Graph(figure=fig2))
-
-
 def plot_hvsr_traditional(hvsr, distribution_resonance_value, distribution_mean_curve_value, search_range_in_hz):
     fig = plotly.subplots.make_subplots(rows=1, cols=1,
                                         x_title="Frequency (Hz)", y_title="HVSR Amplitude")
