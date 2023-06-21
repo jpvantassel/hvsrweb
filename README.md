@@ -7,7 +7,7 @@
 HVSRweb is an open-source, web-based application for performing
 horizontal-to-vertical spectral ratio (HVSR) calculations in a convenient,
 reliable, and statistically-consistent manner. HVSRweb allows the user to
-upload three-component ambient noise records and perform the HVSR calculation in
+upload three-component seismic records and perform the HVSR calculation in
 the cloud, with no installation required. For the calculation details,
 HVSRweb relies on the open-source Python package _hvsrpy_ developed by
 Joseph P. Vantassel under the supervision of Professor Brady R. Cox at The
@@ -79,8 +79,8 @@ from step 2.
 
 ### Example output using the _geometric mean_ of the horizontal components
 
-![gm](https://github.com/jpvantassel/hvsrweb/blob/master/img/hvsrweb_gm_screenshot.png?raw=true)
+![gm](https://github.com/jpvantassel/hvsrweb/blob/main/img/hvsrweb_gm_screenshot.png?raw=true)
 
 ### Example output using across _multiple-azimuths_ of the horizontal components
 
-![az](https://github.com/jpvantassel/hvsrweb/blob/master/img/hvsrweb_az_screenshot.png?raw=true)
+![az](https://github.com/jpvantassel/hvsrweb/blob/main/img/hvsrweb_az_screenshot.png?raw=true)
