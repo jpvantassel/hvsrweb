@@ -2642,13 +2642,6 @@ def processing_hvsr(process_settings_data, reset_to_process_step_data, processin
 
                 if isinstance(hvsr, hvsrpy.HvsrAzimuthal):
                     raise NotImplementedError
-                    # TODO(jpv): Prepare azimuthal processing with autohvsr.
-                    # return (*plot_hvsr_azimuthal_autohvsr(hvsr, distribution_resonance_value, distribution_mean_curve_value, df),
-                    #         False,
-                    #         "Processing complete. Continue to the Results, HVSR, and HVSR-3D tabs.",
-                    #         {**process_continue_instructions_style, "color": COLORS["primary"]},
-                    #         generate_table_summary(hvsr),
-                    #         *([None]*10),  # *resonance_tables)
 
                 if isinstance(hvsr, hvsrpy.HvsrTraditional):
                     g1, g2, stats = plot_hvsr_traditional_autohvsr(
