@@ -1,6 +1,6 @@
 # HVSRweb - An Open-Source, Web-Based Application for Horizontal-to-Vertical Spectral Ratio Processing
 
-> Dana M. Brannon and Joseph P. Vantassel, The University of Texas at Austin
+> [Joseph P. Vantassel](https://github.com/jpvantassel/) and [Dana M. Brannon](https://github.com/dmbrannon)
 
 ## About HVSRweb
 
@@ -77,10 +77,10 @@ location.
 3. Follow the instructions for running locally (provided above) starting
 from step 2.
 
-### Example output using the _geometric mean_ of the horizontal components
+### Example with Processing Method Set to Traditional
 
 ![gm](https://github.com/jpvantassel/hvsrweb/blob/main/img/hvsrweb_gm_screenshot.png?raw=true)
 
-### Example output using across _multiple-azimuths_ of the horizontal components
+### Example with Processing Method Set to Azimuthal
 
 ![az](https://github.com/jpvantassel/hvsrweb/blob/main/img/hvsrweb_az_screenshot.png?raw=true)
