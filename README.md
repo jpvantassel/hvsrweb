@@ -1,13 +1,13 @@
 # HVSRweb - An Open-Source, Web-Based Application for Horizontal-to-Vertical Spectral Ratio Processing
 
-> Dana M. Brannon and Joseph P. Vantassel, The University of Texas at Austin
+> [Joseph P. Vantassel](https://github.com/jpvantassel/) and [Dana M. Brannon](https://github.com/dmbrannon)
 
 ## About HVSRweb
 
 HVSRweb is an open-source, web-based application for performing
 horizontal-to-vertical spectral ratio (HVSR) calculations in a convenient,
 reliable, and statistically-consistent manner. HVSRweb allows the user to
-upload three-component ambient noise records and perform the HVSR calculation in
+upload three-component seismic records and perform the HVSR calculation in
 the cloud, with no installation required. For the calculation details,
 HVSRweb relies on the open-source Python package _hvsrpy_ developed by
 Joseph P. Vantassel under the supervision of Professor Brady R. Cox at The
@@ -19,9 +19,10 @@ on its [GitHub](https://github.com/jpvantassel/hvsrpy).
 If you use HVSRweb in your research or consulting we ask you
 please cite the following:
 
-> Vantassel, J.P., Cox, B.R., Brannon, D.M. (2021). HVSRweb: An
-> Open-Source, Web-Based Application for Horizontal-to-Vertical
-> Spectral Ratio Processing. IFCEE 2021. (Accepted).
+> Vantassel, J.P., Cox, B.R., & Brannon, D.M. (2021). HVSRweb:
+> An Open-Source, Web-Based Application for
+> Horizontal-to-Vertical Spectral Ratio Processing. IFCEE
+> 2021. https://doi.org/10.1061/9780784483428.005.
 
 ## Additional References
 
@@ -37,7 +38,6 @@ found in the following references:
 > approach to account for azimuthal variability in single-station HVSR
 > measurements. Geophysical Journal International, 223(2), 1040–1053.
 > https://doi.org/10.1093/gji/ggaa342
-
 
 ## Running the Application
 
@@ -77,10 +77,10 @@ location.
 3. Follow the instructions for running locally (provided above) starting
 from step 2.
 
-### Example output using the _geometric mean_ of the horizontal components
+### Example with Processing Method Set to Traditional
 
-![gm](https://github.com/jpvantassel/hvsrweb/blob/master/img/hvsrweb_gm_screenshot.png?raw=true)
+![gm](https://github.com/jpvantassel/hvsrweb/blob/main/img/hvsrweb_gm_screenshot.png?raw=true)
 
-### Example output using across _multiple-azimuths_ of the horizontal components
+### Example with Processing Method Set to Azimuthal
 
-![az](https://github.com/jpvantassel/hvsrweb/blob/master/img/hvsrweb_az_screenshot.png?raw=true)
+![az](https://github.com/jpvantassel/hvsrweb/blob/main/img/hvsrweb_az_screenshot.png?raw=true)

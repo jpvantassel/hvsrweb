@@ -1,5 +1,4 @@
-flask == 1.1.2
-dash == 1.15.0
-dash_bootstrap_components == 0.10.5
-hvsrpy == 0.4.2
-matplotlib == 3.3.1
+flask
+dash
+dash_bootstrap_components
+hvsrpy>=2.0.0-rc.1
