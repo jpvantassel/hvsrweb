@@ -12,6 +12,7 @@ numpy = "==1.23"
 pandas = "*"
 xgboost = "*"
 scikit-learn = "*"
+ipython = "*"
 
 [dev-packages]
 autopep8 = "*"

@@ -1266,11 +1266,11 @@ def gather_filename_from_user(demo_button_n_clicks, upload_bar_contents,
 def plot_srecord3c(srecord3c):
     fig = plotly.subplots.make_subplots(rows=3, cols=1, shared_xaxes=True, shared_yaxes=True,
                                         x_title="Time (s)", y_title="Amplitude (counts)", vertical_spacing=0.03)
-    fig.add_trace(go.Scatter(x=srecord3c.ns.time(),
+    fig.add_trace(go.Scattergl(x=srecord3c.ns.time(),
                   y=srecord3c.ns.amplitude, name="NS"), row=1, col=1)
-    fig.add_trace(go.Scatter(x=srecord3c.ew.time(),
+    fig.add_trace(go.Scattergl(x=srecord3c.ew.time(),
                   y=srecord3c.ew.amplitude, name="EW"), row=2, col=1)
-    fig.add_trace(go.Scatter(x=srecord3c.vt.time(),
+    fig.add_trace(go.Scattergl(x=srecord3c.vt.time(),
                   y=srecord3c.vt.amplitude, name="VT"), row=3, col=1)
     fig.update_layout(margin=dict(t=50, b=100, l=100, r=50),
                       height=600)
@@ -1665,16 +1665,18 @@ def prepare_traditional_settings(combine_horizontals_select_value, window_type_v
     if combine_horizontals_select_value == "single_azimuth":
         return hvsrpy.HvsrTraditionalSingleAzimuthProcessingSettings(
             window_type_and_width=(window_type_value, window_width_value),
-            smoothing_operator_and_bandwidth=(smoothing_operator_value, smoothing_bandwidth_value),
-            frequency_resampling_in_hz=frequency_resampling_in_hz,
+            smoothing=dict(operator=smoothing_operator_value,
+                           bandwidth=smoothing_bandwidth_value,
+                           center_frequencies_in_hz=frequency_resampling_in_hz),
             azimuth_in_degrees=single_azimuth_value
         ).attr_dict
 
     if combine_horizontals_select_value == "rotdpp":
         return hvsrpy.HvsrTraditionalRotDppProcessingSettings(
             window_type_and_width=(window_type_value, window_width_value),
-            smoothing_operator_and_bandwidth=(smoothing_operator_value, smoothing_bandwidth_value),
-            frequency_resampling_in_hz=frequency_resampling_in_hz,
+            smoothing=dict(operator=smoothing_operator_value,
+                           bandwidth=smoothing_bandwidth_value,
+                           center_frequencies_in_hz=frequency_resampling_in_hz),
             ppth_percentile_for_rotdpp_computation=rotdpp_azimuthal_ppth_percential_value,
             azimuths_in_degrees=np.arange(0, 180, rotdpp_azimuthal_interval_value)
         ).attr_dict
@@ -1682,16 +1684,18 @@ def prepare_traditional_settings(combine_horizontals_select_value, window_type_v
     return hvsrpy.HvsrTraditionalProcessingSettings(
         method_to_combine_horizontals=combine_horizontals_select_value,
         window_type_and_width=(window_type_value, window_width_value),
-        smoothing_operator_and_bandwidth=(smoothing_operator_value, smoothing_bandwidth_value),
-        frequency_resampling_in_hz=frequency_resampling_in_hz
+        smoothing=dict(operator=smoothing_operator_value,
+                        bandwidth=smoothing_bandwidth_value,
+                        center_frequencies_in_hz=frequency_resampling_in_hz),
     ).attr_dict
 
 
 def prepare_azimuthal_settings(window_type_value, window_width_value, smoothing_operator_value, smoothing_bandwidth_value, frequency_resampling_in_hz, azimuthal_interval_value):
     return hvsrpy.HvsrAzimuthalProcessingSettings(
         window_type_and_width=(window_type_value, window_width_value),
-        smoothing_operator_and_bandwidth=(smoothing_operator_value, smoothing_bandwidth_value),
-        frequency_resampling_in_hz=frequency_resampling_in_hz,
+        smoothing=dict(operator=smoothing_operator_value,
+                        bandwidth=smoothing_bandwidth_value,
+                        center_frequencies_in_hz=frequency_resampling_in_hz),
         azimuths_in_degrees=np.arange(0, 180, azimuthal_interval_value)
     ).attr_dict
 
@@ -1699,8 +1703,9 @@ def prepare_azimuthal_settings(window_type_value, window_width_value, smoothing_
 def prepare_diffuse_settings(window_type_value, window_width_value, smoothing_operator_value, smoothing_bandwidth_value, frequency_resampling_in_hz):
     return hvsrpy.HvsrDiffuseFieldProcessingSettings(
         window_type_and_width=(window_type_value, window_width_value),
-        smoothing_operator_and_bandwidth=(smoothing_operator_value, smoothing_bandwidth_value),
-        frequency_resampling_in_hz=frequency_resampling_in_hz
+        smoothing=dict(operator=smoothing_operator_value,
+                        bandwidth=smoothing_bandwidth_value,
+                        center_frequencies_in_hz=frequency_resampling_in_hz),
     ).attr_dict
 
 
@@ -1722,7 +1727,6 @@ def create_processing_settings_manual(process_method_value, combine_horizontals_
                                             rotdpp_azimuthal_interval_value, rotdpp_azimuthal_ppth_percential_value)
 
     if process_method_value == "azimuthal":
-        print(frequency_resampling_in_hz)
         return prepare_azimuthal_settings(window_type_value, window_width_value,
                                           smoothing_operator_value, smoothing_bandwidth_value, frequency_resampling_in_hz, azimuthal_interval_value)
 
@@ -1968,8 +1972,8 @@ def _plot_peak_mean_curve_multiple(fig, frequency, amplitude):
 
 
 def _plot_peak_mean_curve(fig, hvsr, distribution_mean_curve_value, search_range_in_hz):
-    x, y = hvsr.mean_curve_peak(distribution=distribution_mean_curve_value,
-                                search_range_in_hz=search_range_in_hz)
+    hvsr.update_peaks_bounded(search_range_in_hz=search_range_in_hz)
+    x, y = hvsr.mean_curve_peak(distribution=distribution_mean_curve_value)
     _plot_peak_mean_curve_multiple(fig, [x], [y])
 
 
@@ -2176,9 +2180,8 @@ def generate_table_for_resonance_from_values(mean_curve_peak_frequency, mean_cur
 
 
 def generate_table_for_resonance(hvsr, distribution_resonance_value, distribution_mean_curve_value, search_range_in_hz):
-
-    mean_curve_peak_frequency, mean_curve_peak_amplitude = hvsr.mean_curve_peak(distribution=distribution_mean_curve_value,
-                                                                                search_range_in_hz=search_range_in_hz)
+    hvsr.update_peaks_bounded(search_range_in_hz=search_range_in_hz)
+    mean_curve_peak_frequency, mean_curve_peak_amplitude = hvsr.mean_curve_peak(distribution=distribution_mean_curve_value)
 
     if isinstance(hvsr, hvsrpy.HvsrDiffuseField):
         return generate_table_for_resonance_from_values(mean_curve_peak_frequency, mean_curve_peak_amplitude)
@@ -2337,7 +2340,7 @@ def extract_hvsr_features(hvsr, idx=0):
 def create_hvsrpy_file_href(hvsr, distribution_mean_curve):
     """Generate hrefs to be put inside hv-download and geopsy-download."""
     bytes_io_object = io.BytesIO()
-    hvsrpy.write_hvsr_to_file(hvsr, bytes_io_object, distribution_mean_curve)
+    hvsrpy.write_hvsr_object_to_file(hvsr, bytes_io_object, distribution_mean_curve)
     bytes_io_object.seek(0, 0)
     encoded = base64.b64encode(bytes_io_object.read()).decode("utf-8").replace("\n", "")
     bytes_io_object.close()
@@ -2501,7 +2504,7 @@ def processing_hvsr(process_settings_data, reset_to_process_step_data, processin
 
             if isinstance(hvsr, hvsrpy.HvsrAzimuthal):
                 if rejection_select_value != "fdwra":
-                    hvsr._update_peaks_bounded(search_range_in_hz=search_range_in_hz)
+                    hvsr.update_peaks_bounded(search_range_in_hz=search_range_in_hz)
                 return (*plot_hvsr_azimuthal(hvsr, distribution_resonance_value, distribution_mean_curve_value, search_range_in_hz),
                         False,
                         False,
@@ -2517,7 +2520,7 @@ def processing_hvsr(process_settings_data, reset_to_process_step_data, processin
 
             if isinstance(hvsr, hvsrpy.HvsrTraditional):
                 if rejection_select_value != "fdwra":
-                    hvsr._update_peaks_bounded(search_range_in_hz=search_range_in_hz)
+                    hvsr.update_peaks_bounded(search_range_in_hz=search_range_in_hz)
                 return (*plot_hvsr_traditional(hvsr, distribution_resonance_value, distribution_mean_curve_value, search_range_in_hz),
                         False,
                         True,
