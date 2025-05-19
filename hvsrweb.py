@@ -1264,17 +1264,14 @@ def gather_filename_from_user(demo_button_n_clicks, upload_bar_contents,
 
 
 def plot_srecord3c(srecord3c):
+
     fig = plotly.subplots.make_subplots(rows=3, cols=1, shared_xaxes=True, shared_yaxes=True,
                                         x_title="Time (s)", y_title="Amplitude (counts)", vertical_spacing=0.03)
-    fig.add_trace(go.Scattergl(x=srecord3c.ns.time(),
-                  y=srecord3c.ns.amplitude, name="NS"), row=1, col=1)
-    fig.add_trace(go.Scattergl(x=srecord3c.ew.time(),
-                  y=srecord3c.ew.amplitude, name="EW"), row=2, col=1)
-    fig.add_trace(go.Scattergl(x=srecord3c.vt.time(),
-                  y=srecord3c.vt.amplitude, name="VT"), row=3, col=1)
-    fig.update_layout(margin=dict(t=50, b=100, l=100, r=50),
-                      height=600)
-    return (dcc.Graph(figure=fig),)
+    fig.add_trace(go.Scattergl(x=srecord3c.ns.time(), y=srecord3c.ns.amplitude.tolist(), name="NS"), row=1, col=1)
+    fig.add_trace(go.Scattergl(x=srecord3c.ew.time(), y=srecord3c.ew.amplitude.tolist(), name="EW"), row=2, col=1)
+    fig.add_trace(go.Scattergl(x=srecord3c.vt.time(), y=srecord3c.vt.amplitude.tolist(), name="VT"), row=3, col=1)
+    fig.update_layout(margin=dict(t=50, b=100, l=100, r=50), height=600)
+    return [dcc.Graph(figure=fig, ),]
 
 
 def plot_preprocessed_srecord3c(records):
@@ -1887,7 +1884,7 @@ def _plot_individual_invalid_hvsr_curves(fig, hvsr):
     show_legend = True
     for hvsr in hvsrs:
         for amplitude in hvsr.amplitude[~hvsr.valid_window_boolean_mask]:
-            fig.add_trace(go.Scatter(x=hvsr.frequency, y=amplitude, name=name, showlegend=show_legend, legendgroup="invalid", legendrank=2,
+            fig.add_trace(go.Scatter(x=hvsr.frequency.tolist(), y=amplitude.tolist(), name=name, showlegend=show_legend, legendgroup="invalid", legendrank=2,
                                      line=dict(color=DEFAULT_PLOT_KWARGS["color_of_individual_invalid_hvsr_curve"],
                                                width=DEFAULT_PLOT_KWARGS["width_of_individual_hvsr_curve"])), row=1, col=1),
             show_legend = False
@@ -1899,8 +1896,7 @@ def _plot_individual_valid_hvsr_curves(fig, hvsr):
     show_legend = True
     for hvsr in hvsrs:
         for amplitude in hvsr.amplitude[hvsr.valid_window_boolean_mask]:
-
-            fig.add_trace(go.Scatter(x=hvsr.frequency, y=amplitude, name=name, showlegend=show_legend, legendgroup="valid", legendrank=1,
+            fig.add_trace(go.Scatter(x=hvsr.frequency.tolist(), y=amplitude.tolist(), name=name, showlegend=show_legend, legendgroup="valid", legendrank=1,
                                      line=dict(color=DEFAULT_PLOT_KWARGS["color_of_individual_valid_hvsr_curve"],
                                                width=DEFAULT_PLOT_KWARGS["width_of_individual_hvsr_curve"])), row=1, col=1)
             show_legend = False
@@ -1909,18 +1905,18 @@ def _plot_individual_valid_hvsr_curves(fig, hvsr):
 def _plot_mean_hvsr_curve(fig, hvsr, distribution_mean_curve_value):
     name = DEFAULT_PLOT_KWARGS["label_of_mean_hvsr_curve"]
     mean_curve = hvsr.mean_curve(distribution=distribution_mean_curve_value)
-    fig.add_trace(go.Scatter(x=hvsr.frequency, y=mean_curve, name=name,
+    fig.add_trace(go.Scatter(x=hvsr.frequency.tolist(), y=mean_curve.tolist(), name=name,
                   line=dict(color=DEFAULT_PLOT_KWARGS["color_of_mean_hvsr_curve"],
                             width=DEFAULT_PLOT_KWARGS["width_of_mean_hvsr_curve"])), row=1, col=1)
 
 
 def _plot_mean_pm_std_hvsr_curve(fig, hvsr, distribution_mean_curve_value, n=1):
     name = DEFAULT_PLOT_KWARGS["label_of_nth_std_mean_hvsr_curve"]
-    fig.add_trace(go.Scatter(x=hvsr.frequency, y=hvsr.nth_std_curve(n=n, distribution=distribution_mean_curve_value), name=name, legendgroup="hvsr_std",
+    fig.add_trace(go.Scatter(x=hvsr.frequency.tolist(), y=hvsr.nth_std_curve(n=n, distribution=distribution_mean_curve_value).tolist(), name=name, legendgroup="hvsr_std",
                   line=dict(color=DEFAULT_PLOT_KWARGS["color_of_mean_hvsr_curve"],
                             width=DEFAULT_PLOT_KWARGS["width_of_nth_std_mean_hvsr_curve"],
                             dash="dash")), row=1, col=1)
-    fig.add_trace(go.Scatter(x=hvsr.frequency, y=hvsr.nth_std_curve(n=-n, distribution=distribution_mean_curve_value), showlegend=False, legendgroup="hvsr_std",
+    fig.add_trace(go.Scatter(x=hvsr.frequency.tolist(), y=hvsr.nth_std_curve(n=-n, distribution=distribution_mean_curve_value).tolist(), showlegend=False, legendgroup="hvsr_std",
                   line=dict(color=DEFAULT_PLOT_KWARGS["color_of_mean_hvsr_curve"],
                             width=DEFAULT_PLOT_KWARGS["width_of_nth_std_mean_hvsr_curve"],
                             dash="dash")), row=1, col=1)
@@ -1930,7 +1926,7 @@ def _plot_individual_peaks_from_iterable_of_peaks(fig, frequency, amplitude):
     name = DEFAULT_PLOT_KWARGS["label_of_valid_peak_individual_curves"]
     show_legend = True
     for _frequency, _amplitude in zip(frequency, amplitude):
-        fig.add_trace(go.Scatter(x=_frequency, y=_amplitude, name=name, showlegend=show_legend, legendgroup="peak", mode="markers",
+        fig.add_trace(go.Scatter(x=_frequency.tolist(), y=_amplitude.tolist(), name=name, showlegend=show_legend, legendgroup="peak", mode="markers",
                                  marker=dict(color=DEFAULT_PLOT_KWARGS["fill_color_of_valid_peak_individual_curves"],
                                              size=4,
                                              line=dict(color=DEFAULT_PLOT_KWARGS["edge_color_of_valid_peak_individual_curves"],
@@ -1984,7 +1980,7 @@ def _plot_azimuthal_hvsr_3d(fig, hvsr, distribution_mean_curve_value):
     median_curves = hvsr.mean_curve_by_azimuth(distribution=distribution_mean_curve_value)
     z[:-1, :] = median_curves
     z[-1, :] = median_curves[0]
-    fig.add_trace(go.Surface(z=z, x=x, y=y))
+    fig.add_trace(go.Surface(z=z.tolist(), x=x.tolist(), y=y))
 
 
 def plot_hvsr_diffuse(hvsr, distribution_resonance_value, distribution_mean_curve_value, search_range_in_hz):
@@ -2475,7 +2471,7 @@ def processing_hvsr(process_settings_data, reset_to_process_step_data, processin
 
             # apply hvsr-domain window rejection
             if rejection_select_value == "fdwra" and settings.processing_method != "diffuse_field":
-                max_iteration = hvsrpy.frequency_domain_window_rejection(hvsr,
+                _ = hvsrpy.frequency_domain_window_rejection(hvsr,
                                                                          n=fdwra_n_value,
                                                                          max_iterations=fdwra_max_iteration_value,
                                                                          distribution_fn=distribution_resonance_value,
@@ -2642,4 +2638,4 @@ def processing_hvsr(process_settings_data, reset_to_process_step_data, processin
 
 
 if __name__ == "__main__":
-    app.run_server(debug=True, host="0.0.0.0", port="8050")
+    app.run(debug=True, host="0.0.0.0", port="8050")
