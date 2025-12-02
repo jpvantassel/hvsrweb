@@ -39,7 +39,7 @@ intro_tab = dbc.Card(
 
             HVSRweb is a web application for horizontal-to-vertical
             spectral ratio (HVSR) processing (Vantassel et al., 2021).
-            HVSRweb utilizes _hvsrpy_ (Vantassel, 2020) behind Dash
+            HVSRweb utilizes _hvsrpy_ (Vantassel, 2020, 2025) behind Dash
             (Plotly, 2017) to offer a cloud-based tool for HVSR
             processing. HVSRweb is hosted on computing resources
             made available through the DesignSafe-CI
@@ -1055,7 +1055,7 @@ app.layout = html.Div(
             dcc.Store(id='reset-to-process-step'),
         ], fluid=True),
 
-        html.Footer(dbc.Container(children=[html.Div("HVSRweb v0.3.0 © 2019-2023"),
+        html.Footer(dbc.Container(children=[html.Div("HVSRweb v0.4.0 © 2019-2025"),
                                             html.Div("Joseph P. Vantassel & Dana M. Brannon")],
                                   className="text-muted"),
                     className="footer")
@@ -2175,8 +2175,9 @@ def generate_table_for_resonance_from_values(mean_curve_peak_frequency, mean_cur
                      style={"color": "secondary"})
 
 
-def generate_table_for_resonance(hvsr, distribution_resonance_value, distribution_mean_curve_value, search_range_in_hz):
-    hvsr.update_peaks_bounded(search_range_in_hz=search_range_in_hz)
+def generate_table_for_resonance(hvsr, distribution_resonance_value, distribution_mean_curve_value, search_range_in_hz, update_peaks=True):
+    if update_peaks:
+        hvsr.update_peaks_bounded(search_range_in_hz=search_range_in_hz)
     mean_curve_peak_frequency, mean_curve_peak_amplitude = hvsr.mean_curve_peak(distribution=distribution_mean_curve_value)
 
     if isinstance(hvsr, hvsrpy.HvsrDiffuseField):
@@ -2472,14 +2473,16 @@ def processing_hvsr(process_settings_data, reset_to_process_step_data, processin
             # apply hvsr-domain window rejection
             if rejection_select_value == "fdwra" and settings.processing_method != "diffuse_field":
                 _ = hvsrpy.frequency_domain_window_rejection(hvsr,
-                                                                         n=fdwra_n_value,
-                                                                         max_iterations=fdwra_max_iteration_value,
-                                                                         distribution_fn=distribution_resonance_value,
-                                                                         distribution_mc=distribution_mean_curve_value,
-                                                                         search_range_in_hz=search_range_in_hz)
+                                                             n=fdwra_n_value,
+                                                             max_iterations=fdwra_max_iteration_value,
+                                                             distribution_fn=distribution_resonance_value,
+                                                             distribution_mc=distribution_mean_curve_value,
+                                                             search_range_in_hz=search_range_in_hz)
+
 
             resonance_tables = [generate_table_for_resonance(hvsr, distribution_resonance_value,
-                                                             distribution_mean_curve_value, search_range_in_hz)]
+                                                             distribution_mean_curve_value, search_range_in_hz, update_peaks=False)]
+
             resonance_tables.extend([None]*5)
             resonance_tables_display = [HIDE_CONTAINER]*5
             summary_table = generate_table_summary(hvsr)
