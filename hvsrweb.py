@@ -16,6 +16,8 @@ import plotly.subplots
 import plotly.graph_objs as go
 import hvsrpy
 
+RUN_STATE = "TEST"
+
 # Style Settings
 default_span_style = {"cursor": "context-menu",
                       "padding": "1em", "margin-top": "0em"}
@@ -2639,6 +2641,10 @@ def processing_hvsr(process_settings_data, reset_to_process_step_data, processin
 
     raise PreventUpdate
 
-
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port="8050")
+    if RUN_STATE == "TEST":
+        app.run(debug=True, host="0.0.0.0", port="8050")
+    elif RUN_STATE == "PRODUCTION":
+        application.run(host="0.0.0.0")
+    else:
+        raise ValueError(f"RUN_STATE={RUN_STATE} unkown.")
