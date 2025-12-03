@@ -2,3 +2,6 @@ flask
 dash
 dash_bootstrap_components
 hvsrpy>=2.0.0-rc.1
+xgboost
+scikit-learn
+ipython

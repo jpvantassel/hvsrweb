@@ -16,6 +16,8 @@ import plotly.subplots
 import plotly.graph_objs as go
 import hvsrpy
 
+RUN_STATE = "TEST"
+
 # Style Settings
 default_span_style = {"cursor": "context-menu",
                       "padding": "1em", "margin-top": "0em"}
@@ -39,7 +41,7 @@ intro_tab = dbc.Card(
 
             HVSRweb is a web application for horizontal-to-vertical
             spectral ratio (HVSR) processing (Vantassel et al., 2021).
-            HVSRweb utilizes _hvsrpy_ (Vantassel, 2020) behind Dash
+            HVSRweb utilizes _hvsrpy_ (Vantassel, 2020, 2025) behind Dash
             (Plotly, 2017) to offer a cloud-based tool for HVSR
             processing. HVSRweb is hosted on computing resources
             made available through the DesignSafe-CI
@@ -1055,7 +1057,7 @@ app.layout = html.Div(
             dcc.Store(id='reset-to-process-step'),
         ], fluid=True),
 
-        html.Footer(dbc.Container(children=[html.Div("HVSRweb v0.3.0 © 2019-2023"),
+        html.Footer(dbc.Container(children=[html.Div("HVSRweb v0.4.0 © 2019-2025"),
                                             html.Div("Joseph P. Vantassel & Dana M. Brannon")],
                                   className="text-muted"),
                     className="footer")
@@ -1264,17 +1266,14 @@ def gather_filename_from_user(demo_button_n_clicks, upload_bar_contents,
 
 
 def plot_srecord3c(srecord3c):
+
     fig = plotly.subplots.make_subplots(rows=3, cols=1, shared_xaxes=True, shared_yaxes=True,
                                         x_title="Time (s)", y_title="Amplitude (counts)", vertical_spacing=0.03)
-    fig.add_trace(go.Scatter(x=srecord3c.ns.time(),
-                  y=srecord3c.ns.amplitude, name="NS"), row=1, col=1)
-    fig.add_trace(go.Scatter(x=srecord3c.ew.time(),
-                  y=srecord3c.ew.amplitude, name="EW"), row=2, col=1)
-    fig.add_trace(go.Scatter(x=srecord3c.vt.time(),
-                  y=srecord3c.vt.amplitude, name="VT"), row=3, col=1)
-    fig.update_layout(margin=dict(t=50, b=100, l=100, r=50),
-                      height=600)
-    return (dcc.Graph(figure=fig),)
+    fig.add_trace(go.Scattergl(x=srecord3c.ns.time(), y=srecord3c.ns.amplitude.tolist(), name="NS"), row=1, col=1)
+    fig.add_trace(go.Scattergl(x=srecord3c.ew.time(), y=srecord3c.ew.amplitude.tolist(), name="EW"), row=2, col=1)
+    fig.add_trace(go.Scattergl(x=srecord3c.vt.time(), y=srecord3c.vt.amplitude.tolist(), name="VT"), row=3, col=1)
+    fig.update_layout(margin=dict(t=50, b=100, l=100, r=50), height=600)
+    return [dcc.Graph(figure=fig, ),]
 
 
 def plot_preprocessed_srecord3c(records):
@@ -1665,16 +1664,18 @@ def prepare_traditional_settings(combine_horizontals_select_value, window_type_v
     if combine_horizontals_select_value == "single_azimuth":
         return hvsrpy.HvsrTraditionalSingleAzimuthProcessingSettings(
             window_type_and_width=(window_type_value, window_width_value),
-            smoothing_operator_and_bandwidth=(smoothing_operator_value, smoothing_bandwidth_value),
-            frequency_resampling_in_hz=frequency_resampling_in_hz,
+            smoothing=dict(operator=smoothing_operator_value,
+                           bandwidth=smoothing_bandwidth_value,
+                           center_frequencies_in_hz=frequency_resampling_in_hz),
             azimuth_in_degrees=single_azimuth_value
         ).attr_dict
 
     if combine_horizontals_select_value == "rotdpp":
         return hvsrpy.HvsrTraditionalRotDppProcessingSettings(
             window_type_and_width=(window_type_value, window_width_value),
-            smoothing_operator_and_bandwidth=(smoothing_operator_value, smoothing_bandwidth_value),
-            frequency_resampling_in_hz=frequency_resampling_in_hz,
+            smoothing=dict(operator=smoothing_operator_value,
+                           bandwidth=smoothing_bandwidth_value,
+                           center_frequencies_in_hz=frequency_resampling_in_hz),
             ppth_percentile_for_rotdpp_computation=rotdpp_azimuthal_ppth_percential_value,
             azimuths_in_degrees=np.arange(0, 180, rotdpp_azimuthal_interval_value)
         ).attr_dict
@@ -1682,16 +1683,18 @@ def prepare_traditional_settings(combine_horizontals_select_value, window_type_v
     return hvsrpy.HvsrTraditionalProcessingSettings(
         method_to_combine_horizontals=combine_horizontals_select_value,
         window_type_and_width=(window_type_value, window_width_value),
-        smoothing_operator_and_bandwidth=(smoothing_operator_value, smoothing_bandwidth_value),
-        frequency_resampling_in_hz=frequency_resampling_in_hz
+        smoothing=dict(operator=smoothing_operator_value,
+                        bandwidth=smoothing_bandwidth_value,
+                        center_frequencies_in_hz=frequency_resampling_in_hz),
     ).attr_dict
 
 
 def prepare_azimuthal_settings(window_type_value, window_width_value, smoothing_operator_value, smoothing_bandwidth_value, frequency_resampling_in_hz, azimuthal_interval_value):
     return hvsrpy.HvsrAzimuthalProcessingSettings(
         window_type_and_width=(window_type_value, window_width_value),
-        smoothing_operator_and_bandwidth=(smoothing_operator_value, smoothing_bandwidth_value),
-        frequency_resampling_in_hz=frequency_resampling_in_hz,
+        smoothing=dict(operator=smoothing_operator_value,
+                        bandwidth=smoothing_bandwidth_value,
+                        center_frequencies_in_hz=frequency_resampling_in_hz),
         azimuths_in_degrees=np.arange(0, 180, azimuthal_interval_value)
     ).attr_dict
 
@@ -1699,8 +1702,9 @@ def prepare_azimuthal_settings(window_type_value, window_width_value, smoothing_
 def prepare_diffuse_settings(window_type_value, window_width_value, smoothing_operator_value, smoothing_bandwidth_value, frequency_resampling_in_hz):
     return hvsrpy.HvsrDiffuseFieldProcessingSettings(
         window_type_and_width=(window_type_value, window_width_value),
-        smoothing_operator_and_bandwidth=(smoothing_operator_value, smoothing_bandwidth_value),
-        frequency_resampling_in_hz=frequency_resampling_in_hz
+        smoothing=dict(operator=smoothing_operator_value,
+                        bandwidth=smoothing_bandwidth_value,
+                        center_frequencies_in_hz=frequency_resampling_in_hz),
     ).attr_dict
 
 
@@ -1722,7 +1726,6 @@ def create_processing_settings_manual(process_method_value, combine_horizontals_
                                             rotdpp_azimuthal_interval_value, rotdpp_azimuthal_ppth_percential_value)
 
     if process_method_value == "azimuthal":
-        print(frequency_resampling_in_hz)
         return prepare_azimuthal_settings(window_type_value, window_width_value,
                                           smoothing_operator_value, smoothing_bandwidth_value, frequency_resampling_in_hz, azimuthal_interval_value)
 
@@ -1883,7 +1886,7 @@ def _plot_individual_invalid_hvsr_curves(fig, hvsr):
     show_legend = True
     for hvsr in hvsrs:
         for amplitude in hvsr.amplitude[~hvsr.valid_window_boolean_mask]:
-            fig.add_trace(go.Scatter(x=hvsr.frequency, y=amplitude, name=name, showlegend=show_legend, legendgroup="invalid", legendrank=2,
+            fig.add_trace(go.Scatter(x=hvsr.frequency.tolist(), y=amplitude.tolist(), name=name, showlegend=show_legend, legendgroup="invalid", legendrank=2,
                                      line=dict(color=DEFAULT_PLOT_KWARGS["color_of_individual_invalid_hvsr_curve"],
                                                width=DEFAULT_PLOT_KWARGS["width_of_individual_hvsr_curve"])), row=1, col=1),
             show_legend = False
@@ -1895,8 +1898,7 @@ def _plot_individual_valid_hvsr_curves(fig, hvsr):
     show_legend = True
     for hvsr in hvsrs:
         for amplitude in hvsr.amplitude[hvsr.valid_window_boolean_mask]:
-
-            fig.add_trace(go.Scatter(x=hvsr.frequency, y=amplitude, name=name, showlegend=show_legend, legendgroup="valid", legendrank=1,
+            fig.add_trace(go.Scatter(x=hvsr.frequency.tolist(), y=amplitude.tolist(), name=name, showlegend=show_legend, legendgroup="valid", legendrank=1,
                                      line=dict(color=DEFAULT_PLOT_KWARGS["color_of_individual_valid_hvsr_curve"],
                                                width=DEFAULT_PLOT_KWARGS["width_of_individual_hvsr_curve"])), row=1, col=1)
             show_legend = False
@@ -1905,18 +1907,18 @@ def _plot_individual_valid_hvsr_curves(fig, hvsr):
 def _plot_mean_hvsr_curve(fig, hvsr, distribution_mean_curve_value):
     name = DEFAULT_PLOT_KWARGS["label_of_mean_hvsr_curve"]
     mean_curve = hvsr.mean_curve(distribution=distribution_mean_curve_value)
-    fig.add_trace(go.Scatter(x=hvsr.frequency, y=mean_curve, name=name,
+    fig.add_trace(go.Scatter(x=hvsr.frequency.tolist(), y=mean_curve.tolist(), name=name,
                   line=dict(color=DEFAULT_PLOT_KWARGS["color_of_mean_hvsr_curve"],
                             width=DEFAULT_PLOT_KWARGS["width_of_mean_hvsr_curve"])), row=1, col=1)
 
 
 def _plot_mean_pm_std_hvsr_curve(fig, hvsr, distribution_mean_curve_value, n=1):
     name = DEFAULT_PLOT_KWARGS["label_of_nth_std_mean_hvsr_curve"]
-    fig.add_trace(go.Scatter(x=hvsr.frequency, y=hvsr.nth_std_curve(n=n, distribution=distribution_mean_curve_value), name=name, legendgroup="hvsr_std",
+    fig.add_trace(go.Scatter(x=hvsr.frequency.tolist(), y=hvsr.nth_std_curve(n=n, distribution=distribution_mean_curve_value).tolist(), name=name, legendgroup="hvsr_std",
                   line=dict(color=DEFAULT_PLOT_KWARGS["color_of_mean_hvsr_curve"],
                             width=DEFAULT_PLOT_KWARGS["width_of_nth_std_mean_hvsr_curve"],
                             dash="dash")), row=1, col=1)
-    fig.add_trace(go.Scatter(x=hvsr.frequency, y=hvsr.nth_std_curve(n=-n, distribution=distribution_mean_curve_value), showlegend=False, legendgroup="hvsr_std",
+    fig.add_trace(go.Scatter(x=hvsr.frequency.tolist(), y=hvsr.nth_std_curve(n=-n, distribution=distribution_mean_curve_value).tolist(), showlegend=False, legendgroup="hvsr_std",
                   line=dict(color=DEFAULT_PLOT_KWARGS["color_of_mean_hvsr_curve"],
                             width=DEFAULT_PLOT_KWARGS["width_of_nth_std_mean_hvsr_curve"],
                             dash="dash")), row=1, col=1)
@@ -1926,7 +1928,7 @@ def _plot_individual_peaks_from_iterable_of_peaks(fig, frequency, amplitude):
     name = DEFAULT_PLOT_KWARGS["label_of_valid_peak_individual_curves"]
     show_legend = True
     for _frequency, _amplitude in zip(frequency, amplitude):
-        fig.add_trace(go.Scatter(x=_frequency, y=_amplitude, name=name, showlegend=show_legend, legendgroup="peak", mode="markers",
+        fig.add_trace(go.Scatter(x=_frequency.tolist(), y=_amplitude.tolist(), name=name, showlegend=show_legend, legendgroup="peak", mode="markers",
                                  marker=dict(color=DEFAULT_PLOT_KWARGS["fill_color_of_valid_peak_individual_curves"],
                                              size=4,
                                              line=dict(color=DEFAULT_PLOT_KWARGS["edge_color_of_valid_peak_individual_curves"],
@@ -1968,8 +1970,8 @@ def _plot_peak_mean_curve_multiple(fig, frequency, amplitude):
 
 
 def _plot_peak_mean_curve(fig, hvsr, distribution_mean_curve_value, search_range_in_hz):
-    x, y = hvsr.mean_curve_peak(distribution=distribution_mean_curve_value,
-                                search_range_in_hz=search_range_in_hz)
+    hvsr.update_peaks_bounded(search_range_in_hz=search_range_in_hz)
+    x, y = hvsr.mean_curve_peak(distribution=distribution_mean_curve_value)
     _plot_peak_mean_curve_multiple(fig, [x], [y])
 
 
@@ -1980,7 +1982,7 @@ def _plot_azimuthal_hvsr_3d(fig, hvsr, distribution_mean_curve_value):
     median_curves = hvsr.mean_curve_by_azimuth(distribution=distribution_mean_curve_value)
     z[:-1, :] = median_curves
     z[-1, :] = median_curves[0]
-    fig.add_trace(go.Surface(z=z, x=x, y=y))
+    fig.add_trace(go.Surface(z=z.tolist(), x=x.tolist(), y=y))
 
 
 def plot_hvsr_diffuse(hvsr, distribution_resonance_value, distribution_mean_curve_value, search_range_in_hz):
@@ -2175,10 +2177,10 @@ def generate_table_for_resonance_from_values(mean_curve_peak_frequency, mean_cur
                      style={"color": "secondary"})
 
 
-def generate_table_for_resonance(hvsr, distribution_resonance_value, distribution_mean_curve_value, search_range_in_hz):
-
-    mean_curve_peak_frequency, mean_curve_peak_amplitude = hvsr.mean_curve_peak(distribution=distribution_mean_curve_value,
-                                                                                search_range_in_hz=search_range_in_hz)
+def generate_table_for_resonance(hvsr, distribution_resonance_value, distribution_mean_curve_value, search_range_in_hz, update_peaks=True):
+    if update_peaks:
+        hvsr.update_peaks_bounded(search_range_in_hz=search_range_in_hz)
+    mean_curve_peak_frequency, mean_curve_peak_amplitude = hvsr.mean_curve_peak(distribution=distribution_mean_curve_value)
 
     if isinstance(hvsr, hvsrpy.HvsrDiffuseField):
         return generate_table_for_resonance_from_values(mean_curve_peak_frequency, mean_curve_peak_amplitude)
@@ -2337,7 +2339,7 @@ def extract_hvsr_features(hvsr, idx=0):
 def create_hvsrpy_file_href(hvsr, distribution_mean_curve):
     """Generate hrefs to be put inside hv-download and geopsy-download."""
     bytes_io_object = io.BytesIO()
-    hvsrpy.write_hvsr_to_file(hvsr, bytes_io_object, distribution_mean_curve)
+    hvsrpy.write_hvsr_object_to_file(hvsr, bytes_io_object, distribution_mean_curve)
     bytes_io_object.seek(0, 0)
     encoded = base64.b64encode(bytes_io_object.read()).decode("utf-8").replace("\n", "")
     bytes_io_object.close()
@@ -2472,15 +2474,17 @@ def processing_hvsr(process_settings_data, reset_to_process_step_data, processin
 
             # apply hvsr-domain window rejection
             if rejection_select_value == "fdwra" and settings.processing_method != "diffuse_field":
-                max_iteration = hvsrpy.frequency_domain_window_rejection(hvsr,
-                                                                         n=fdwra_n_value,
-                                                                         max_iterations=fdwra_max_iteration_value,
-                                                                         distribution_fn=distribution_resonance_value,
-                                                                         distribution_mc=distribution_mean_curve_value,
-                                                                         search_range_in_hz=search_range_in_hz)
+                _ = hvsrpy.frequency_domain_window_rejection(hvsr,
+                                                             n=fdwra_n_value,
+                                                             max_iterations=fdwra_max_iteration_value,
+                                                             distribution_fn=distribution_resonance_value,
+                                                             distribution_mc=distribution_mean_curve_value,
+                                                             search_range_in_hz=search_range_in_hz)
+
 
             resonance_tables = [generate_table_for_resonance(hvsr, distribution_resonance_value,
-                                                             distribution_mean_curve_value, search_range_in_hz)]
+                                                             distribution_mean_curve_value, search_range_in_hz, update_peaks=False)]
+
             resonance_tables.extend([None]*5)
             resonance_tables_display = [HIDE_CONTAINER]*5
             summary_table = generate_table_summary(hvsr)
@@ -2501,7 +2505,7 @@ def processing_hvsr(process_settings_data, reset_to_process_step_data, processin
 
             if isinstance(hvsr, hvsrpy.HvsrAzimuthal):
                 if rejection_select_value != "fdwra":
-                    hvsr._update_peaks_bounded(search_range_in_hz=search_range_in_hz)
+                    hvsr.update_peaks_bounded(search_range_in_hz=search_range_in_hz)
                 return (*plot_hvsr_azimuthal(hvsr, distribution_resonance_value, distribution_mean_curve_value, search_range_in_hz),
                         False,
                         False,
@@ -2517,7 +2521,7 @@ def processing_hvsr(process_settings_data, reset_to_process_step_data, processin
 
             if isinstance(hvsr, hvsrpy.HvsrTraditional):
                 if rejection_select_value != "fdwra":
-                    hvsr._update_peaks_bounded(search_range_in_hz=search_range_in_hz)
+                    hvsr.update_peaks_bounded(search_range_in_hz=search_range_in_hz)
                 return (*plot_hvsr_traditional(hvsr, distribution_resonance_value, distribution_mean_curve_value, search_range_in_hz),
                         False,
                         True,
@@ -2637,6 +2641,10 @@ def processing_hvsr(process_settings_data, reset_to_process_step_data, processin
 
     raise PreventUpdate
 
-
 if __name__ == "__main__":
-    app.run_server(debug=True, host="0.0.0.0", port="8050")
+    if RUN_STATE == "TEST":
+        app.run(debug=True, host="0.0.0.0", port="8050")
+    elif RUN_STATE == "PRODUCTION":
+        application.run(host="0.0.0.0")
+    else:
+        raise ValueError(f"RUN_STATE={RUN_STATE} unkown.")
